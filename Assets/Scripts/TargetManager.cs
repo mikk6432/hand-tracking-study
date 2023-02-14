@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.IsolatedStorage;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using Utils;
@@ -17,6 +18,8 @@ public class TargetManager : MonoBehaviour
     [SerializeField] private float targetScaleFactor = 1f;
     [SerializeField] private int targetCount = 7;
     [SerializeField] private GameObject line;
+
+    [SerializeField] private TextMeshPro textMeshPro;
 
     private readonly Color _activeColor = Color.black;
     private readonly Color _inactiveColor = Color.gray;
@@ -37,7 +40,7 @@ public class TargetManager : MonoBehaviour
         }
     }
 
-    private IEnumerator Start()
+    /*private IEnumerator Start()
     {
         var factors = new [] { 0.6f, 1f, 1.4f };
         for (int i = 0; ; i = (i + 1) % 3)
@@ -54,13 +57,13 @@ public class TargetManager : MonoBehaviour
             
             yield return new WaitForSeconds(3);
         }
-    }
+    }*/
 
-    // private void Start()
-    // {
-    //     CreateTargets();
-    //     StartCoroutine(TargetRandomOrder());
-    // }
+    private void Start()
+    {
+        CreateTargets();
+        StartCoroutine(TargetRandomOrder());
+    }
 
     private void CreateTargets()
     {
@@ -86,35 +89,8 @@ public class TargetManager : MonoBehaviour
         line.transform.localPosition = new Vector3(localPlaneOXY.x, localPlaneOXY.y, 0);
     }
 
-    // private IEnumerator WaitUntilEvent(UnityEvent<Vector2> unityEvent)
-    // {
-    //     var trigger = false;
-    //     Action<Vector2> action = (v) =>
-    //     {
-    //         RedrawLine(v);
-    //         trigger = true;
-    //     };
-    //     unityEvent.AddListener(action.Invoke);
-    //     yield return new WaitUntil(() => trigger);
-    //     unityEvent.RemoveListener(action.Invoke);
-    // }
-
     private IEnumerator TargetRandomOrder()
     {
-        // var random = new Random();
-        // while (true)
-        // {
-        //     var target = _targets[random.Next(0, targetCount)];
-        //
-        //     var render = target.GetComponent<Renderer>();
-        //
-        //     render.material.color = activeColor;
-        //
-        //     yield return WaitUntilEvent(projector.triggerEnterEvent);
-        //     
-        //     render.material.color = inactiveColor;
-        // }
-
         foreach (int i in FittsLawIterator(targetCount))
         {
             var target = _targets[i];
@@ -127,59 +103,21 @@ public class TargetManager : MonoBehaviour
             yield return waitForEvent;
 
             var vectorLocalCoordinates = waitForEvent.Data;
-            
-            // Debug.Log("localCoords = " + vectorLocalCoordinates);
-            
+
             RedrawLine(vectorLocalCoordinates);
             var targetCoords = LocalPlaneCoordinatesToTarget(vectorLocalCoordinates, i);
 
-            // Debug.Log("targetCoords = " + targetCoords);
-            
             var targetRadius = .025f * targetScaleFactor / 2;
-            
-            // Debug.Log($"targetRadius = " + targetRadius);
-            
+
             var hitSuccessful = targetCoords.magnitude <= targetRadius;
+            
+            textMeshPro.text = (hitSuccessful ? "success\n" : "fail\n") +
+                               $"{targetCoords.x:F3}\n" +
+                               $"{targetCoords.y:F3}";;
 
             render.material.color = hitSuccessful ? _successColor : _failColor;
 
             yield return  new WaitForEvent(projector.triggerExitEvent);
-
-            render.material.color = _inactiveColor;
-        }
-    }
-    
-    private IEnumerator TargetRandomOrder2()
-    {
-        foreach (int i in FittsLawIterator(targetCount))
-        {
-            var target = _targets[i];
-
-            var render = target.GetComponent<Renderer>();
-
-            render.material.color = _activeColor;
-
-            var waitForEvent = new WaitForEvent<Vector2>(projector.triggerEnterEvent);
-            yield return waitForEvent;
-
-            var vectorLocalCoordinates = waitForEvent.Data;
-            
-            // Debug.Log("localCoords = " + vectorLocalCoordinates);
-            
-            RedrawLine(vectorLocalCoordinates);
-            var targetCoords = LocalPlaneCoordinatesToTarget(vectorLocalCoordinates, i);
-
-            // Debug.Log("targetCoords = " + targetCoords);
-            
-            var targetRadius = .025f * targetScaleFactor / 2;
-            
-            // Debug.Log($"targetRadius = " + targetRadius);
-            
-            var hitSuccessful = targetCoords.magnitude <= targetRadius;
-
-            render.material.color = hitSuccessful ? _successColor : _failColor;
-
-            yield return new WaitForEvent(projector.triggerExitEvent);
 
             render.material.color = _inactiveColor;
         }

@@ -33,7 +33,7 @@ public class OculusHandCenterAnchor: MonoBehaviour
     private void Update()
     {
         if (_bone == null) _bone = ovrSkeleton.Bones.FirstOrDefault(bone => bone.Id == OVRSkeleton.BoneId.Hand_WristRoot);
-        
+
         transform.position = _bone.Transform.position;
         transform.rotation = _bone.Transform.rotation;
         transform.localRotation *= rotateFactor;
