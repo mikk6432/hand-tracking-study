@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 5982539945872600287}
   - component: {fileID: 5033135438854003084}
   - component: {fileID: 1822994866901230766}
-  - component: {fileID: 907328428310386470}
   m_Layer: 0
   m_Name: Targets
   m_TagString: Untagged
@@ -65,6 +64,8 @@ MonoBehaviour:
   diameter: 0.15
   targetScaleFactor: 1
   targetCount: 7
+  line: {fileID: 0}
+  textMeshPro: {fileID: 0}
 --- !u!114 &1822994866901230766
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -77,18 +78,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9d4ef0d531f44f7881f224da41b48d0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &907328428310386470
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4098832029354416478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ba8df1d63dda74215ad66827ffcd2d9c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _handCenter: {fileID: 0}
-  rightHandMode: 0
-  offset: 0.15
