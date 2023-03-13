@@ -12,7 +12,7 @@ namespace SpatialUIPlacement
         private Transform _headset;
 #pragma warning restore 649
         [SerializeField]
-        private bool GoogleWay = true;
+        private bool GoogleWay = false;
 
         private void Start()
         {
