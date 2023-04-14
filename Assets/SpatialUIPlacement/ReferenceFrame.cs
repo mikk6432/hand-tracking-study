@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace SpatialUIPlacement
 {
-    [ExecuteAlways]
+    // [ExecuteAlways] // comment added by not so smart Artem
     public class ReferenceFrame : MonoBehaviour
     {
         private static readonly MethodInfo _getLocalEulerAnglesInfo = typeof(Transform).GetMethod("GetLocalEulerAngles", BindingFlags.Instance | BindingFlags.NonPublic); // Source of the solution: https://forum.unity.com/threads/solved-how-to-get-rotation-value-that-is-in-the-inspector.460310/#post-3333095
@@ -72,6 +72,7 @@ namespace SpatialUIPlacement
 
         protected virtual void Start()
         {
+            Debug.Log("aa");
             _refFrameTransform = FishOutRefFrameObj();
 
             if (Application.isPlaying) // Runtime: build or Play mode in Unity Editor
@@ -101,12 +102,13 @@ namespace SpatialUIPlacement
             else // Editor mode
             {
                 // If the reference frame object doesn't exist, create one
-                if (_refFrameTransform == null)
+                // comment added by not so smart Artem
+                /*if (_refFrameTransform == null)
                     _refFrameTransform = CreateRefFrameObj(transform);
 
                 // Store initial position and rotation
                 _referenceFrame.position = _axesRepresent == _.LocalCoordinateSystem ? _refFrameTransform.localPosition : _refFrameTransform.position;
-                _referenceFrame.rotation = _axesRepresent == _.LocalCoordinateSystem ? _refFrameTransform.localEulerAngles : _refFrameTransform.rotation.eulerAngles;
+                _referenceFrame.rotation = _axesRepresent == _.LocalCoordinateSystem ? _refFrameTransform.localEulerAngles : _refFrameTransform.rotation.eulerAngles;*/
             }
         }
 

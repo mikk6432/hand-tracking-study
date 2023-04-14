@@ -10,17 +10,15 @@ namespace HandInteractionsOnTheGo
         [SerializeField] private OVRSkeleton ovrSkeleton;
         [SerializeField] private OVRSkeleton.BoneId boneId;
         [SerializeField] private Vector3 offsetPosition;
+        [SerializeField] private OVRHand.Hand hand = OVRHand.Hand.HandLeft;
 
         private OVRBone _bone;
 
         // to make palm look at us with fingers up
-        // private static readonly Quaternion OculusRotateFactor = Quaternion.LookRotation(Vector3.up, Vector3.left);
-        private static readonly Quaternion OculusRotateFactor =
-                // Quaternion.identity
-            // Quaternion.Inverse(
-            Quaternion.LookRotation(Vector3.down, Vector3.left)
-        // )
-            ;
+        private static readonly Quaternion OculusLeftHandRotateFactor =
+            Quaternion.LookRotation(Vector3.down, Vector3.left);
+        private static readonly Quaternion OculusRightHandRotateFactor =
+            Quaternion.LookRotation(Vector3.up, Vector3.right);
 
         private void OnEnable()
         {
@@ -55,9 +53,11 @@ namespace HandInteractionsOnTheGo
         {
             var boneRotation = _bone.Transform.rotation;
 
-            rotation = boneRotation * OculusRotateFactor;
+            rotation = boneRotation *
+                       (hand == OVRHand.Hand.HandLeft
+                           ? OculusLeftHandRotateFactor
+                           : OculusRightHandRotateFactor);
             position = rotation * offsetPosition + _bone.Transform.position;
-            // rotation = OculusRotateFactor * boneRotation;
         }
     }
 }

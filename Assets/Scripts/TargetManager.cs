@@ -86,7 +86,7 @@ public class TargetManager : MonoBehaviour
 
     private void RedrawLine(Vector2 localPlaneOXY)
     {
-        line.transform.localPosition = new Vector3(localPlaneOXY.x, localPlaneOXY.y, 0);
+        if (line) line.transform.localPosition = new Vector3(localPlaneOXY.x, localPlaneOXY.y, 0);
     }
 
     private IEnumerator TargetRandomOrder()
@@ -111,13 +111,13 @@ public class TargetManager : MonoBehaviour
 
             var hitSuccessful = targetCoords.magnitude <= targetRadius;
             
-            textMeshPro.text = (hitSuccessful ? "success\n" : "fail\n") +
+            if (textMeshPro) textMeshPro.text = (hitSuccessful ? "success\n" : "fail\n") +
                                $"{targetCoords.x:F3}\n" +
                                $"{targetCoords.y:F3}";;
 
             render.material.color = hitSuccessful ? _successColor : _failColor;
 
-            yield return  new WaitForEvent(projector.triggerExitEvent);
+            yield return new WaitForEvent(projector.triggerExitEvent);
 
             render.material.color = _inactiveColor;
         }
