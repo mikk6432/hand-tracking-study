@@ -142,4 +142,35 @@ public class TargetManager : MonoBehaviour
             index = (index + targetCount / 2) % targetCount;
         }
     }
+
+    public void CreateTargets(float targetSize)
+    {
+        
+    }
+    
+    public void ShowTargets()
+    {
+        
+    }
+
+    public void HideTargets()
+    {
+        
+    }
+
+    public void DestroyTargets()
+    {
+        
+    }
+
+    public UnityEvent selectorEnteredTargetsZone = new();
+    public UnityEvent selectorExitedTargetsZone = new();
+    
+    public struct SelectionData
+    {
+        public readonly bool success;
+        public readonly Vector2 activeTargetCoordinates;
+    }
+
+    public SelectionData LastSelection { get; private set; }
 }
