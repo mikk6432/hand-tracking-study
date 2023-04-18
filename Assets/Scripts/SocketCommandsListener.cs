@@ -5,5 +5,5 @@ public static class SocketCommandsListener
 {
     public static int ParticipantID { get; private set; } = 1;
 
-    public static UnityEvent goIdleScene = new(); // used to terminate trial and go to empty scene forced
+    public static UnityEvent goIdleSceneForced = new(); // used to terminate trial and go to empty scene forced
 }

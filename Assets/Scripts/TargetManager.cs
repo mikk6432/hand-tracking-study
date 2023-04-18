@@ -27,6 +27,7 @@ public class TargetManager : MonoBehaviour
     private readonly Color _failColor = Color.red;
 
 
+    private GameObject anchor;
     private List<GameObject> _targets = new();
 
     private void OnEnable()
@@ -63,6 +64,14 @@ public class TargetManager : MonoBehaviour
     {
         CreateTargets();
         StartCoroutine(TargetRandomOrder());
+    }
+
+    private void Update()
+    {
+        if (anchor)
+        {
+            transform.SetPositionAndRotation(anchor.transform.position, anchor.transform.rotation);
+        }
     }
 
     private void CreateTargets()
@@ -161,6 +170,11 @@ public class TargetManager : MonoBehaviour
     public void DestroyTargets()
     {
         
+    }
+
+    public void SetAnchor(GameObject anchorGameObject)
+    {
+        anchor = anchorGameObject;
     }
 
     public UnityEvent selectorEnteredTargetsZone = new();
