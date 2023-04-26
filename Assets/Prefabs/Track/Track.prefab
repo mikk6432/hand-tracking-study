@@ -27,8 +27,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6503163420089715369}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.5, y: 0, z: 0.5}
-  m_LocalScale: {x: 0.06, y: 0.01, z: 1}
+  m_LocalPosition: {x: 0.5, y: 0, z: 0}
+  m_LocalScale: {x: 0.060000002, y: 0.01, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7670004146539008624}
@@ -124,7 +124,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6668710487100110756}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.5, y: 0, z: 0.5}
+  m_LocalPosition: {x: -0.5, y: 0, z: 0}
   m_LocalScale: {x: 0.06, y: 0.01, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -203,6 +203,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7670004146539008624}
+  - component: {fileID: 5262642185918879705}
   m_Layer: 0
   m_Name: Track
   m_TagString: Untagged
@@ -227,3 +228,29 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5262642185918879705
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7670004146539008625}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f300a33d710b4981b484e37fab8e04c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _track: {fileID: 7670004146539008624}
+  _thresholdSpeed: 1
+  ParticipantEntered:
+    m_PersistentCalls:
+      m_Calls: []
+  ParticipantFinished:
+    m_PersistentCalls:
+      m_Calls: []
+  ParticipantSwervedOff:
+    m_PersistentCalls:
+      m_Calls: []
+  ParticipantSlowedDown:
+    m_PersistentCalls:
+      m_Calls: []

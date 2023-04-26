@@ -21,7 +21,7 @@
 #if UNITY_EDITOR
 using UnityEditor;
 
-[InitializeOnLoadAttribute]
+// [InitializeOnLoadAttribute]
 public class OculusSampleFrameworkUtil
 {
   static OculusSampleFrameworkUtil()
