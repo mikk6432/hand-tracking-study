@@ -20,19 +20,14 @@ public class TargetsManager : MonoBehaviour
     private Dictionary<GameObject, Renderer> _targetToRendererComponentMap;
 
     public (GameObject target, int targetIndex) ActiveTarget { get; private set; } = (null, -1);
+    public bool IsSelectorInsideCollider { get; private set; }
     public GameObject Anchor { get; set; }
-    public TargetSizeVariant TargetSize;
-    
+    public TargetSizeVariant TargetSize { get; set; }
+
     private float TargetDiameter =>
         TargetSize == TargetSizeVariant.Big ? 0.035f :
         TargetSize == TargetSizeVariant.Medium ? 0.025f :
         /*TargetSize == TargetSizeVariant.Small*/ 0.015f;
-
-    // in prefab default is medium
-    private float TargetScaleFactor => 
-        TargetSize == TargetSizeVariant.Big ? 7f / 5 :
-        TargetSize == TargetSizeVariant.Medium ? 1f :
-        /*TargetSize == TargetSizeVariant.Small*/ 3f / 5;
 
     public UnityEvent<SelectionDonePayload> selectionDone;
 
@@ -46,14 +41,16 @@ public class TargetsManager : MonoBehaviour
     public struct SelectionDonePayload
     {
         public readonly int activeTargetIndex;
+        public readonly float targetSize;
         public readonly Vector2 targetAbsoluteCoordinates;
         public readonly Vector2 selectionAbsoluteCoordinates;
         public readonly Vector2 selectionLocalCoordinates;
         public readonly bool success;
 
-        public SelectionDonePayload(int activeTargetIndex, Vector2 targetAbsoluteCoordinates, Vector2 selectionAbsoluteCoordinates, Vector2 selectionLocalCoordinates, bool success)
+        public SelectionDonePayload(int activeTargetIndex, float targetSize, Vector2 targetAbsoluteCoordinates, Vector2 selectionAbsoluteCoordinates, Vector2 selectionLocalCoordinates, bool success)
         {
             this.activeTargetIndex = activeTargetIndex;
+            this.targetSize = targetSize;
             this.targetAbsoluteCoordinates = targetAbsoluteCoordinates;
             this.selectionAbsoluteCoordinates = selectionAbsoluteCoordinates;
             this.selectionLocalCoordinates = selectionLocalCoordinates;
@@ -74,7 +71,7 @@ public class TargetsManager : MonoBehaviour
 
     private void Update()
     {
-        if (_showing && Anchor && Anchor.activeInHierarchy)
+        if (Anchor && Anchor.activeInHierarchy)
         {
             transform.SetPositionAndRotation(Anchor.transform.position, Anchor.transform.rotation);
         }
@@ -104,18 +101,16 @@ public class TargetsManager : MonoBehaviour
         {
             var target = Instantiate(targetPrefab, transform);
 
-            float targetScaleFactor = TargetScaleFactor;
-
             // trigonometry to move to position on the circle
             var localPosition = CalcTargetLocalPosition(i);
 
             // scaling only X and Y
-            var localScale = new Vector3(targetScaleFactor, targetScaleFactor, 1);
+            var localScale = new Vector3(TargetDiameter, TargetDiameter, 0.001f);
 
             target.transform.localScale = localScale;
             target.transform.localPosition = localPosition;
 
-            var rendererComponent = target.GetComponent<Renderer>();
+            var rendererComponent = target.transform.Find("Cylinder").GetComponent<Renderer>();
 
             rendererComponent.material.color = _inactiveColor;
 
@@ -153,20 +148,22 @@ public class TargetsManager : MonoBehaviour
             throw new InvalidOperationException(
                 $"{nameof(TargetsManager)}: cannot call method ActivateFirstTarget when first target is already shown"
             );
-
+        
         var firstActiveTarget = _targets[0];
         ActiveTarget = (firstActiveTarget, 0);
-
+        
         _targetToRendererComponentMap[firstActiveTarget].material.color = _activeColor;
     }
 
     private void OnTriggerEnter(Collider other)
     {
+        if (!other.gameObject.CompareTag("Selector")) return; 
+        IsSelectorInsideCollider = true;
+        
         if (!_showing) return;
         if (ActiveTarget.targetIndex == -1) return; // equivalent of ActiveTarget.target == null
-        if (!other.gameObject.CompareTag("Selector")) return;
 
-        // plenty of math then. I love simple math
+        // plenty of math then
         var projection = Math.ProjectPointOntoOXYPlane(transform, other.transform.position);
         var targetLocalPosition = CalcTargetLocalPosition(ActiveTarget.targetIndex);
 
@@ -186,6 +183,7 @@ public class TargetsManager : MonoBehaviour
         
         var payload = new SelectionDonePayload(
             ActiveTarget.targetIndex,
+            TargetDiameter,
             targetAbsoluteCoordinates,
             selectionAbsoluteCoordinates,
             selectionLocalCoordinates,
@@ -197,11 +195,20 @@ public class TargetsManager : MonoBehaviour
     
     private void OnTriggerExit(Collider other)
     {
+        if (!other.gameObject.CompareTag("Selector")) return; 
+        IsSelectorInsideCollider = false;
+        
         if (!_showing) return;
         if (ActiveTarget.targetIndex == -1) return; // equivalent of ActiveTarget.target == null
-        if (!other.gameObject.CompareTag("Selector")) return;
 
-        _targetToRendererComponentMap[ActiveTarget.target].material.color = _inactiveColor;
+        var renderer = _targetToRendererComponentMap[ActiveTarget.target];
+
+        // a bit dirty solution. Used, when at the moment of activating first target, selector was inside the collider
+        bool isNotSelectionEnd = renderer.material.color == _activeColor;
+        if (isNotSelectionEnd) return; // do nothing in this situation and wait for the selection
+        /* else interpret this exit as a signal to activate next target */
+        
+        renderer.material.color = _inactiveColor;
         
         // Fitts Law here ;)
         int nextTargetIndex = (ActiveTarget.targetIndex + (targetsCount / 2)) % targetsCount;
@@ -211,6 +218,10 @@ public class TargetsManager : MonoBehaviour
         {
             ActiveTarget = (_targets[nextTargetIndex], nextTargetIndex);
             _targetToRendererComponentMap[ActiveTarget.target].material.color = _activeColor;
+        }
+        else
+        {
+            ActiveTarget = (null, -1);
         }
     }
 }
