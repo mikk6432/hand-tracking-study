@@ -15,7 +15,7 @@ namespace HandInteractionsOnTheGo
                 enabled = false;
                 return;
             }
-        
+
             Update();
         }
 

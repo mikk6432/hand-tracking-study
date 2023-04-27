@@ -72,7 +72,6 @@ namespace SpatialUIPlacement
 
         protected virtual void Start()
         {
-            Debug.Log("aa");
             _refFrameTransform = FishOutRefFrameObj();
 
             if (Application.isPlaying) // Runtime: build or Play mode in Unity Editor
@@ -101,8 +100,8 @@ namespace SpatialUIPlacement
             }
             else // Editor mode
             {
-                // If the reference frame object doesn't exist, create one
                 // comment added by not so smart Artem
+                // If the reference frame object doesn't exist, create one
                 /*if (_refFrameTransform == null)
                     _refFrameTransform = CreateRefFrameObj(transform);
 
