@@ -12,6 +12,7 @@ public class ExperimentNetwork: MonoBehaviour
         {
             ResponseExperimentSummary,
             EndTrial,
+            SelectionDone, // to delete
         }
 
         public readonly Code code;
@@ -45,6 +46,24 @@ public class ExperimentNetwork: MonoBehaviour
             public override string ToString()
             {
                 return base.ToString() + $", summary={summary.ToString()}";
+            }
+        }
+        
+        [Serializable]
+        public class SelectionDone: MessageFromHelmet
+        {
+            public readonly bool success;
+            public readonly int targetIndex;
+
+            public SelectionDone(bool _success, int _targetIndex): base(Code.SelectionDone)
+            {
+                success = _success;
+                targetIndex = _targetIndex;
+            }
+            
+            public override string ToString()
+            {
+                return base.ToString() + $", success={success.ToString().ToUpper()}, target={targetIndex}";
             }
         }
     }

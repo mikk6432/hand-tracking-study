@@ -11,7 +11,7 @@ public abstract class ExperimentNetworkClient: ExperimentNetwork
     public UnityEvent connectionLost;
 
 #pragma warning disable CS0618
-    protected sealed override void Start()
+    protected override void Start()
     {
         base.Start();
 

@@ -48,7 +48,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _audio: {fileID: 2468347985531456036}
   _errorSound: {fileID: 8300000, guid: d91bbf480bd734801a55604caf7a47b3, type: 3}
-  _displayPeriod: 2
+  _displayPeriod: 1.4
 --- !u!82 &2468347985531456036
 AudioSource:
   m_ObjectHideFlags: 0

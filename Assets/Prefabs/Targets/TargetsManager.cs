@@ -27,7 +27,7 @@ public class TargetsManager : MonoBehaviour
     private float TargetDiameter =>
         TargetSize == TargetSizeVariant.Big ? 0.035f :
         TargetSize == TargetSizeVariant.Medium ? 0.025f :
-        /*TargetSize == TargetSizeVariant.Small*/ 0.015f;
+        0.015f; /*TargetSize == TargetSizeVariant.Small*/
 
     public UnityEvent<SelectionDonePayload> selectionDone;
 
@@ -97,6 +97,7 @@ public class TargetsManager : MonoBehaviour
         _targets = new List<GameObject>(targetsCount);
         _targetToRendererComponentMap = new(targetsCount);
 
+        // creating targets
         for (int i = 0; i < targetsCount; i++)
         {
             var target = Instantiate(targetPrefab, transform);
