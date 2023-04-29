@@ -10,9 +10,9 @@ public class ExperimentNetwork: MonoBehaviour
     {
         public enum Code
         {
-            ResponseExperimentSummary,
-            EndTrial,
-            SelectionDone, // to delete
+            RefreshExperimentSummary,
+            InvalidOperation, // for example, server said to toggle leftHanded, while trial or training was running
+            UnexpectedError, // to be deleted. HelmetProcess can surround dangerous code-blocks with rty catch and sent to server info about error which occured unexpectedly
         }
 
         public readonly Code code;
@@ -28,17 +28,33 @@ public class ExperimentNetwork: MonoBehaviour
         }
         
         [Serializable]
-        public class ResponseExperimentSummary: MessageFromHelmet
+        public class RefreshExperimentSummary: MessageFromHelmet
         {
             [Serializable]
             public class ExperimentSummary
             {
                 public readonly int participantID;
+                public readonly bool leftHanded;
+                public readonly int currentRunConfigIndex;
+                public readonly HelmetMainProcess.RunStage currentRunStage;
+
+                public ExperimentSummary(int participantID, bool leftHanded, int currentRunConfigIndex, HelmetMainProcess.RunStage currentRunStage)
+                {
+                    this.participantID = participantID;
+                    this.leftHanded = leftHanded;
+                    this.currentRunConfigIndex = currentRunConfigIndex;
+                    this.currentRunStage = currentRunStage;
+                }
+
+                public override string ToString()
+                {
+                    return $" ${participantID}," + (leftHanded ? "left" : "right") + $"Handed,run{currentRunConfigIndex},{Enum.GetName(typeof(HelmetMainProcess.RunStage), currentRunStage)}";
+                }
             }
             
             public readonly ExperimentSummary summary;
 
-            public ResponseExperimentSummary(ExperimentSummary _summary): base(Code.ResponseExperimentSummary)
+            public RefreshExperimentSummary(ExperimentSummary _summary): base(Code.RefreshExperimentSummary)
             {
                 summary = _summary;
             }
@@ -50,20 +66,34 @@ public class ExperimentNetwork: MonoBehaviour
         }
         
         [Serializable]
-        public class SelectionDone: MessageFromHelmet
+        public class InvalidOperation: MessageFromHelmet
         {
-            public readonly bool success;
-            public readonly int targetIndex;
+            public readonly string reason;
 
-            public SelectionDone(bool _success, int _targetIndex): base(Code.SelectionDone)
+            public InvalidOperation(string reason) : base(Code.InvalidOperation)
             {
-                success = _success;
-                targetIndex = _targetIndex;
+                this.reason = reason;
             }
-            
+
             public override string ToString()
             {
-                return base.ToString() + $", success={success.ToString().ToUpper()}, target={targetIndex}";
+                return base.ToString() + $", reason: {reason}";
+            }
+        }
+        
+        [Serializable]
+        public class UnexpectedError: MessageFromHelmet
+        {
+            public readonly string errorMessage;
+
+            public UnexpectedError(string errorMessage) : base(Code.UnexpectedError)
+            {
+                this.errorMessage = errorMessage;
+            }
+
+            public override string ToString()
+            {
+                return base.ToString() + $", error: {errorMessage}";
             }
         }
     }
@@ -74,7 +104,11 @@ public class ExperimentNetwork: MonoBehaviour
         public enum Code
         {
             SetParticipantID,
-            RequestExperimentSummary,
+            ToggleLeftHanded,
+            RefreshExperimentSummary,
+            PrepareNextRun,
+            StartNextRun,
+            FinishTraining
         }
 
         public readonly Code code;

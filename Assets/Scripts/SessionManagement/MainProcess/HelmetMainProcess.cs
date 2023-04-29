@@ -10,8 +10,8 @@ public class HelmetMainProcess: ExperimentNetworkClient
     private bool leftHanded;
 
     private ExperimentManager.RunConfig[] _runConfigs;
-    private int currentRunIndex;
-    private RunStage currentRunStage;
+    private int currentRunConfigIndex; // for example 4, means that previous 4 runs (0,1,2,3) were fulfilled already
+    private RunStage currentRunStage; // is this run already in progress or not
     
     [Serializable]
     public enum RunStage
@@ -71,6 +71,30 @@ public class HelmetMainProcess: ExperimentNetworkClient
 
         return result.ToArray();
     }
+
+    private MessageFromHelmet.RefreshExperimentSummary.ExperimentSummary GenerateExperimentSummary()
+    {
+        return new MessageFromHelmet.RefreshExperimentSummary.ExperimentSummary(
+            participantId,
+            leftHanded,
+            currentRunConfigIndex,
+            currentRunStage
+        );
+    }
+
+    private void SendSummary()
+    {
+        var summary = new MessageFromHelmet.RefreshExperimentSummary.ExperimentSummary(
+            participantId,
+            leftHanded,
+            currentRunConfigIndex,
+            currentRunStage
+        );
+
+        var message = new MessageFromHelmet.RefreshExperimentSummary(summary);
+
+        Send(message);
+    }
     
     protected override void Start()
     {
@@ -79,6 +103,11 @@ public class HelmetMainProcess: ExperimentNetworkClient
 
     protected override void Receive(MessageToHelmet message)
     {
-        
+        switch (message.code)
+        {
+            case MessageToHelmet.Code.RefreshExperimentSummary:
+                SendSummary();
+                break;
+        }
     }
 }
