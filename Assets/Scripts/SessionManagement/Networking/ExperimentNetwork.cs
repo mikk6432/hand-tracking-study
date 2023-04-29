@@ -104,7 +104,7 @@ public class ExperimentNetwork: MonoBehaviour
         public enum Code
         {
             SetParticipantID,
-            ToggleLeftHanded,
+            SetLeftHanded,
             RefreshExperimentSummary,
             PrepareNextRun,
             StartNextRun,
@@ -136,6 +136,21 @@ public class ExperimentNetwork: MonoBehaviour
             public override string ToString()
             {
                 return base.ToString() + $", participantID={participantID}";
+            }
+        }
+
+        public class SetLeftHanded : MessageToHelmet
+        {
+            public readonly bool leftHanded;
+
+            public SetLeftHanded(bool _leftHanded): base(Code.SetLeftHanded)
+            {
+                leftHanded = _leftHanded;
+            }
+            
+            public override string ToString()
+            {
+                return base.ToString() + $", leftHanded={leftHanded}";
             }
         }
     }

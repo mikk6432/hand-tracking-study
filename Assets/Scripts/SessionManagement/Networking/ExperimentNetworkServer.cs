@@ -8,7 +8,7 @@ public abstract class ExperimentNetworkServer : ExperimentNetwork
     private static readonly int BROADCAST_INTERVAL = 1000;
 
 #pragma warning disable CS0618
-    protected sealed override void Start()
+    protected override void Start()
     {
         base.Start();
 
