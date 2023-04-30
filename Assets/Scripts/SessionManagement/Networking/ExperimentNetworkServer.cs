@@ -1,11 +1,15 @@
 using System;
 using System.IO;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Networking;
 
 public abstract class ExperimentNetworkServer : ExperimentNetwork
 {
     private static readonly int BROADCAST_INTERVAL = 1000;
+    
+    protected UnityEvent connectionEstablished = new();
+    protected UnityEvent connectionLost = new();
 
 #pragma warning disable CS0618
     protected override void Start()
@@ -39,11 +43,13 @@ public abstract class ExperimentNetworkServer : ExperimentNetwork
                 break;
             case NetworkEventType.ConnectEvent:
                 сonnectionID = outConnectionID;
+                Debug.Log("connect event");
                 StopBroadcasting();
+                connectionEstablished.Invoke();
                 break;
             case NetworkEventType.DisconnectEvent:
                 сonnectionID = INVALID_CONNECTION;
-
+                connectionLost.Invoke();
                 // Restarting broadcasting
                 StartBroadcasting(hostID, port);
                 Debug.Log("SyncPoseServer: Connection lost. Restarting broadcasting");
@@ -88,7 +94,6 @@ public abstract class ExperimentNetworkServer : ExperimentNetwork
         
         using (var stream = new MemoryStream(messageBuffer))
         {
-            // Serializing current pose
             formatter.Serialize(stream, message);
             bufferSize = (int)stream.Position;
         }

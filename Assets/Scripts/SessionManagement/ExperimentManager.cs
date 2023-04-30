@@ -198,12 +198,15 @@ public partial class ExperimentManager: MonoBehaviour
     
     // not used for trainings. To finish training, method (OnServerSaidFinishTraining should be called)
     public readonly UnityEvent trialFinished = new();
+    public readonly UnityEvent<string> unexpectedErrorOccured = new();
 
     private State _state;
     private RunConfig _runConfig; 
     
     [SerializeField] private TargetsManager targetsManager;
+    [SerializeField] private WalkingStateTrigger walkingStateTrigger;
     
+    [Space]
     [SerializeField] private GameObject metronome;
     [SerializeField] private GameObject errorIndicator;
     [SerializeField] private GameObject track;
@@ -399,26 +402,155 @@ public partial class ExperimentManager: MonoBehaviour
             dominantHandPalmCenter = rightPalmCenter;
         }
     }
+
+    void StartListeningTrackEvents()
+    {
+        walkingStateTrigger.ParticipantEntered.AddListener(OnParticipantEnteredTrack);
+        walkingStateTrigger.ParticipantSwervedOff.AddListener(OnParticipantSwervedOffTrack);
+        walkingStateTrigger.ParticipantSlowedDown.AddListener(OnParticipantSlowedDown);
+        walkingStateTrigger.ParticipantFinished.AddListener(OnParticipantFinishedTrack);
+    }
+
+    void StopListeningTrackEvents()
+    {
+        walkingStateTrigger.ParticipantEntered.RemoveListener(OnParticipantEnteredTrack);
+        walkingStateTrigger.ParticipantSwervedOff.RemoveListener(OnParticipantSwervedOffTrack);
+        walkingStateTrigger.ParticipantSlowedDown.RemoveListener(OnParticipantSlowedDown);
+        walkingStateTrigger.ParticipantFinished.RemoveListener(OnParticipantFinishedTrack);
+    }
+    
+    void ShowErrorToParticipant()
+    {
+        var headsetTransform = headset.transform;
+        var errorPosition = headsetTransform.position + headsetTransform.forward * 0.5f;
+        errorIndicator.transform.SetPositionAndRotation(errorPosition, headsetTransform.rotation);
+        errorIndicator.SetActive(true); // will be set inactive automatically 
+    }
+
+    void PlaceLightWhereTrack()
+    {
+        var trackTransform = track.transform;
+        sceneLight.transform.SetPositionAndRotation(trackTransform.position, trackTransform.rotation);
+    }
     
     private void HandleState(string eventName = "")
     {
-        switch (_state)
+        try
         {
-            case State.Idle:
-                HandleIdleState(eventName);
-                break;
-            default:
-                throw new ArgumentException($"It seems that you have implemented new State, but forget to add it to {nameof(HandleState)}");
+            switch (_state)
+            {
+                case State.Idle:
+                    HandleIdleState(eventName);
+                    break;
+                case State.WalkingWithMetronomeTraining:
+                    HandleWalkingWithMetronomeTrainingState(eventName);
+                    break;
+                default:
+                    throw new ArgumentException(
+                        $"It seems that you have implemented new State, but forget to add it to {nameof(HandleState)}");
+            }
+        }
+        catch (Exception e)
+        {
+            unexpectedErrorOccured.Invoke(e.Message);
         }
     }
+
+    /*void HandConcreteStateTemplate(string eventName)
+    {
+        switch (eventName)
+        {
+            case nameof(OnParticipantSelectedTarget):
+                break;
+            case nameof(OnParticipantEnteredTrack):
+                break;
+            case nameof(OnParticipantFinishedTrack):
+                break;
+            case nameof(OnParticipantSwervedOffTrack):
+                break;
+            case nameof(OnParticipantSlowedDown):
+                break;
+            case nameof(OnServerSaidStart):
+                break;
+            case nameof(OnServerSaidFinishTraining):
+                break;
+            case nameof(OnServerSaidPrepare):
+                break;
+            default:
+                throw new ArgumentException($"It seems you have implemented new event but forgot to handle in method {nameof(HandConcreteStateTemplate)}");
+        }
+    }*/
     
     void HandleIdleState(string eventName)
     {
-        
+        switch (eventName)
+        {
+            case nameof(OnParticipantSelectedTarget):
+                throw new ArgumentException($"{nameof(OnParticipantSelectedTarget)} got called in Idle state. This is not supposed to happen");
+            case nameof(OnParticipantEnteredTrack):
+                throw new ArgumentException($"{nameof(OnParticipantEnteredTrack)} got called in Idle state. This is not supposed to happen");
+            case nameof(OnParticipantFinishedTrack):
+                throw new ArgumentException($"{nameof(OnParticipantFinishedTrack)} got called in Idle state. This is not supposed to happen");
+            case nameof(OnParticipantSwervedOffTrack):
+                throw new ArgumentException($"{nameof(OnParticipantSwervedOffTrack)} got called in Idle state. This is not supposed to happen");
+            case nameof(OnParticipantSlowedDown):
+                throw new ArgumentException($"{nameof(OnParticipantSlowedDown)} got called in Idle state. This is not supposed to happen");
+            case nameof(OnServerSaidPrepare):
+                if (_runConfig.isMetronomeTraining)
+                {
+                    PlaceLightWhereTrack();
+                    track.SetActive(true);
+                    metronome.SetActive(true);
+                    walkingStateTrigger.enabled = true;
+                    break;
+                }
+                break;
+            case nameof(OnServerSaidStart):
+                if (_runConfig.isMetronomeTraining)
+                {
+                    StartListeningTrackEvents();
+                    _state = State.WalkingWithMetronomeTraining;
+                    break;
+                }
+                break;
+            case nameof(OnServerSaidFinishTraining):
+                throw new ArgumentException($"{nameof(OnServerSaidFinishTraining)} got called in Idle state. This is not supposed to happen");
+            default:
+                throw new ArgumentException($"It seems you have implemented new event but forgot to handle in method {nameof(HandleIdleState)}");
+        }
+    }
+
+    void HandleWalkingWithMetronomeTrainingState(string eventName)
+    {
+        switch (eventName)
+        {
+            case nameof(OnParticipantSelectedTarget):
+                throw new ArgumentException($"{nameof(OnParticipantSelectedTarget)} got called in WalkingWithMetronomeTraining state. This is not supposed to happen");;
+            case nameof(OnParticipantEnteredTrack):
+                break;
+            case nameof(OnParticipantFinishedTrack):
+                break;
+            case nameof(OnParticipantSwervedOffTrack):
+            case nameof(OnParticipantSlowedDown):
+                ShowErrorToParticipant();
+                break;
+            case nameof(OnServerSaidStart):
+                throw new ArgumentException($"{nameof(OnServerSaidStart)} got called in WalkingWithMetronomeTraining state. This is not supposed to happen");;
+            case nameof(OnServerSaidFinishTraining):
+                StopListeningTrackEvents();
+                metronome.SetActive(false);
+                track.SetActive(false);
+                walkingStateTrigger.enabled = false;
+                _state = State.Idle;
+                break;
+            case nameof(OnServerSaidPrepare):
+                throw new ArgumentException($"{nameof(OnServerSaidPrepare)} got called in WalkingWithMetronomeTraining state. This is not supposed to happen");;
+            default:
+                throw new ArgumentException($"It seems you have implemented new event but forgot to handle in method {nameof(HandleWalkingWithMetronomeTrainingState)}");
+        }
     }
 
 
-    
     private void OnParticipantSelectedTarget() => HandleState(nameof(OnParticipantSelectedTarget));
     private void OnParticipantEnteredTrack() => HandleState(nameof(OnParticipantEnteredTrack));
     private void OnParticipantFinishedTrack() => HandleState(nameof(OnParticipantFinishedTrack));
@@ -429,10 +561,10 @@ public partial class ExperimentManager: MonoBehaviour
 
     public void OnServerSaidPrepare(RunConfig config)
     {
-        if (IsRunning)
+        /*if (IsRunning)
             throw new InvalidOperationException(
                 $"{nameof(ExperimentManager)}: cannot call OnServerSaidPrepare when the experiment is running"
-            );
+            );*/
 
         _runConfig = config;
         
@@ -442,12 +574,14 @@ public partial class ExperimentManager: MonoBehaviour
 
 partial class ExperimentManager
 {
+    [Serializable]
     public enum Context
     {
         Standing,
         Walking,
     }
     
+    [Serializable]
     public enum ReferenceFrame
     {
         PalmReferenced, // both rotation and position by hand
@@ -487,6 +621,7 @@ partial class ExperimentManager
     private enum State
     {
         Idle,
+        WalkingWithMetronomeTraining,
         
     }
 }

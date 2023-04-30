@@ -8,9 +8,10 @@ public class ExperimentNetwork: MonoBehaviour
     [Serializable]
     protected class MessageFromHelmet
     {
+        [Serializable]
         public enum Code
         {
-            RefreshExperimentSummary,
+            ExperimentSummary,
             InvalidOperation, // for example, server said to toggle leftHanded, while trial or training was running
             UnexpectedError, // to be deleted. HelmetProcess can surround dangerous code-blocks with rty catch and sent to server info about error which occured unexpectedly
         }
@@ -26,42 +27,20 @@ public class ExperimentNetwork: MonoBehaviour
         {
             return $"FromHelmet: code={Enum.GetName(typeof(Code), code)}";
         }
-        
+
         [Serializable]
-        public class RefreshExperimentSummary: MessageFromHelmet
+        public class Summary: MessageFromHelmet
         {
-            [Serializable]
-            public class ExperimentSummary
-            {
-                public readonly int participantID;
-                public readonly bool leftHanded;
-                public readonly int currentRunConfigIndex;
-                public readonly HelmetMainProcess.RunStage currentRunStage;
+            public int id; // by it we can calc runConfigs sequence either on client or server
+            public bool left; // whether user il left handed
+            public int index; // index of current runConfig. Means that those who have smaller index were fulfilled
+            public int stage; // stage of the current runConfig. If it is preparing, running or idle
 
-                public ExperimentSummary(int participantID, bool leftHanded, int currentRunConfigIndex, HelmetMainProcess.RunStage currentRunStage)
-                {
-                    this.participantID = participantID;
-                    this.leftHanded = leftHanded;
-                    this.currentRunConfigIndex = currentRunConfigIndex;
-                    this.currentRunStage = currentRunStage;
-                }
-
-                public override string ToString()
-                {
-                    return $" ${participantID}," + (leftHanded ? "left" : "right") + $"Handed,run{currentRunConfigIndex},{Enum.GetName(typeof(HelmetMainProcess.RunStage), currentRunStage)}";
-                }
-            }
-            
-            public readonly ExperimentSummary summary;
-
-            public RefreshExperimentSummary(ExperimentSummary _summary): base(Code.RefreshExperimentSummary)
-            {
-                summary = _summary;
-            }
+            public Summary(): base(Code.ExperimentSummary) { }
             
             public override string ToString()
             {
-                return base.ToString() + $", summary={summary.ToString()}";
+                return base.ToString() + $", participantId={id}," + (left ? "left" : "right") + $"Handed, index={index}, stage={stage}";
             }
         }
         
@@ -101,6 +80,7 @@ public class ExperimentNetwork: MonoBehaviour
     [Serializable]
     protected class MessageToHelmet
     {
+        [Serializable]
         public enum Code
         {
             SetParticipantID,
@@ -139,6 +119,7 @@ public class ExperimentNetwork: MonoBehaviour
             }
         }
 
+        [Serializable]
         public class SetLeftHanded : MessageToHelmet
         {
             public readonly bool leftHanded;

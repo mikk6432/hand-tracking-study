@@ -6,17 +6,24 @@ public class WalkingStateTrigger : MonoBehaviour
 {
     private static readonly float HALF_TRACK_LENGTH = 0.5f;
     private static readonly float HALF_TRACK_WIDTH = 0.5f;
+    private static readonly float REPEAT_RATE = 1f; // Every second
 
     [SerializeField] private Transform _headset;
     private Transform westBorder;
     private Transform eastBorder;
     
+    [SerializeField, Tooltip("Minimum walking speed which is considered acceptable in meters per second")]
+    private float _thresholdSpeed = 1f;
+    
     public UnityEvent ParticipantEntered = new();
     public UnityEvent ParticipantFinished = new();
     public UnityEvent ParticipantSwervedOff = new();
+    public UnityEvent ParticipantSlowedDown = new();
+    
 
     private bool _walking;
     private (bool withinLength, bool withinWidth) _prevLocation;
+    private Vector3 _prevCoords;
 
     private void Awake()
     {
@@ -54,6 +61,7 @@ public class WalkingStateTrigger : MonoBehaviour
         ParticipantEntered.AddListener(OnParticipantEntered);
         ParticipantFinished.AddListener(OnWalkingDone);
         ParticipantSwervedOff.AddListener(OnWalkingDone);
+        ParticipantSlowedDown.AddListener(OnWalkingDone);
         
         _prevLocation = IsInsideTheTrack();
     }
@@ -78,9 +86,7 @@ public class WalkingStateTrigger : MonoBehaviour
 
         // If the participant crosses the side line while walking
         else if (_walking && _prevLocation.withinWidth && !currentLocation.withinWidth)
-        {
             ParticipantSwervedOff.Invoke();
-        }
 
         // If the participant crosses the finish line
         else if (_walking && _prevLocation.withinLength && !currentLocation.withinLength)
@@ -97,14 +103,27 @@ public class WalkingStateTrigger : MonoBehaviour
         return (Mathf.Abs(localPos.z) < HALF_TRACK_LENGTH,
             Mathf.Abs(localPos.x) < HALF_TRACK_WIDTH);
     }
+    
+    private void CheckWalkingSpeed()
+    {
+        // If in the past second the participant has walked less than _thresholdSpeed (m/sec)
+        if ((_prevCoords - _headset.position).magnitude < _thresholdSpeed)
+            ParticipantSlowedDown.Invoke();
+
+        _prevCoords = _headset.position;
+    }
 
     private void OnParticipantEntered()
     {
+        _prevCoords = _headset.position;
+        InvokeRepeating(nameof(CheckWalkingSpeed), REPEAT_RATE, REPEAT_RATE);
+        
         _walking = true;
     }
 
     private void OnWalkingDone()
     {
         _walking = false;
+        CancelInvoke(nameof(CheckWalkingSpeed));
     }
 }

@@ -6,9 +6,10 @@ using UnityEngine.Networking;
 
 public abstract class ExperimentNetworkClient: ExperimentNetwork
 {
+    [SerializeField] protected GameObject errorIndicator;
     [Header("Events")]
-    public UnityEvent connectionEstablished;
-    public UnityEvent connectionLost;
+    public UnityEvent connectionEstablished = new();
+    public UnityEvent connectionLost = new();
 
 #pragma warning disable CS0618
     protected override void Start()
@@ -87,11 +88,10 @@ public abstract class ExperimentNetworkClient: ExperimentNetwork
 
     protected bool Send(MessageFromHelmet message)
     {
-        int bufferSize;
+        int bufferSize = 0;
         
         using (var stream = new MemoryStream(messageBuffer))
         {
-            // Serializing current pose
             formatter.Serialize(stream, message);
             bufferSize = (int)stream.Position;
         }
