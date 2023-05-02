@@ -486,6 +486,7 @@ public partial class ExperimentManager: MonoBehaviour
 
         IEnumerator<TargetsManager.TargetSizeVariant> TrialSequence()
         {
+            // TODO: implement random
             yield return TargetsManager.TargetSizeVariant.Big;
         }
 
@@ -663,6 +664,7 @@ public partial class ExperimentManager: MonoBehaviour
                     bool isFirstWithSuchSize = _targetsSelected % TargetsManager.TargetsCount == 1;
                     if (isFirstWithSuchSize)
                     {
+                        errorIndicator.SetActive(true); // todo: to delete
                         // todo: add start time of selections logger
                     }
                     
@@ -700,6 +702,7 @@ public partial class ExperimentManager: MonoBehaviour
                 
                 if (targetsManager.IsShowingTargets())
                     targetsManager.HideTargets();
+                StopListeningTargetsEvents();
                 _targetsSelected = 0;
                 targetSizesSequence = null;
                 _state = State.Idle;

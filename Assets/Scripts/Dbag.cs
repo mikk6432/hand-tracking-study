@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,31 +8,32 @@ public class Dbag : MonoBehaviour
 {
     private static float delay = 1f;
 
-    private IEnumerator Start()
+    private void Start()
     {
-        int i = 0;
-        while (true)
+        IEnumerator<TargetsManager.TargetSizeVariant> TrainingSequence()
         {
-            // Invoke("Funcc", delay);
-            // Funcc();
-            if (i % 2 == 1)
+            while (true)
             {
-                Cancel();
+                yield return TargetsManager.TargetSizeVariant.Big;
+                yield return TargetsManager.TargetSizeVariant.Medium;
             }
-
-            i++;
-            yield return new WaitForSeconds(5);
         }
-    }
 
-    private void Funcc()
-    {
-        Debug.Log("Func");
-    }
+        var seq = TrainingSequence();
 
-    private void Cancel()
-    {
-        Debug.Log("Cancelled");
-        CancelInvoke("Funcc");
+        int i = 0;
+        while (i < 7)
+        {
+            if (seq.MoveNext())
+            {
+                Debug.Log($"$Next: {seq.Current}");
+            }
+            else
+            {
+                Debug.Log("no");
+            }
+            i++;
+        }
+        Debug.Log("finished");
     }
 }
