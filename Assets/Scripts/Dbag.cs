@@ -1,39 +1,72 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using Math = Utils.Math;
 
 public class Dbag : MonoBehaviour
 {
-    private static float delay = 1f;
+    [SerializeField] private TargetsManagerV2 targetsManager;
+
+    [SerializeField] private Button showButton;
+    [SerializeField] private Button hideButton;
+    [SerializeField] private Button activateNextButton;
+
+    private IEnumerator<TargetsManagerV2.TargetSizeVariant> sizesSequence;
+    private IEnumerator<int> targetsSequence;
+
+    private void Awake()
+    {
+        IEnumerator<TargetsManagerV2.TargetSizeVariant> aa()
+        {
+            yield return TargetsManagerV2.TargetSizeVariant.Big;
+            yield return TargetsManagerV2.TargetSizeVariant.Medium;
+            yield return TargetsManagerV2.TargetSizeVariant.Small;
+        }
+
+        sizesSequence = aa();
+        targetsSequence = Math.FittsLaw(7).Take(8).GetEnumerator();
+    }
 
     private void Start()
     {
-        IEnumerator<TargetsManager.TargetSizeVariant> TrainingSequence()
+        targetsSequence.MoveNext();
+        targetsManager.TargetSize = sizesSequence.Current;
+        showButton.onClick.AddListener(() =>
         {
-            while (true)
-            {
-                yield return TargetsManager.TargetSizeVariant.Big;
-                yield return TargetsManager.TargetSizeVariant.Medium;
-            }
-        }
-
-        var seq = TrainingSequence();
-
-        int i = 0;
-        while (i < 7)
+           targetsManager.ShowTargets(); 
+        });
+        hideButton.onClick.AddListener(() =>
         {
-            if (seq.MoveNext())
+            targetsManager.HideTargets(); 
+        });
+        activateNextButton.onClick.AddListener(() =>
+        {
+            if (targetsSequence.MoveNext())
             {
-                Debug.Log($"$Next: {seq.Current}");
+                targetsManager.ActivateTarget(targetsSequence.Current);
             }
             else
             {
-                Debug.Log("no");
+                if (sizesSequence.MoveNext())
+                {
+                    targetsManager.TargetSize = sizesSequence.Current;
+                    targetsSequence = Math.FittsLaw(7).Take(8).GetEnumerator();
+                    targetsSequence.MoveNext();
+                    targetsManager.ActivateTarget(targetsSequence.Current);
+                }
             }
-            i++;
-        }
-        Debug.Log("finished");
+        });
+        
+        targetsManager.selectorEnteredTargetsZone.AddListener(() =>
+        {
+            Debug.Log($"Entered with {targetsManager.LastSelectionData.success.ToString().ToUpper()}");
+        });
+        targetsManager.selectorExitedTargetsZone.AddListener(() =>
+        {
+            Debug.Log("Exited");
+        });
     }
 }

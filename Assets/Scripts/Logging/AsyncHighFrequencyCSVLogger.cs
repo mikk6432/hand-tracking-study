@@ -128,16 +128,16 @@ namespace Logging
             // Store a full path to the file which will be associated with this logger
             if (!filename.EndsWith(".csv"))
                 filename += ".csv";
-            _fullPath = UnityEngine.Application.persistentDataPath + "/" + filename;
+            _fullPath = Path.Combine(UnityEngine.Application.persistentDataPath, filename);
 
             // Let's check whether the file with the specified name already exists
             bool _fileExists = File.Exists(_fullPath);
             if (_fileExists)
             {
                 // Since it does, we need to restore the logger's state from it by reading its header
-                using (StreamReader reader = new StreamReader(_fullPath))
+                using (var reader = new StreamReader(_fullPath))
                 {
-                    string header = reader.ReadLine(); // We're interested only in a header
+                    var header = reader.ReadLine(); // We're interested only in a header
                     string[] columns;
                     // If there is no header (file exists but it's empty) or there are no column names in it, do nothing
                     if (!String.IsNullOrEmpty(header) &&
@@ -156,6 +156,11 @@ namespace Logging
                         Initialise();
                     }
                 }
+            }
+            else
+            {
+                var fs = new FileStream(_fullPath, FileMode.Create);
+                fs.Dispose();
             }
 
             // If we have successfully initialised the logger, open the file in the 'Append' mode, otherwise create file

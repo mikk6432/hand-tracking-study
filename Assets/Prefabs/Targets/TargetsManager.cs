@@ -25,9 +25,9 @@ public class TargetsManager : MonoBehaviour
     public GameObject Anchor { get; set; }
     public TargetSizeVariant TargetSize { get; set; }
 
-    private float TargetDiameter =>
-        TargetSize == TargetSizeVariant.Big ? 0.035f :
-        TargetSize == TargetSizeVariant.Medium ? 0.025f :
+    private static float GetTargetDiameter (TargetSizeVariant targetSize) =>
+        targetSize == TargetSizeVariant.Big ? 0.035f :
+        targetSize == TargetSizeVariant.Medium ? 0.025f :
         0.015f; /*TargetSize == TargetSizeVariant.Small*/
     
     private DateTime lastSelectionDate = DateTime.Now;
@@ -117,7 +117,7 @@ public class TargetsManager : MonoBehaviour
             var localPosition = CalcTargetLocalPosition(i);
 
             // scaling only X and Y
-            var localScale = new Vector3(TargetDiameter, TargetDiameter, 0.001f);
+            var localScale = new Vector3(GetTargetDiameter(TargetSize), GetTargetDiameter(TargetSize), 0.001f);
 
             target.transform.localScale = localScale;
             target.transform.localPosition = localPosition;
@@ -147,6 +147,17 @@ public class TargetsManager : MonoBehaviour
         ActiveTarget = (null, -1);
         LastSelection = null;
         _showing = false;
+    }
+
+    public void ActivateTarget(int targetIndex)
+    {
+        if (!_showing)
+            throw new InvalidOperationException(
+                $"{nameof(TargetsManager)}: cannot call method {nameof(ActivateTarget)} when showing is not in progress"
+            );
+
+        var target = _targets[targetIndex];
+        ActiveTarget = (target, targetIndex);
     }
 
     public void ActivateFirstTarget()
@@ -193,14 +204,14 @@ public class TargetsManager : MonoBehaviour
             projection.local.y
         );
         var selectionLocalCoordinates = selectionAbsoluteCoordinates - targetAbsoluteCoordinates;
-        var success = selectionLocalCoordinates.magnitude < (TargetDiameter / 2);
+        var success = selectionLocalCoordinates.magnitude < (GetTargetDiameter(TargetSize) / 2);
 
         _targetToRendererComponentMap[ActiveTarget.target].material.color =
             success ? _successColor : _failColor;
         
         var payload = new SelectionDonePayload(
             ActiveTarget.targetIndex,
-            TargetDiameter,
+            GetTargetDiameter(TargetSize),
             targetAbsoluteCoordinates,
             selectionAbsoluteCoordinates,
             selectionLocalCoordinates,

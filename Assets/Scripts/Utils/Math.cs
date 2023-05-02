@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Utils
@@ -38,6 +39,17 @@ namespace Utils
                 Array.Reverse(result);
         
             return result;
+        }
+
+        public static IEnumerable<int> FittsLaw(int len)
+        {
+            if (len <= 0 || len % 2 == 0) throw new ArgumentException("FittsLaw can take only positive odd length");
+            int current = 0;
+            while (true)
+            {
+                yield return current;
+                current = (current + len / 2) % len;
+            }
         }
     }
 }

@@ -72,9 +72,9 @@ public class HelmetMainProcess: ExperimentNetworkClient
             ExperimentManager.ReferenceFrame.PalmReferenced
             ));
 
-        return result.Where(config => config.isMetronomeTraining || (config.isTraining && config.context==ExperimentManager.Context.Standing)).ToArray();
-
-        return result.ToArray();
+        // return result.Where(config => config.isMetronomeTraining || (config.isTraining && config.context==ExperimentManager.Context.Standing)).ToArray();
+        return result.Where(config => config.context == ExperimentManager.Context.Standing && !config.isMetronomeTraining).ToArray();
+        // return result.ToArray();
     }
 
     private void UpdateRunConfigs()
