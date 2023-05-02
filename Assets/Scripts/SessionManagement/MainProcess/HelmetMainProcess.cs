@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class HelmetMainProcess: ExperimentNetworkClient
@@ -28,13 +29,14 @@ public class HelmetMainProcess: ExperimentNetworkClient
             new Func<ExperimentManager.ReferenceFrame, ExperimentManager.Context, ExperimentManager.RunConfig>
                 ((rf, ctx) => new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ctx, rf));
 
-        var result = new List<ExperimentManager.RunConfig>(15); // 7 (rf*context) + 7 trainings + 1 metronome training
+        var result = new List<ExperimentManager.RunConfig>(17); // 4refFrame * (standing/walking) * (training/trial) + 1metronomeTraining (rf*context)
 
-        var latinSquaredNotTrainings = Utils.Math.balancedLatinSquare(new ExperimentManager.RunConfig[]
+        var latinSquaredNotTrainings = Utils.Math.balancedLatinSquare(new []
         {
             generateNotTrainingRunConfig(ExperimentManager.ReferenceFrame.PalmReferenced, ExperimentManager.Context.Standing),
             generateNotTrainingRunConfig(ExperimentManager.ReferenceFrame.HandReferenced, ExperimentManager.Context.Standing),
             generateNotTrainingRunConfig(ExperimentManager.ReferenceFrame.PathReferenced, ExperimentManager.Context.Standing),
+            generateNotTrainingRunConfig(ExperimentManager.ReferenceFrame.PathReferencedNeck, ExperimentManager.Context.Standing),
             generateNotTrainingRunConfig(ExperimentManager.ReferenceFrame.PalmReferenced, ExperimentManager.Context.Walking),
             generateNotTrainingRunConfig(ExperimentManager.ReferenceFrame.HandReferenced, ExperimentManager.Context.Walking),
             generateNotTrainingRunConfig(ExperimentManager.ReferenceFrame.PathReferenced, ExperimentManager.Context.Walking),
@@ -69,6 +71,8 @@ public class HelmetMainProcess: ExperimentNetworkClient
             ExperimentManager.Context.Walking,
             ExperimentManager.ReferenceFrame.PalmReferenced
             ));
+
+        return result.Where(config => config.isMetronomeTraining || (config.isTraining && config.context==ExperimentManager.Context.Standing)).ToArray();
 
         return result.ToArray();
     }

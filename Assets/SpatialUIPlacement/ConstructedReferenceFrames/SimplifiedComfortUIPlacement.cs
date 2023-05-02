@@ -4,7 +4,7 @@ namespace SpatialUIPlacement
 {
     public class SimplifiedComfortUIPlacement : MonoBehaviour
     {
-        private static readonly float HEIGHT_PERCENT = 60f;
+        private static readonly float HEIGHT_PERCENT = 75f;
 
         [SerializeField] private Transform _headset;
 

@@ -10,8 +10,9 @@ public class TargetsManager : MonoBehaviour
     private static readonly Color _inactiveColor = Color.gray;
     private static readonly Color _successColor = Color.green;
     private static readonly Color _failColor = Color.red;
-    private const int targetsCount = 7;
+    public const int TargetsCount = 7;
     private const float diameter = .15f;
+    private const double MINIMUM_TIME_BETWEEN_SELECTIONS = .1; // in seconds
 
     [SerializeField] private GameObject targetPrefab;
 
@@ -28,8 +29,13 @@ public class TargetsManager : MonoBehaviour
         TargetSize == TargetSizeVariant.Big ? 0.035f :
         TargetSize == TargetSizeVariant.Medium ? 0.025f :
         0.015f; /*TargetSize == TargetSizeVariant.Small*/
+    
+    private DateTime lastSelectionDate = DateTime.Now;
+    public SelectionDonePayload LastSelection { get; private set; }
 
-    public UnityEvent<SelectionDonePayload> selectionDone;
+
+    public readonly UnityEvent selectorEnteredTargetsZone = new();
+    public readonly UnityEvent selectorExitedTargetsZone = new();
 
     public enum TargetSizeVariant
     {
@@ -38,7 +44,7 @@ public class TargetsManager : MonoBehaviour
         Big
     }
     
-    public struct SelectionDonePayload
+    public class SelectionDonePayload
     {
         public readonly int activeTargetIndex;
         public readonly float targetSize;
@@ -79,12 +85,17 @@ public class TargetsManager : MonoBehaviour
 
     private static Vector3 CalcTargetLocalPosition(int targetIndex)
     {
-        var angle = targetIndex * (2 * Mathf.PI / targetsCount);
+        var angle = targetIndex * (2 * Mathf.PI / TargetsCount);
         return new Vector3(
             Mathf.Cos(angle) * diameter / 2,
             Mathf.Sin(angle) * diameter / 2,
             0
         );
+    }
+
+    public bool IsShowingTargets()
+    {
+        return _showing;
     }
 
     public void ShowTargets()
@@ -94,11 +105,11 @@ public class TargetsManager : MonoBehaviour
                 $"{nameof(TargetsManager)}: cannot call method ShowTargets when showing is already in progress"
             );
 
-        _targets = new List<GameObject>(targetsCount);
-        _targetToRendererComponentMap = new(targetsCount);
+        _targets = new List<GameObject>(TargetsCount);
+        _targetToRendererComponentMap = new(TargetsCount);
 
         // creating targets
-        for (int i = 0; i < targetsCount; i++)
+        for (int i = 0; i < TargetsCount; i++)
         {
             var target = Instantiate(targetPrefab, transform);
 
@@ -134,6 +145,7 @@ public class TargetsManager : MonoBehaviour
         _targets = null;
         _targetToRendererComponentMap = null;
         ActiveTarget = (null, -1);
+        LastSelection = null;
         _showing = false;
     }
 
@@ -164,6 +176,10 @@ public class TargetsManager : MonoBehaviour
         if (!_showing) return;
         if (ActiveTarget.targetIndex == -1) return; // equivalent of ActiveTarget.target == null
 
+        var now = DateTime.Now;
+        if (now.Subtract(lastSelectionDate).Milliseconds / 1000.0 < MINIMUM_TIME_BETWEEN_SELECTIONS) return;
+        lastSelectionDate = now;
+
         // plenty of math then
         var projection = Math.ProjectPointOntoOXYPlane(transform, other.transform.position);
         var targetLocalPosition = CalcTargetLocalPosition(ActiveTarget.targetIndex);
@@ -191,7 +207,9 @@ public class TargetsManager : MonoBehaviour
             success
         );
 
-        selectionDone.Invoke(payload);
+        LastSelection = payload;
+
+        selectorEnteredTargetsZone.Invoke();
     }
     
     private void OnTriggerExit(Collider other)
@@ -212,7 +230,7 @@ public class TargetsManager : MonoBehaviour
         renderer.material.color = _inactiveColor;
         
         // Fitts Law here ;)
-        int nextTargetIndex = (ActiveTarget.targetIndex + (targetsCount / 2)) % targetsCount;
+        int nextTargetIndex = (ActiveTarget.targetIndex + (TargetsCount / 2)) % TargetsCount;
         bool activateNext = nextTargetIndex != 0;
 
         if (activateNext)
@@ -224,5 +242,6 @@ public class TargetsManager : MonoBehaviour
         {
             ActiveTarget = (null, -1);
         }
+        selectorExitedTargetsZone.Invoke();
     }
 }
