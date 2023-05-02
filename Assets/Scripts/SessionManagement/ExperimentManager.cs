@@ -10,6 +10,7 @@ using SpatialUIPlacement;
 using UnityEngine;
 using UnityEngine.Events;
 using Utils;
+using Math = Utils.Math;
 
 public partial class ExperimentManager: MonoBehaviour
 {
@@ -49,7 +50,7 @@ public partial class ExperimentManager: MonoBehaviour
         row.SetColumnValue("ParticipantID", _runConfig.participantID);
         row.SetColumnValue("SelectionID", _targetsSelected);
 
-        var selection = targetsManager.LastSelection;
+        var selection = targetsManager.LastSelectionData;
         
         // conditions
         row.SetColumnValue("Walking", _runConfig.context == Context.Standing ? 0 : 1);
@@ -301,6 +302,7 @@ public partial class ExperimentManager: MonoBehaviour
     private DateTime selectFirstTargetMoment;
     private DateTime selectPreviousTargetMoment;
     private IEnumerator<TargetsManager.TargetSizeVariant> targetSizesSequence;
+    private IEnumerator<int> targetsIndexesSequence;
 
     private bool highFrequencyLoggingIsOnFlag;
     private AsyncHighFrequencyCSVLogger _selectionsLogger;
@@ -556,6 +558,7 @@ public partial class ExperimentManager: MonoBehaviour
             {
                 yield return TargetsManager.TargetSizeVariant.Big;
                 yield return TargetsManager.TargetSizeVariant.Medium;
+                yield return TargetsManager.TargetSizeVariant.Small;
             }
         }
 
@@ -563,9 +566,18 @@ public partial class ExperimentManager: MonoBehaviour
         {
             // TODO: implement random
             yield return TargetsManager.TargetSizeVariant.Big;
+            yield return TargetsManager.TargetSizeVariant.Medium;
+            yield return TargetsManager.TargetSizeVariant.Small;
         }
 
         return isTraining ? TrainingSequence() : TrialSequence();
+    }
+
+    private static IEnumerator<int> GenerateTargetsIndexesSequence(bool isTraining)
+    {
+        return Math.FittsLaw(TargetsManager.TargetsCount)
+            .Take(isTraining ? TargetsManager.TargetsCount : TargetsManager.TargetsCount + 1)
+            .GetEnumerator();
     }
 
     private void HandleState(string eventName = "")
@@ -647,17 +659,24 @@ public partial class ExperimentManager: MonoBehaviour
                 {
                     PlaceLightWhereHeadset();
                     comfortUICoordinateY.Refresh();
-                    if (!targetsManager.IsShowingTargets()) // means "prepare" is called first time
+
+                    bool prepareCalledFirstTime = !targetsManager.IsShowingTargets;
+                    if (prepareCalledFirstTime)
                     {
-                        if (!_runConfig.isTraining)
-                        {
-                            InitSelectionsLogger();
-                            InitHighFrequencyLogger();   
-                        }
                         ActualizeHands();
                         ActualizeReferenceFrames();
                         targetsManager.Anchor = activeRefFrame;
+                        
+                        bool isTrial = !_runConfig.isTraining;
+                        if (isTrial)
+                        {
+                            InitSelectionsLogger();
+                            // InitHighFrequencyLogger(); // todo: uncomment this
+                        }
+                        
                         targetSizesSequence = GenerateTargetSizesSequence(_runConfig.isTraining);
+                        targetsIndexesSequence = GenerateTargetsIndexesSequence(_runConfig.isTraining);
+
                         targetSizesSequence.MoveNext();
                         targetsManager.TargetSize = targetSizesSequence.Current;
                         _targetsSelected = 0;
@@ -677,10 +696,11 @@ public partial class ExperimentManager: MonoBehaviour
 
                 if (_runConfig.context == Context.Standing)
                 {
-                    if (!targetsManager.IsShowingTargets())
+                    if (!targetsManager.IsShowingTargets)
                         throw new ArgumentException("Cannot call start before prepare");
-                    
-                    targetsManager.ActivateFirstTarget();
+
+                    targetsIndexesSequence.MoveNext();
+                    targetsManager.ActivateTarget(targetsIndexesSequence.Current);
                     StartListeningTargetsEvents();
 
                     if (!_runConfig.isTraining)
@@ -746,7 +766,7 @@ public partial class ExperimentManager: MonoBehaviour
                 _targetsSelected++;
                 if (!_runConfig.isTraining)
                 {
-                    bool isFirstWithSuchSize = _targetsSelected % TargetsManager.TargetsCount == 1;
+                    bool isFirstWithSuchSize = _targetsSelected % (TargetsManager.TargetsCount + 1) == 1;
 
                     var now = TimeMeasurementHelper.GetHighResolutionDateTime();
                     
@@ -759,8 +779,8 @@ public partial class ExperimentManager: MonoBehaviour
                     }
                     else
                     {
-                        systemClockMilliseconds = (now - selectFirstTargetMoment).Milliseconds;
-                        selectionDurationMilliseconds = (now - selectPreviousTargetMoment).Milliseconds;
+                        systemClockMilliseconds = (int)(now - selectFirstTargetMoment).TotalMilliseconds;
+                        selectionDurationMilliseconds = (int)(now - selectPreviousTargetMoment).TotalMilliseconds;
                     }
 
                     selectPreviousTargetMoment = now;
@@ -769,10 +789,38 @@ public partial class ExperimentManager: MonoBehaviour
                 }
                 break;
             case nameof(OnSelectorExitedTargetZone):
-                bool isLastWithSuchSize = _targetsSelected % TargetsManager.TargetsCount == 0;
+                bool isLastWithSuchSize = !targetsIndexesSequence.MoveNext();
                 if (isLastWithSuchSize)
                 {
-                    targetsManager.HideTargets();  // TODO: maybe rewrite targets manager to set Target size without destroying targets and creating again
+                    bool hasNextTargetSize = targetSizesSequence.MoveNext();
+
+                    if (hasNextTargetSize)
+                    {
+                        targetsManager.TargetSize = targetSizesSequence.Current;
+                        targetsIndexesSequence = GenerateTargetsIndexesSequence(_runConfig.isTraining);
+                        targetsIndexesSequence.MoveNext();
+                        targetsManager.ActivateTarget(targetsIndexesSequence.Current);
+                    }
+                    else
+                    {
+                        // we now sure this is not training, because in training
+                        // targetSizesSequence.MoveNext() always returns true cause sequence is infinite
+                        highFrequencyLoggingIsOnFlag = false;
+                        _targetsSelected = 0;
+                        targetSizesSequence = null;
+                        targetsIndexesSequence = null;
+                        
+                        StopListeningTargetsEvents();
+                        targetsManager.HideTargets();
+                        
+                        _selectionsLogger.SaveDataToDisk();
+                        // _highFrequencyLogger.SaveDataToDisk(); // TODO: uncomment this
+                        
+                        _state = State.Idle;
+                        trialFinished.Invoke();
+                    }
+                    
+                    /*targetsManager.HideTargets(); 
 
                     if (_runConfig.isTraining)
                     {
@@ -811,17 +859,21 @@ public partial class ExperimentManager: MonoBehaviour
                             _state = State.Idle;
                             trialFinished.Invoke();
                         }
-                    }
+                    }*/
+                }
+                else
+                {
+                    targetsManager.ActivateTarget(targetsIndexesSequence.Current);
                 }
                 break;
             case nameof(OnServerSaidFinishTraining):
                 if (!_runConfig.isTraining) throw new ArgumentException($"{eventName} got called in SelectingTargetsStanding state while trials. This is not supposed to happen");
                 
-                if (targetsManager.IsShowingTargets())
-                    targetsManager.HideTargets();
+                targetsManager.HideTargets();
                 StopListeningTargetsEvents();
                 _targetsSelected = 0;
                 targetSizesSequence = null;
+                targetsIndexesSequence = null;
                 _state = State.Idle;
                 break;
             default:
