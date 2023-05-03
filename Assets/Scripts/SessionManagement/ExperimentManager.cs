@@ -11,6 +11,273 @@ using Math = Utils.Math;
 
 public partial class ExperimentManager: MonoBehaviour
 {
+    // not used for trainings. To finish training, method (OnServerSaidFinishTraining should be called)
+    public readonly UnityEvent trialFinished = new();
+    public readonly UnityEvent<string> unexpectedErrorOccured = new();
+
+    private State _state;
+    private RunConfig _runConfig;
+    
+    private void LateUpdate()
+    {
+        // asyncHighFrequencyLogging stuff goes here
+
+        if (!highFrequencyLoggingIsOnFlag) return;
+        // now we assume that we are inside trial session and logger is initialized already
+
+        try
+        {
+            LogHighFrequencyRow();
+        }
+        catch (Exception e)
+        {
+            unexpectedErrorOccured.Invoke($"Error when logging new row of highFrequency: {e.Message}\n\n");
+        }
+    }
+
+    #region Targets stuff
+    [SerializeField] private TargetsManager targetsManager;
+    
+    void StartListeningTargetsEvents()
+    {
+        targetsManager.selectorEnteredTargetsZone.AddListener(OnSelectorEnteredTargetZone);
+        targetsManager.selectorExitedTargetsZone.AddListener(OnSelectorExitedTargetZone);
+    }
+    
+    void StopListeningTargetsEvents()
+    {
+        targetsManager.selectorEnteredTargetsZone.RemoveListener(OnSelectorEnteredTargetZone);
+        targetsManager.selectorExitedTargetsZone.RemoveListener(OnSelectorExitedTargetZone);
+    }
+    
+    private static IEnumerator<TargetsManager.TargetSizeVariant> GenerateTargetSizesSequence(int participantId, ReferenceFrame referenceFrame, Context context)
+    {
+        var seed = participantId * 100
+                   + (int)referenceFrame * 10
+                   + (int)context;
+        var random = new System.Random(seed);
+
+        // same sequence for equal (participantId, referenceFrame, context)
+        return new List<TargetsManager.TargetSizeVariant>
+            {
+                TargetsManager.TargetSizeVariant.Small,
+                TargetsManager.TargetSizeVariant.Medium,
+                TargetsManager.TargetSizeVariant.Big,
+            }
+            .Select(size => new { size, rnd= random.Next() })
+            .OrderBy(x => x.rnd)
+            .Select(x => x.size)
+            .GetEnumerator();
+    }
+
+    private static IEnumerator<int> GenerateTargetsIndexesSequence()
+    {
+        return Math.FittsLaw(TargetsManager.TargetsCount)
+            .Take(TargetsManager.TargetsCount + 1)
+            .GetEnumerator();
+    }
+    #endregion
+
+    #region Track & Light stuff
+    [Space]
+    [SerializeField] private GameObject track;
+    [SerializeField] private GameObject sceneLight; // remark: we interpret it as track in standing context. Hand Ref and path ref depend on it, actually
+    
+    [SerializeField] private WalkingStateTrigger walkingStateTrigger;
+    
+    [SerializeField] private GameObject walkingDirection; // walking context (relative to track)
+    [SerializeField] private GameObject standingDirection; // standing context (relative to light)
+
+    private void StartListeningTrackEvents()
+    {
+        walkingStateTrigger.ParticipantEntered.AddListener(OnParticipantEnteredTrack);
+        walkingStateTrigger.ParticipantSwervedOff.AddListener(OnParticipantSwervedOffTrack);
+        walkingStateTrigger.ParticipantSlowedDown.AddListener(OnParticipantSlowedDown);
+        walkingStateTrigger.ParticipantFinished.AddListener(OnParticipantFinishedTrack);
+    }
+
+    private void StopListeningTrackEvents()
+    {
+        walkingStateTrigger.ParticipantEntered.RemoveListener(OnParticipantEnteredTrack);
+        walkingStateTrigger.ParticipantSwervedOff.RemoveListener(OnParticipantSwervedOffTrack);
+        walkingStateTrigger.ParticipantSlowedDown.RemoveListener(OnParticipantSlowedDown);
+        walkingStateTrigger.ParticipantFinished.RemoveListener(OnParticipantFinishedTrack);
+    }
+
+    private void PlaceTrackWhereHeadset()
+    {
+        var (position, rotation) = HeadsetOXZProjection();
+        track.transform.SetPositionAndRotation(position, rotation);
+    }
+    
+    private void PlaceLightWhereHeadset()
+    {
+        var (position, rotation) = HeadsetOXZProjection();
+        sceneLight.transform.SetPositionAndRotation(position, rotation);
+    }
+    
+    private void PlaceLightWhereTrack()
+    {
+        var trackTransform = track.transform;
+        sceneLight.transform.SetPositionAndRotation(trackTransform.position, trackTransform.rotation);
+    }
+
+    #endregion
+    
+    #region Sound stuff
+    [Space]
+    [SerializeField] private GameObject metronome;
+    [SerializeField] private GameObject errorIndicator;
+    
+    void ShowErrorToParticipant()
+    {
+        var headsetTransform = headset.transform;
+        var errorPosition = headsetTransform.position + headsetTransform.forward * 0.5f;
+        errorIndicator.transform.SetPositionAndRotation(errorPosition, headsetTransform.rotation);
+        errorIndicator.SetActive(true); // will be set inactive automatically 
+    }
+    #endregion
+
+    #region Head stuff
+    [Space]
+    [SerializeField] private GameObject headset;
+    [SerializeField] private GameObject neckBase;
+    // SimplifiedComfortUIPlacement position.y depends on headset.
+    // We refresh it when we want (usually after "prepare" command from server) by calling comfortUICoordinateY.Refresh()
+    // Path-refFrame positioning depend on it.
+    [SerializeField] private SimplifiedComfortUIPlacement comfortUICoordinateY;
+    
+    private (Vector3 position, Quaternion rotation) HeadsetOXZProjection()
+    {
+        var headsetTransform = headset.transform;
+        var headsetPosition = headsetTransform.position;
+        var position = new Vector3(headsetPosition.x, 0, headsetPosition.z);
+
+        var headsetForward = headsetTransform.forward;
+        var rotation = Quaternion.LookRotation(new Vector3(headsetForward.x, 0, headsetForward.z));
+        return (position, rotation);
+    }
+    #endregion
+    
+    #region Hands stuff
+    [Space]
+    // oculus hands here. Note, that we keep inactive gameObjects which we don't use 
+    [SerializeField] private GameObject leftIndexTip;
+    [SerializeField] private GameObject rightIndexTip;
+    [SerializeField] private GameObject leftPalmCenter;
+    [SerializeField] private GameObject rightPalmCenter;
+    private GameObject dominantHandIndexTip; // holds selector
+    private GameObject weakHandPalmCenter; // holds target
+    private GameObject dominantHandPalmCenter; // just for logging
+    
+    private void ActualizeHands()
+    {
+        if (_runConfig.leftHanded)
+        {
+            leftIndexTip.SetActive(true);
+            rightIndexTip.SetActive(false);
+            leftPalmCenter.SetActive(true);
+            rightPalmCenter.SetActive(true);
+
+            dominantHandPalmCenter = leftPalmCenter;
+            dominantHandIndexTip = leftIndexTip;
+            weakHandPalmCenter = rightPalmCenter;
+        }
+        else
+        {
+            leftIndexTip.SetActive(false);
+            rightIndexTip.SetActive(true);
+            leftPalmCenter.SetActive(true);
+            rightPalmCenter.SetActive(true);
+            
+            dominantHandIndexTip = rightIndexTip;
+            weakHandPalmCenter = leftPalmCenter;
+            dominantHandPalmCenter = rightPalmCenter;
+        }
+    }
+    #endregion
+
+    #region Reference Frames stuff
+    [Space] // reference frames go here. Note, that we keep inactive gameObjects which we don't use
+    // left-right for palmRef
+    // left-right * standing-walking for handRef
+    // standing-walking for pathRef
+    // only walking for pathRefNeck
+    [SerializeField] private GameObject palmRefFrameLeftHand;
+    [SerializeField] private GameObject palmRefFrameRightHand;
+    [SerializeField] private GameObject handRefFrameLeftHandStanding;
+    [SerializeField] private GameObject handRefFrameRightHandStanding;
+    [SerializeField] private GameObject handRefFrameLeftHandWalking;
+    [SerializeField] private GameObject handRefFrameRightHandWalking;
+    [SerializeField] private GameObject pathRefFrameStanding;
+    [SerializeField] private GameObject pathRefFrameWalking;
+    [SerializeField] private GameObject pathRefFrameNeckStanding;
+    [SerializeField] private GameObject pathRefFrameNeckWalking;
+    private GameObject activeRefFrame;
+    private GameObject[] inactiveRefFrames;
+    
+    private void ActualizeReferenceFrames()
+    {
+        GameObject[] allRefFrames =
+        {
+            palmRefFrameLeftHand,
+            palmRefFrameRightHand,
+            handRefFrameLeftHandStanding,
+            handRefFrameRightHandStanding,
+            handRefFrameLeftHandWalking,
+            handRefFrameRightHandWalking,
+            pathRefFrameStanding,
+            pathRefFrameWalking,
+            pathRefFrameNeckStanding,
+            pathRefFrameNeckWalking
+        };
+
+        GameObject active;
+        switch (_runConfig.referenceFrame)
+        {
+            case ReferenceFrame.PalmReferenced:
+                active = _runConfig.leftHanded ? palmRefFrameRightHand : palmRefFrameLeftHand;
+                break;
+            case ReferenceFrame.PathReferenced:
+                active = _runConfig.context == Context.Standing ? pathRefFrameStanding : pathRefFrameWalking;
+                break;
+            case ReferenceFrame.PathReferencedNeck:
+                active = _runConfig.context == Context.Standing ? pathRefFrameNeckStanding : pathRefFrameNeckWalking;
+                break;
+            case ReferenceFrame.HandReferenced:
+                if (_runConfig is { context: Context.Standing, leftHanded: false }) active = handRefFrameLeftHandStanding;
+                else if (_runConfig is { context: Context.Standing, leftHanded: true }) active = handRefFrameRightHandStanding;
+                else if (_runConfig is { context: Context.Walking, leftHanded: false }) active = handRefFrameLeftHandWalking;
+                else if (_runConfig is { context: Context.Walking, leftHanded: true }) active = handRefFrameRightHandWalking;
+                else throw new NotSupportedException();
+                break;
+            default:
+                throw new NotSupportedException();
+        }
+
+        activeRefFrame = active;
+        inactiveRefFrames = allRefFrames.Where(rf => rf != active).ToArray();
+        
+        activeRefFrame.SetActive(true);
+        foreach (var refFrame in inactiveRefFrames)
+            refFrame.SetActive(false);
+    }
+    #endregion
+    
+    #region Current stuff (time, sequences and so on)
+    [Space] [SerializeField, Tooltip("Minimum number of seconds since the moment the participant enters the track until the prompt appears. The random value will be add up to it to make the participant acquire the target at different phases of walking")]
+    private float _timeUntilPrompt = 0.6f;
+    
+    private int _targetsSelected;
+    private int _measurementId;
+    private DateTime activateFirstTargetMoment;
+    private DateTime selectFirstTargetMoment;
+    private DateTime selectPreviousTargetMoment;
+    private IEnumerator<TargetsManager.TargetSizeVariant> targetSizesSequence;
+    private IEnumerator<int> targetsIndexesSequence;
+    #endregion
+    
+    #region Logging stuff
     private static readonly string[] selectionLogColumns =
     {
         // ids
@@ -38,7 +305,6 @@ public partial class ExperimentManager: MonoBehaviour
         "Success", // 0 or 1, where 1 means that selection was successful
         "SelectionDuration" // time passed from the previous selection. For the 1st selection equal to 0
     };
-
     private static readonly string[] highFrequencyLogColumns =
     {
         // ids
@@ -200,96 +466,11 @@ public partial class ExperimentManager: MonoBehaviour
         "DistanceFromSelectorToAllTargetsOXYPlane", // maybe negative (if he is inside). Note, that collider is not infinite, just about 20-25cm. If outside it, always positive distance
     };
     
-    // not used for trainings. To finish training, method (OnServerSaidFinishTraining should be called)
-    public readonly UnityEvent trialFinished = new();
-    public readonly UnityEvent<string> unexpectedErrorOccured = new();
-
-    private State _state;
-    private RunConfig _runConfig; 
-    
-    [SerializeField] private TargetsManager targetsManager;
-    [SerializeField] private WalkingStateTrigger walkingStateTrigger;
-    
-    
-    [Space]
-    [SerializeField] private GameObject metronome;
-    [SerializeField] private GameObject errorIndicator;
-    [SerializeField] private GameObject track;
-    [SerializeField] private GameObject sceneLight; // remark: we interpret it as track in standing context. Hand Ref and path ref depend on it, actually
-
-    [SerializeField] private GameObject walkingDirection; // walking context (relative to track)
-    [SerializeField] private GameObject standingDirection; // standing context (relative to light)
-
-    [SerializeField] private GameObject headset;
-    [SerializeField] private GameObject neckBase;
-    // SimplifiedComfortUIPlacement position.y depends on headset.
-    // We refresh it when we want (usually after "prepare" command from server) by calling comfortUICoordinateY.Refresh()
-    // Path-refFrame positioning depend on it.
-    [SerializeField] private SimplifiedComfortUIPlacement comfortUICoordinateY;
-
-    [Space] // oculus hands here. Note, that we keep inactive gameObjects which we don't use 
-    [SerializeField] private GameObject leftIndexTip;
-    [SerializeField] private GameObject rightIndexTip;
-    [SerializeField] private GameObject leftPalmCenter;
-    [SerializeField] private GameObject rightPalmCenter;
-    private GameObject dominantHandIndexTip; // holds selector
-    private GameObject weakHandPalmCenter; // holds target
-    private GameObject dominantHandPalmCenter; // just for logging
-
-    [Space] // reference frames go here. Note, that we keep inactive gameObjects which we don't use
-    // left-right for palmRef
-    // left-right * standing-walking for handRef
-    // standing-walking for pathRef
-    // only walking for pathRefNeck
-    [SerializeField] private GameObject palmRefFrameLeftHand;
-    [SerializeField] private GameObject palmRefFrameRightHand;
-    [SerializeField] private GameObject handRefFrameLeftHandStanding;
-    [SerializeField] private GameObject handRefFrameRightHandStanding;
-    [SerializeField] private GameObject handRefFrameLeftHandWalking;
-    [SerializeField] private GameObject handRefFrameRightHandWalking;
-    [SerializeField] private GameObject pathRefFrameStanding;
-    [SerializeField] private GameObject pathRefFrameWalking;
-    [SerializeField] private GameObject pathRefFrameNeckStanding;
-    [SerializeField] private GameObject pathRefFrameNeckWalking;
-    private GameObject activeRefFrame;
-    private GameObject[] inactiveRefFrames;
-    
-    [SerializeField, Tooltip("Minimum number of seconds since the moment the participant enters the track until the prompt appears. The random value will be add up to it to make the participant acquire the target at different phases of walking")]
-    private float _timeUntilPrompt = 0.6f;
-
-    // public bool IsRunning { get; private set; }
-
-    private int _targetsSelected;
-    private int measurementId;
-    private DateTime activateFirstTargetMoment;
-    private DateTime selectFirstTargetMoment;
-    private DateTime selectPreviousTargetMoment;
-    private IEnumerator<TargetsManager.TargetSizeVariant> targetSizesSequence;
-    private IEnumerator<int> targetsIndexesSequence;
-
     private bool highFrequencyLoggingIsOnFlag;
     private AsyncHighFrequencyCSVLogger _selectionsLogger;
     private AsyncHighFrequencyCSVLogger _highFrequencyLogger;
-
-    private void LateUpdate()
-    {
-        // asyncHighFrequencyLogging stuff goes here
-
-        if (!highFrequencyLoggingIsOnFlag) return;
-        // now we assume that we are inside trial session and logger is initialized already
-
-        try
-        {
-            LogHighFrequencyRow();
-        }
-        catch (Exception e)
-        {
-            unexpectedErrorOccured.Invoke($"Error when logging new row of highFrequency: {e.Message}\n\n");
-        }
-    }
     
-    
-    void LogLastSelectionIntoSelectionLogger(int systemClockMilliseconds, int selectionDurationMilliseconds)
+    private void LogLastSelectionIntoSelectionLogger(int systemClockMilliseconds, int selectionDurationMilliseconds)
     {
         var row = _selectionsLogger.CurrentRow;
         
@@ -331,7 +512,7 @@ public partial class ExperimentManager: MonoBehaviour
         
         // ids
         row.SetColumnValue("ParticipantID", _runConfig.participantID);
-        row.SetColumnValue("MeasurementID", ++measurementId);
+        row.SetColumnValue("MeasurementID", ++_measurementId);
         
         // conditions
         row.SetColumnValue("Walking", _runConfig.context == Context.Walking ? 1 : 0);
@@ -404,146 +585,8 @@ public partial class ExperimentManager: MonoBehaviour
         row.SetColumnValue(objectPrefix + "QuaternionZ", quaternion.z);
         row.SetColumnValue(objectPrefix + "QuaternionW", quaternion.w);
     }
-
-    private void ActualizeReferenceFrames()
-    {
-        GameObject[] allRefFrames =
-        {
-            palmRefFrameLeftHand,
-            palmRefFrameRightHand,
-            handRefFrameLeftHandStanding,
-            handRefFrameRightHandStanding,
-            handRefFrameLeftHandWalking,
-            handRefFrameRightHandWalking,
-            pathRefFrameStanding,
-            pathRefFrameWalking,
-            pathRefFrameNeckStanding,
-            pathRefFrameNeckWalking
-        };
-
-        GameObject active;
-        switch (_runConfig.referenceFrame)
-        {
-            case ReferenceFrame.PalmReferenced:
-                active = _runConfig.leftHanded ? palmRefFrameRightHand : palmRefFrameLeftHand;
-                break;
-            case ReferenceFrame.PathReferenced:
-                active = _runConfig.context == Context.Standing ? pathRefFrameStanding : pathRefFrameWalking;
-                break;
-            case ReferenceFrame.PathReferencedNeck:
-                active = _runConfig.context == Context.Standing ? pathRefFrameNeckStanding : pathRefFrameNeckWalking;
-                break;
-            case ReferenceFrame.HandReferenced:
-                if (_runConfig is { context: Context.Standing, leftHanded: false }) active = handRefFrameLeftHandStanding;
-                else if (_runConfig is { context: Context.Standing, leftHanded: true }) active = handRefFrameRightHandStanding;
-                else if (_runConfig is { context: Context.Walking, leftHanded: false }) active = handRefFrameLeftHandWalking;
-                else if (_runConfig is { context: Context.Walking, leftHanded: true }) active = handRefFrameRightHandWalking;
-                else throw new NotSupportedException();
-                break;
-            default:
-                throw new NotSupportedException();
-        }
-
-        activeRefFrame = active;
-        inactiveRefFrames = allRefFrames.Where(rf => rf != active).ToArray();
-        
-        activeRefFrame.SetActive(true);
-        foreach (var refFrame in inactiveRefFrames)
-            refFrame.SetActive(false);
-    }
-
-    private void ActualizeHands()
-    {
-        if (_runConfig.leftHanded)
-        {
-            leftIndexTip.SetActive(true);
-            rightIndexTip.SetActive(false);
-            leftPalmCenter.SetActive(true);
-            rightPalmCenter.SetActive(true);
-
-            dominantHandPalmCenter = leftPalmCenter;
-            dominantHandIndexTip = leftIndexTip;
-            weakHandPalmCenter = rightPalmCenter;
-        }
-        else
-        {
-            leftIndexTip.SetActive(false);
-            rightIndexTip.SetActive(true);
-            leftPalmCenter.SetActive(true);
-            rightPalmCenter.SetActive(true);
-            
-            dominantHandIndexTip = rightIndexTip;
-            weakHandPalmCenter = leftPalmCenter;
-            dominantHandPalmCenter = rightPalmCenter;
-        }
-    }
-
-    void StartListeningTrackEvents()
-    {
-        walkingStateTrigger.ParticipantEntered.AddListener(OnParticipantEnteredTrack);
-        walkingStateTrigger.ParticipantSwervedOff.AddListener(OnParticipantSwervedOffTrack);
-        walkingStateTrigger.ParticipantSlowedDown.AddListener(OnParticipantSlowedDown);
-        walkingStateTrigger.ParticipantFinished.AddListener(OnParticipantFinishedTrack);
-    }
-
-    void StopListeningTrackEvents()
-    {
-        walkingStateTrigger.ParticipantEntered.RemoveListener(OnParticipantEnteredTrack);
-        walkingStateTrigger.ParticipantSwervedOff.RemoveListener(OnParticipantSwervedOffTrack);
-        walkingStateTrigger.ParticipantSlowedDown.RemoveListener(OnParticipantSlowedDown);
-        walkingStateTrigger.ParticipantFinished.RemoveListener(OnParticipantFinishedTrack);
-    }
-
-    void StartListeningTargetsEvents()
-    {
-        targetsManager.selectorEnteredTargetsZone.AddListener(OnSelectorEnteredTargetZone);
-        targetsManager.selectorExitedTargetsZone.AddListener(OnSelectorExitedTargetZone);
-    }
     
-    void StopListeningTargetsEvents()
-    {
-        targetsManager.selectorEnteredTargetsZone.RemoveListener(OnSelectorEnteredTargetZone);
-        targetsManager.selectorExitedTargetsZone.RemoveListener(OnSelectorExitedTargetZone);
-    }
-    
-    void ShowErrorToParticipant()
-    {
-        var headsetTransform = headset.transform;
-        var errorPosition = headsetTransform.position + headsetTransform.forward * 0.5f;
-        errorIndicator.transform.SetPositionAndRotation(errorPosition, headsetTransform.rotation);
-        errorIndicator.SetActive(true); // will be set inactive automatically 
-    }
-
-    (Vector3 position, Quaternion rotation) HeadsetOXZProjection()
-    {
-        var headsetTransform = headset.transform;
-        var headsetPosition = headsetTransform.position;
-        var position = new Vector3(headsetPosition.x, 0, headsetPosition.z);
-
-        var headsetForward = headsetTransform.forward;
-        var rotation = Quaternion.LookRotation(new Vector3(headsetForward.x, 0, headsetForward.z));
-        return (position, rotation);
-    }
-    
-    void PlaceTrackWhereHeadset()
-    {
-        var (position, rotation) = HeadsetOXZProjection();
-        track.transform.SetPositionAndRotation(position, rotation);
-    }
-    
-    void PlaceLightWhereHeadset()
-    {
-        var (position, rotation) = HeadsetOXZProjection();
-        sceneLight.transform.SetPositionAndRotation(position, rotation);
-    }
-    
-    void PlaceLightWhereTrack()
-    {
-        var trackTransform = track.transform;
-        sceneLight.transform.SetPositionAndRotation(trackTransform.position, trackTransform.rotation);
-    }
-
-    void InitSelectionsLogger()
+    private void InitSelectionsLogger()
     {
         try
         {
@@ -562,7 +605,7 @@ public partial class ExperimentManager: MonoBehaviour
         }
     }
 
-    void InitHighFrequencyLogger()
+    private void InitHighFrequencyLogger()
     {
         try
         {
@@ -580,36 +623,18 @@ public partial class ExperimentManager: MonoBehaviour
             throw new Exception($"Error while initializing highFrequency logger: Message= {e.Message}\n\nInner= {e.InnerException?.Message}");
         }
     }
+    #endregion
 
-    private static IEnumerator<TargetsManager.TargetSizeVariant> GenerateTargetSizesSequence(int participantId, ReferenceFrame referenceFrame, Context context)
+    #region HandleState stuff
+    private static ArgumentException NotSupposedException(string eventName, State state)
     {
-        var seed = participantId * 100
-                   + (int)referenceFrame * 10
-                   + (int)context;
-        var random = new System.Random(seed);
-
-        // same sequence for equal (participantId, referenceFrame, context)
-        return new List<TargetsManager.TargetSizeVariant>
-        {
-           TargetsManager.TargetSizeVariant.Small,
-           TargetsManager.TargetSizeVariant.Medium,
-           TargetsManager.TargetSizeVariant.Big,
-        }
-            .Select(size => new { size, rnd= random.Next() })
-            .OrderBy(x => x.rnd)
-            .Select(x => x.size)
-            .GetEnumerator();
+        return new ArgumentException($"{eventName} got called in {Enum.GetName(typeof(State), state)} state. This is not supposed to happen");
+    }
+    private static ArgumentException DefaultException(string handlerName)
+    {
+        return new ArgumentException($"It seems you have implemented new event but forgot to handle in method {handlerName}");
     }
     
-    
-
-    private static IEnumerator<int> GenerateTargetsIndexesSequence()
-    {
-        return Math.FittsLaw(TargetsManager.TargetsCount)
-            .Take(TargetsManager.TargetsCount + 1)
-            .GetEnumerator();
-    }
-
     private void HandleState(string eventName = "")
     {
         try
@@ -619,11 +644,23 @@ public partial class ExperimentManager: MonoBehaviour
                 case State.Idle:
                     HandleIdleState(eventName);
                     break;
+                case State.Preparing:
+                    HandlePreparingState(eventName);
+                    break;
                 case State.WalkingWithMetronomeTraining:
                     HandleWalkingWithMetronomeTrainingState(eventName);
                     break;
                 case State.SelectingTargetsStanding:
                     HandleSelectingTargetsStandingState(eventName);
+                    break;
+                case State.AwaitingParticipantEnterTrack:
+                    HandleAwaitingParticipantEnterTrackState(eventName);
+                    break;
+                case State.SelectingTargetsWalking:
+                    HandleSelectingTargetsWalkingState(eventName);
+                    break;
+                case State.AwaitingServerValidationOfLastTrial:
+                    HandleAwaitingServerValidationOfLastTrialState(eventName);
                     break;
                 default:
                     throw new ArgumentException(
@@ -636,135 +673,121 @@ public partial class ExperimentManager: MonoBehaviour
         }
     }
 
-    /*void HandConcreteStateTemplate(string eventName)
+    private void HandleIdleState(string eventName)
     {
         switch (eventName)
         {
-            case nameof(OnCountdownFinished):
-                break;
-            case nameof(OnParticipantSelectedTarget):
-                break;
-            case nameof(OnParticipantEnteredTrack):
-                break;
-            case nameof(OnParticipantFinishedTrack):
-                break;
-            case nameof(OnParticipantSwervedOffTrack):
-                break;
-            case nameof(OnParticipantSlowedDown):
-                break;
-            case nameof(OnServerSaidStart):
-                break;
-            case nameof(OnServerSaidFinishTraining):
-                break;
             case nameof(OnServerSaidPrepare):
+                if (_runConfig.isMetronomeTraining)
+                {
+                    _state = State.Preparing;
+                    walkingStateTrigger.enabled = true; // just show track, but not listening events yet
+                    HandlePreparingState(nameof(OnServerSaidPrepare));
+                    break;
+                }
+
+                ActualizeHands();
+                ActualizeReferenceFrames();
+                targetsManager.Anchor = activeRefFrame;
+                
+                targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID, _runConfig.referenceFrame, _runConfig.context);
+                targetsIndexesSequence = GenerateTargetsIndexesSequence();
+                
+                bool isTrial = !_runConfig.isTraining;
+                if (isTrial)
+                {
+                    InitSelectionsLogger();
+                    InitHighFrequencyLogger();
+                }
+
+                if (_runConfig.context == Context.Standing)
+                {
+                    // standing? Well, let's show targets with first targetSize, but don't activate it yet
+                    targetSizesSequence.MoveNext();
+                    targetsManager.TargetSize = targetSizesSequence.Current;
+                    targetsManager.ShowTargets();
+                    
+                    _state = State.Preparing;
+                    HandlePreparingState(nameof(OnServerSaidPrepare));
+                }
+                else
+                {
+                    walkingStateTrigger.enabled = true; // This is walking context. Just show track, but not listening events yet
+                    PlaceLightWhereTrack();
+                    _state = State.Preparing;
+                    HandlePreparingState(nameof(OnServerSaidPrepare));
+                }
                 break;
             default:
-                throw new ArgumentException($"It seems you have implemented new event but forgot to handle in method {nameof(HandConcreteStateTemplate)}");
+                throw eventRedirectingMethods.Contains(eventName)
+                    ? NotSupposedException(eventName, State.Idle)
+                    : DefaultException(nameof(HandleIdleState));
         }
-    }*/
-    
-    void HandleIdleState(string eventName)
+    }
+
+    private void HandlePreparingState(string eventName)
     {
         switch (eventName)
         {
-            case nameof(OnCountdownFinished):
-            case nameof(OnSelectorEnteredTargetZone):
-            case nameof(OnSelectorExitedTargetZone):
-            case nameof(OnParticipantEnteredTrack):
-            case nameof(OnParticipantFinishedTrack):
-            case nameof(OnParticipantSwervedOffTrack):
-            case nameof(OnParticipantSlowedDown):
-            case nameof(OnServerSaidFinishTraining):
-                throw new ArgumentException($"{eventName} got called in Idle state. This is not supposed to happen");
             case nameof(OnServerSaidPrepare):
                 if (_runConfig.isMetronomeTraining)
                 {
                     PlaceTrackWhereHeadset();
                     PlaceLightWhereTrack();
-                    walkingStateTrigger.enabled = true; // but no listening yet
                     break;
                 }
 
+                comfortUICoordinateY.Refresh(); // for both walking and standing context
                 if (_runConfig.context == Context.Standing)
                 {
                     PlaceLightWhereHeadset();
-                    comfortUICoordinateY.Refresh();
-
-                    bool prepareCalledFirstTime = !targetsManager.IsShowingTargets;
-                    if (prepareCalledFirstTime)
-                    {
-                        ActualizeHands();
-                        ActualizeReferenceFrames();
-                        targetsManager.Anchor = activeRefFrame;
-                        
-                        bool isTrial = !_runConfig.isTraining;
-                        if (isTrial)
-                        {
-                            InitSelectionsLogger();
-                            InitHighFrequencyLogger();
-                        }
-                        
-                        targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID, _runConfig.referenceFrame, _runConfig.context);
-                        targetsIndexesSequence = GenerateTargetsIndexesSequence();
-
-                        targetSizesSequence.MoveNext();
-                        targetsManager.TargetSize = targetSizesSequence.Current;
-                        _targetsSelected = 0;
-                        targetsManager.ShowTargets();
-                    }
-                    break;
                 }
+
                 break;
             case nameof(OnServerSaidStart):
-                if (_runConfig.isMetronomeTraining)
+                if (_runConfig.isMetronomeTraining || _runConfig.context == Context.Walking)
                 {
+                    // We have to wait for the participant to enter the track (no matter if this is training with metronome or not)
                     metronome.SetActive(true);
                     StartListeningTrackEvents();
-                    _state = State.WalkingWithMetronomeTraining;
-                    break;
+                    _state = State.AwaitingParticipantEnterTrack;
                 }
-
-                if (_runConfig.context == Context.Standing)
+                else
                 {
-                    if (!targetsManager.IsShowingTargets)
-                        throw new ArgumentException("Cannot call start before prepare");
-
+                    // We are now in standing context. We assume, that targets have already been shown.
+                    // We need just to activate first target and start logging if this is trial
                     targetsIndexesSequence.MoveNext();
                     targetsManager.ActivateTarget(targetsIndexesSequence.Current);
                     StartListeningTargetsEvents();
 
-                    if (!_runConfig.isTraining)
+                    bool isTrial = !_runConfig.isTraining; 
+                    if (isTrial)
                     {
                         activateFirstTargetMoment = TimeMeasurementHelper.GetHighResolutionDateTime();
                         highFrequencyLoggingIsOnFlag = true;
-                        measurementId = 0;
+                        _measurementId = 0;
+                        _targetsSelected = 0;
                     }
                     
                     _state = State.SelectingTargetsStanding;
-                    break;
                 }
-
                 break;
             default:
-                throw new ArgumentException($"It seems you have implemented new event but forgot to handle in method {nameof(HandleIdleState)}");
+                throw eventRedirectingMethods.Contains(eventName)
+                    ? NotSupposedException(eventName, State.Preparing)
+                    : DefaultException(nameof(HandlePreparingState));
         }
     }
 
-    void HandleWalkingWithMetronomeTrainingState(string eventName)
+    private void HandleWalkingWithMetronomeTrainingState(string eventName)
     {
         switch (eventName)
         {
-            case nameof(OnCountdownFinished):
-            case nameof(OnSelectorEnteredTargetZone):
-            case nameof(OnSelectorExitedTargetZone):
-            case nameof(OnServerSaidPrepare):
-            case nameof(OnServerSaidStart):
-                throw new ArgumentException($"{eventName} got called in WalkingWithMetronomeTraining state. This is not supposed to happen");
             case nameof(OnParticipantEnteredTrack):
             case nameof(OnParticipantFinishedTrack):
-                break;
+                break; // this is ok. Good job, participant! Move on!
             case nameof(OnParticipantSwervedOffTrack):
-            case nameof(OnParticipantSlowedDown):
+            // case nameof(OnParticipantSlowedDown): // TODO: uncomment this
                 ShowErrorToParticipant();
                 break;
             case nameof(OnServerSaidFinishTraining):
@@ -774,24 +797,16 @@ public partial class ExperimentManager: MonoBehaviour
                 _state = State.Idle;
                 break;
             default:
-                throw new ArgumentException($"It seems you have implemented new event but forgot to handle in method {nameof(HandleWalkingWithMetronomeTrainingState)}");
+                throw eventRedirectingMethods.Contains(eventName)
+                    ? NotSupposedException(eventName, State.WalkingWithMetronomeTraining)
+                    : DefaultException(nameof(HandleWalkingWithMetronomeTrainingState));
         }
     }
     
-    void HandleSelectingTargetsStandingState(string eventName)
+    private void HandleSelectingTargetsStandingState(string eventName)
     {
         switch (eventName)
         {
-            case nameof(OnCountdownFinished):
-            case nameof(OnParticipantEnteredTrack):
-            case nameof(OnParticipantFinishedTrack):
-            case nameof(OnParticipantSwervedOffTrack):
-            case nameof(OnParticipantSlowedDown):
-            case nameof(OnServerSaidStart):
-            case nameof(OnServerSaidPrepare):
-                throw new ArgumentException(
-                    $"{eventName} got called in SelectingTargetsStanding state. This is not supposed to happen"
-                    );
             case nameof(OnSelectorEnteredTargetZone):
                 _targetsSelected++;
                 if (!_runConfig.isTraining)
@@ -819,53 +834,56 @@ public partial class ExperimentManager: MonoBehaviour
                 }
                 break;
             case nameof(OnSelectorExitedTargetZone):
-                bool isLastWithSuchSize = !targetsIndexesSequence.MoveNext();
-                if (isLastWithSuchSize)
+                if (targetsIndexesSequence.MoveNext())
                 {
-                    bool hasNextTargetSize = targetSizesSequence.MoveNext();
+                    targetsManager.ActivateTarget(targetsIndexesSequence.Current);
+                }
+                else
+                {
+                    // We go here if the just-selected target was the last with such size
 
-                    if (hasNextTargetSize)
+                    void ActivateNextTargetSize()
                     {
                         targetsManager.TargetSize = targetSizesSequence.Current;
                         targetsIndexesSequence = GenerateTargetsIndexesSequence();
                         targetsIndexesSequence.MoveNext();
                         targetsManager.ActivateTarget(targetsIndexesSequence.Current);
                     }
+                    
+                    // Now, resize the targets to next size if next size is present
+                    bool hasNextTargetSize = targetSizesSequence.MoveNext();
+                    if (hasNextTargetSize)
+                    {
+                        ActivateNextTargetSize();
+                        break;
+                    }
+
+                    if (_runConfig.isTraining)
+                    {
+                        // rerun the whole pipeline if this was training
+                        targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID, _runConfig.referenceFrame, _runConfig.context);
+                        targetSizesSequence.MoveNext();
+                        ActivateNextTargetSize();
+                    }
                     else
                     {
-                        if (_runConfig.isTraining)
-                        {
-                            targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID, _runConfig.referenceFrame, _runConfig.context);
-                            targetSizesSequence.MoveNext();
-                            targetsManager.TargetSize = targetSizesSequence.Current;
-                            
-                            targetsIndexesSequence = GenerateTargetsIndexesSequence();
-                            targetsIndexesSequence.MoveNext();
-                            targetsManager.ActivateTarget(targetsIndexesSequence.Current);
-                        }
-                        else
-                        {
-                            // participant selected all targets with all sizes in trial. Let's stop logging and tell server trial is finished
-                            highFrequencyLoggingIsOnFlag = false;
-                            measurementId = 0;
-                            _targetsSelected = 0;
-                            targetSizesSequence = null;
-                            targetsIndexesSequence = null;
+                        // Now trial is finished (all three target sizes). Stop logging, cleanup and tell server
                         
-                            StopListeningTargetsEvents();
-                            targetsManager.HideTargets();
+                        highFrequencyLoggingIsOnFlag = false;
+                        _measurementId = 0;
+                        _targetsSelected = 0;
+                        targetSizesSequence = null;
+                        targetsIndexesSequence = null;
                         
-                            _selectionsLogger.SaveDataToDisk();
-                            _highFrequencyLogger.SaveDataToDisk();
+                        StopListeningTargetsEvents();
+                        targetsManager.HideTargets();
                         
-                            _state = State.Idle;
-                            trialFinished.Invoke();
-                        }
+                        _selectionsLogger.SaveDataToDisk();
+                        _highFrequencyLogger.SaveDataToDisk();
+                        
+                        _state = State.Idle;
+                        trialFinished.Invoke();
                     }
-                }
-                else
-                {
-                    targetsManager.ActivateTarget(targetsIndexesSequence.Current);
                 }
                 break;
             case nameof(OnServerSaidFinishTraining):
@@ -879,11 +897,70 @@ public partial class ExperimentManager: MonoBehaviour
                 _state = State.Idle;
                 break;
             default:
-                throw new ArgumentException($"It seems you have implemented new event but forgot to handle in method {nameof(HandleSelectingTargetsStandingState)}");
+                throw eventRedirectingMethods.Contains(eventName)
+                    ? NotSupposedException(eventName, State.SelectingTargetsStanding)
+                    : DefaultException(nameof(HandleSelectingTargetsStandingState));
         }
     }
 
+    private void HandleAwaitingParticipantEnterTrackState(string eventName)
+    {
+        switch (eventName)
+        {
+            case nameof(OnParticipantFinishedTrack):
+            case nameof(OnParticipantSlowedDown):
+            case nameof(OnParticipantSwervedOffTrack):
+                break; // These events can happen but we ignore them. We are interested only in "OnParticipantEnteredTrack" event
+            case nameof(OnParticipantEnteredTrack):
+                if (_runConfig.isMetronomeTraining)
+                {
+                    _state = State.WalkingWithMetronomeTraining;
+                }
+                else
+                {
+                    // We now assume this is walking context trial/training. We need to start Countdown to show targets
+                    
+                    _state = State.SelectingTargetsWalking;
+                }
+                break;
+            default: 
+                throw eventRedirectingMethods.Contains(eventName)
+                    ? NotSupposedException(eventName, State.AwaitingParticipantEnterTrack)
+                    : DefaultException(nameof(HandleAwaitingParticipantEnterTrackState));
+        }
+    }
+    
+    private void HandleSelectingTargetsWalkingState(string eventName)
+    {
+        switch (eventName)
+        {
+            default: 
+                throw eventRedirectingMethods.Contains(eventName)
+                    ? NotSupposedException(eventName, State.SelectingTargetsWalking)
+                    : DefaultException(nameof(HandleSelectingTargetsWalkingState));
+        }
+    }
 
+    private void HandleAwaitingServerValidationOfLastTrialState(string eventName)
+    {
+        switch (eventName)
+        {
+            default: 
+                throw eventRedirectingMethods.Contains(eventName)
+                    ? NotSupposedException(eventName, State.AwaitingServerValidationOfLastTrial)
+                    : DefaultException(nameof(HandleAwaitingServerValidationOfLastTrialState));
+        }
+    }
+    #endregion
+
+    #region Event Redirecting Methods
+    private static readonly List<string> eventRedirectingMethods = new List<string>
+    {
+        nameof(OnCountdownFinished), nameof(OnSelectorEnteredTargetZone), nameof(OnSelectorExitedTargetZone),
+        nameof(OnParticipantEnteredTrack), nameof(OnParticipantFinishedTrack), nameof(OnParticipantSwervedOffTrack), nameof(OnParticipantSlowedDown),
+        nameof(OnServerSaidStart), nameof(OnServerSaidPrepare), nameof(OnServerSaidFinishTraining), nameof(OnServerValidatedTrial), nameof(OnServerInvalidatedTrial)
+    };
+    
     private void OnCountdownFinished() => HandleState(nameof(OnCountdownFinished));
     private void OnSelectorEnteredTargetZone() => HandleState(nameof(OnSelectorEnteredTargetZone));
     private void OnSelectorExitedTargetZone() => HandleState(nameof(OnSelectorExitedTargetZone));
@@ -896,22 +973,23 @@ public partial class ExperimentManager: MonoBehaviour
 
     public void OnServerSaidPrepare(RunConfig config)
     {
-        _runConfig = config;
+        if (_state == State.Idle) _runConfig = config;
         
         HandleState(nameof(OnServerSaidPrepare));
     }
+    public void OnServerValidatedTrial() => HandleState(nameof(OnServerValidatedTrial));
+    public void OnServerInvalidatedTrial() => HandleState(nameof(OnServerInvalidatedTrial));
+    #endregion
 }
 
 partial class ExperimentManager
 {
-    [Serializable]
     public enum Context
     {
         Standing,
         Walking,
     }
     
-    [Serializable]
     public enum ReferenceFrame
     {
         PalmReferenced, // both rotation and position by hand
@@ -950,8 +1028,16 @@ partial class ExperimentManager
     
     private enum State
     {
-        Idle,
-        WalkingWithMetronomeTraining,
-        SelectingTargetsStanding,
+        Idle, // before first run or between runs
+        Preparing, // preparing (update track, light ans so on)
+        
+        AwaitingParticipantEnterTrack, // used for metronome training and training/trials in walking context
+        WalkingWithMetronomeTraining, // only when walkingWithMetronomeTraining was started
+        
+        SelectingTargetsStanding, // used both for training and trials, it is enough
+        
+        // these two states make walking context (both training and trials) easy
+        SelectingTargetsWalking,
+        AwaitingServerValidationOfLastTrial
     }
 }
