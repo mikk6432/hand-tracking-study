@@ -23,22 +23,21 @@ namespace Logging
 
         public Row CurrentRow { get; private set; }
 
-        private List<string> _header = new(); // Is used to check the column names after the logger has been initialised
+        private readonly List<string> _header = new(); // Is used to check the column names after the logger has been initialised
         private bool _headerHasBeenAdded;
-        private OrderedDictionary _templateRow = new();
-        private Queue<OrderedDictionary> _data = new();
+        private readonly OrderedDictionary _templateRow = new();
+        private readonly Queue<OrderedDictionary> _data = new();
         private readonly object _dataLock = new();
 
-        private StreamWriter _file;
+        private readonly StreamWriter _file;
         private readonly object _fileLock = new();
-        private string _fullPath;
 
         private bool
             _initialised; // Initialisation implies that the user has specified all the columns which they will fill with data later
 
         private class DataRow : Row
         {
-            private AsyncHighFrequencyCSVLogger _logger;
+            private readonly AsyncHighFrequencyCSVLogger _logger;
 
             private OrderedDictionary _currentRow;
 
@@ -102,8 +101,10 @@ namespace Logging
                 MemoryStream stream = new MemoryStream();
 
                 // Construct a serialization formatter that does all the hard work
-                BinaryFormatter formatter = new BinaryFormatter();
-                formatter.Context = new StreamingContext(StreamingContextStates.Clone);
+                var formatter = new BinaryFormatter
+                {
+                    Context = new StreamingContext(StreamingContextStates.Clone)
+                };
 
                 // Serialize the object graph into the memory stream
                 formatter.Serialize(stream, original);
@@ -120,7 +121,7 @@ namespace Logging
         public AsyncHighFrequencyCSVLogger(string filename)
         {
             if (String.IsNullOrEmpty(filename))
-                throw new ArgumentException($"Filename cannot be null or emtry. Please provide a proper file name");
+                throw new ArgumentException($"Filename cannot be null or empty. Please provide a proper file name");
 
             // Init the current row
             CurrentRow = new DataRow(this);
@@ -128,14 +129,14 @@ namespace Logging
             // Store a full path to the file which will be associated with this logger
             if (!filename.EndsWith(".csv"))
                 filename += ".csv";
-            _fullPath = Path.Combine(UnityEngine.Application.persistentDataPath, filename);
+            var fullPath = Path.Combine(UnityEngine.Application.persistentDataPath, filename);
 
             // Let's check whether the file with the specified name already exists
-            bool _fileExists = File.Exists(_fullPath);
+            bool _fileExists = File.Exists(fullPath);
             if (_fileExists)
             {
                 // Since it does, we need to restore the logger's state from it by reading its header
-                using (var reader = new StreamReader(_fullPath))
+                using (var reader = new StreamReader(fullPath))
                 {
                     var header = reader.ReadLine(); // We're interested only in a header
                     string[] columns;
@@ -159,12 +160,12 @@ namespace Logging
             }
             else
             {
-                var fs = new FileStream(_fullPath, FileMode.Create);
+                var fs = new FileStream(fullPath, FileMode.Create);
                 fs.Dispose();
             }
 
             // If we have successfully initialised the logger, open the file in the 'Append' mode, otherwise create file
-            _file = new StreamWriter(_fullPath, append: _headerHasBeenAdded, System.Text.Encoding.UTF8);
+            _file = new StreamWriter(fullPath, append: _headerHasBeenAdded, System.Text.Encoding.UTF8);
         }
 
         public void AddColumn(string name)
@@ -292,7 +293,7 @@ namespace Logging
                     var s = (string)value;
                     // Wrap the string in quotes, if there are spaces or commas inside
                     if (s.Contains(' ') || s.Contains(',')) // TODO: we don't deal with quote symbols yet
-                        return "\"" + value.ToString() + "\"";
+                        return "\"" + value + "\"";
                     else
                         return value.ToString();
                 case TypeCode.Single:
@@ -320,9 +321,10 @@ namespace Logging
 
         ~AsyncHighFrequencyCSVLogger()
         {
-            // Ensure that the stream is closed after all
             lock (_fileLock)
+            {
                 _file.Close(); // The Dispose method is called inside automatically
+            }
         }
     }
 }

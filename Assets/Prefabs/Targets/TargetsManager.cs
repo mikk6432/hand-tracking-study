@@ -7,7 +7,7 @@ using Math = Utils.Math;
 public class TargetsManager : MonoBehaviour
 {
     private static readonly Color _activeColor = Color.black;
-    private static readonly Color _inactiveColor = Color.gray;
+    private static readonly Color _inactiveColor = Color.white;
     private static readonly Color _successColor = Color.green;
     private static readonly Color _failColor = Color.red;
     private const float diameter = .15f;

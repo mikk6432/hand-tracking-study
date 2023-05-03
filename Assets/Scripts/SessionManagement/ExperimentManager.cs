@@ -473,6 +473,8 @@ public partial class ExperimentManager: MonoBehaviour
     private bool highFrequencyLoggingIsOnFlag;
     private AsyncHighFrequencyCSVLogger _selectionsLogger;
     private AsyncHighFrequencyCSVLogger _highFrequencyLogger;
+    private string currentSelectionsLoggerFilename;
+    private string currentHighFrequencyLoggerFilename;
     
     private void LogLastSelectionIntoSelectionLogger(int systemClockMilliseconds, int selectionDurationMilliseconds)
     {
@@ -590,11 +592,13 @@ public partial class ExperimentManager: MonoBehaviour
         row.SetColumnValue(objectPrefix + "QuaternionW", quaternion.w);
     }
     
-    private void InitSelectionsLogger()
+    private void EnsureSelectionsLoggerInitialized()
     {
         try
         {
-            var filename = $"{_runConfig.participantID}_{Enum.GetName(typeof(Context), _runConfig.context)}_{Enum.GetName(typeof(ReferenceFrame), _runConfig.referenceFrame)}_selections.csv";
+            var filename = $"{_runConfig.participantID}_selections.csv";
+            if (currentSelectionsLoggerFilename == filename) return;
+            
             _selectionsLogger = new AsyncHighFrequencyCSVLogger(filename);
 
             if (!_selectionsLogger.HasBeenInitialised())
@@ -602,6 +606,8 @@ public partial class ExperimentManager: MonoBehaviour
                 _selectionsLogger.AddColumns(selectionLogColumns);
                 _selectionsLogger.Initialise();
             }
+
+            currentSelectionsLoggerFilename = filename;
         }
         catch (Exception e)
         {
@@ -609,11 +615,12 @@ public partial class ExperimentManager: MonoBehaviour
         }
     }
 
-    private void InitHighFrequencyLogger()
+    private void EnsureFrequencyLoggerInitialized()
     {
         try
         {
-            var filename = $"{_runConfig.participantID}_{Enum.GetName(typeof(Context), _runConfig.context)}_{Enum.GetName(typeof(ReferenceFrame), _runConfig.referenceFrame)}_highFrequency.csv";
+            var filename = $"{_runConfig.participantID}_highFrequency.csv";
+            if (currentHighFrequencyLoggerFilename == filename) return;
             _highFrequencyLogger = new AsyncHighFrequencyCSVLogger(filename);
 
             if (!_highFrequencyLogger.HasBeenInitialised())
@@ -621,6 +628,8 @@ public partial class ExperimentManager: MonoBehaviour
                 _highFrequencyLogger.AddColumns(highFrequencyLogColumns);
                 _highFrequencyLogger.Initialise();
             }
+
+            currentHighFrequencyLoggerFilename = filename;
         }
         catch (Exception e)
         {
@@ -703,8 +712,8 @@ public partial class ExperimentManager: MonoBehaviour
                 bool isTrial = !_runConfig.isTraining;
                 if (isTrial)
                 {
-                    InitSelectionsLogger();
-                    InitHighFrequencyLogger();
+                    EnsureSelectionsLoggerInitialized();
+                    EnsureFrequencyLoggerInitialized();
                 }
                 
                 targetSizesSequence.MoveNext();
@@ -881,11 +890,6 @@ public partial class ExperimentManager: MonoBehaviour
                         _selectionsLogger.SaveDataToDisk();
                         _highFrequencyLogger.SaveDataToDisk();
 
-                        // GC, now it's your time
-                        // todo: uncomment this
-                        // _selectionsLogger = null;
-                        // _highFrequencyLogger = null;
-                        
                         _state = State.Idle;
                         trialFinished.Invoke();
                     }
