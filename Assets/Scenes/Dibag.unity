@@ -275,23 +275,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 67f40350f6254d64b4cf72c79348b546, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetsManager: {fileID: 748917988}
-  showButton: {fileID: 1314454795}
-  hideButton: {fileID: 1462299938}
-  activateNextButton: {fileID: 1445044359}
---- !u!114 &748917988
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 748917986}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cdf2a8b93ef0486f98f1215df0791a30, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetPrefab: {fileID: 1673176625174218644, guid: b1b7d524e0e324864b593081bba8860a, type: 3}
 --- !u!1001 &782798953
 PrefabInstance:
   m_ObjectHideFlags: 0

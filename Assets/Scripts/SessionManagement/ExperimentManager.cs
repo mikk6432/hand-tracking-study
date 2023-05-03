@@ -17,7 +17,29 @@ public partial class ExperimentManager: MonoBehaviour
 
     private State _state;
     private RunConfig _runConfig;
-    
+
+    private void Start()
+    {
+        targetsManager.selectorEnteredTargetsZone.AddListener(OnSelectorEnteredTargetZone);
+        targetsManager.selectorExitedTargetsZone.AddListener(OnSelectorExitedTargetZone);
+        
+        walkingStateTrigger.ParticipantEntered.AddListener(OnParticipantEnteredTrack);
+        walkingStateTrigger.ParticipantSwervedOff.AddListener(OnParticipantSwervedOffTrack);
+        walkingStateTrigger.ParticipantSlowedDown.AddListener(OnParticipantSlowedDown);
+        walkingStateTrigger.ParticipantFinished.AddListener(OnParticipantFinishedTrack);
+    }
+
+    private void OnDestroy()
+    {
+        targetsManager.selectorEnteredTargetsZone.RemoveListener(OnSelectorEnteredTargetZone);
+        targetsManager.selectorExitedTargetsZone.RemoveListener(OnSelectorExitedTargetZone);
+        
+        walkingStateTrigger.ParticipantEntered.RemoveListener(OnParticipantEnteredTrack);
+        walkingStateTrigger.ParticipantSwervedOff.RemoveListener(OnParticipantSwervedOffTrack);
+        walkingStateTrigger.ParticipantSlowedDown.RemoveListener(OnParticipantSlowedDown);
+        walkingStateTrigger.ParticipantFinished.RemoveListener(OnParticipantFinishedTrack);
+    }
+
     private void LateUpdate()
     {
         // asyncHighFrequencyLogging stuff goes here
@@ -37,19 +59,8 @@ public partial class ExperimentManager: MonoBehaviour
 
     #region Targets stuff
     [SerializeField] private TargetsManager targetsManager;
-    
-    void StartListeningTargetsEvents()
-    {
-        targetsManager.selectorEnteredTargetsZone.AddListener(OnSelectorEnteredTargetZone);
-        targetsManager.selectorExitedTargetsZone.AddListener(OnSelectorExitedTargetZone);
-    }
-    
-    void StopListeningTargetsEvents()
-    {
-        targetsManager.selectorEnteredTargetsZone.RemoveListener(OnSelectorEnteredTargetZone);
-        targetsManager.selectorExitedTargetsZone.RemoveListener(OnSelectorExitedTargetZone);
-    }
-    
+    private bool listeningTargetsEventsFlag;
+
     private static IEnumerator<TargetsManager.TargetSizeVariant> GenerateTargetSizesSequence(int participantId, ReferenceFrame referenceFrame, Context context)
     {
         var seed = participantId * 100
@@ -84,25 +95,10 @@ public partial class ExperimentManager: MonoBehaviour
     [SerializeField] private GameObject sceneLight; // remark: we interpret it as track in standing context. Hand Ref and path ref depend on it, actually
     
     [SerializeField] private WalkingStateTrigger walkingStateTrigger;
+    private bool listeningTrackEventsFlag;
     
     [SerializeField] private GameObject walkingDirection; // walking context (relative to track)
     [SerializeField] private GameObject standingDirection; // standing context (relative to light)
-
-    private void StartListeningTrackEvents()
-    {
-        walkingStateTrigger.ParticipantEntered.AddListener(OnParticipantEnteredTrack);
-        walkingStateTrigger.ParticipantSwervedOff.AddListener(OnParticipantSwervedOffTrack);
-        walkingStateTrigger.ParticipantSlowedDown.AddListener(OnParticipantSlowedDown);
-        walkingStateTrigger.ParticipantFinished.AddListener(OnParticipantFinishedTrack);
-    }
-
-    private void StopListeningTrackEvents()
-    {
-        walkingStateTrigger.ParticipantEntered.RemoveListener(OnParticipantEnteredTrack);
-        walkingStateTrigger.ParticipantSwervedOff.RemoveListener(OnParticipantSwervedOffTrack);
-        walkingStateTrigger.ParticipantSlowedDown.RemoveListener(OnParticipantSlowedDown);
-        walkingStateTrigger.ParticipantFinished.RemoveListener(OnParticipantFinishedTrack);
-    }
 
     private void PlaceTrackWhereHeadset()
     {
@@ -126,7 +122,7 @@ public partial class ExperimentManager: MonoBehaviour
     
     #region Sound stuff
     [Space]
-    [SerializeField] private GameObject metronome;
+    [SerializeField] private Metronome metronome;
     [SerializeField] private GameObject errorIndicator;
     
     void ShowErrorToParticipant()
@@ -275,6 +271,14 @@ public partial class ExperimentManager: MonoBehaviour
     private DateTime selectPreviousTargetMoment;
     private IEnumerator<TargetsManager.TargetSizeVariant> targetSizesSequence;
     private IEnumerator<int> targetsIndexesSequence;
+
+    private float GenerateTimeToActivateFirstTarget()
+    {
+        if (_runConfig.context == Context.Standing) return _timeUntilPrompt;
+        
+        float stepFrequencyInSeconds = 60f / metronome.Tempo;
+        return _timeUntilPrompt + UnityEngine.Random.Range(0f, 2f * stepFrequencyInSeconds);
+    }
     #endregion
     
     #region Logging stuff
@@ -680,8 +684,8 @@ public partial class ExperimentManager: MonoBehaviour
             case nameof(OnServerSaidPrepare):
                 if (_runConfig.isMetronomeTraining)
                 {
-                    _state = State.Preparing;
                     walkingStateTrigger.enabled = true; // just show track, but not listening events yet
+                    _state = State.Preparing;
                     HandlePreparingState(nameof(OnServerSaidPrepare));
                     break;
                 }
@@ -692,6 +696,9 @@ public partial class ExperimentManager: MonoBehaviour
                 
                 targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID, _runConfig.referenceFrame, _runConfig.context);
                 targetsIndexesSequence = GenerateTargetsIndexesSequence();
+
+                _targetsSelected = 0;
+                _measurementId = 0; // doesn't need for training, but who cares..
                 
                 bool isTrial = !_runConfig.isTraining;
                 if (isTrial)
@@ -699,24 +706,19 @@ public partial class ExperimentManager: MonoBehaviour
                     InitSelectionsLogger();
                     InitHighFrequencyLogger();
                 }
+                
+                targetSizesSequence.MoveNext();
+                targetsManager.TargetSize = targetSizesSequence.Current;
+                targetsManager.ShowTargets();
 
-                if (_runConfig.context == Context.Standing)
-                {
-                    // standing? Well, let's show targets with first targetSize, but don't activate it yet
-                    targetSizesSequence.MoveNext();
-                    targetsManager.TargetSize = targetSizesSequence.Current;
-                    targetsManager.ShowTargets();
-                    
-                    _state = State.Preparing;
-                    HandlePreparingState(nameof(OnServerSaidPrepare));
-                }
-                else
+                if (_runConfig.context == Context.Walking)
                 {
                     walkingStateTrigger.enabled = true; // This is walking context. Just show track, but not listening events yet
                     PlaceLightWhereTrack();
-                    _state = State.Preparing;
-                    HandlePreparingState(nameof(OnServerSaidPrepare));
                 }
+                
+                _state = State.Preparing;
+                HandlePreparingState(nameof(OnServerSaidPrepare));
                 break;
             default:
                 throw eventRedirectingMethods.Contains(eventName)
@@ -748,27 +750,15 @@ public partial class ExperimentManager: MonoBehaviour
                 if (_runConfig.isMetronomeTraining || _runConfig.context == Context.Walking)
                 {
                     // We have to wait for the participant to enter the track (no matter if this is training with metronome or not)
-                    metronome.SetActive(true);
-                    StartListeningTrackEvents();
+                    metronome.enabled = true;
+                    listeningTrackEventsFlag = true;
                     _state = State.AwaitingParticipantEnterTrack;
                 }
                 else
                 {
                     // We are now in standing context. We assume, that targets have already been shown.
-                    // We need just to activate first target and start logging if this is trial
-                    targetsIndexesSequence.MoveNext();
-                    targetsManager.ActivateTarget(targetsIndexesSequence.Current);
-                    StartListeningTargetsEvents();
-
-                    bool isTrial = !_runConfig.isTraining; 
-                    if (isTrial)
-                    {
-                        activateFirstTargetMoment = TimeMeasurementHelper.GetHighResolutionDateTime();
-                        highFrequencyLoggingIsOnFlag = true;
-                        _measurementId = 0;
-                        _targetsSelected = 0;
-                    }
-                    
+                    // We need just to activate first target after _timeUntilPrompt seconds
+                    Invoke(nameof(OnCountdownFinished), GenerateTimeToActivateFirstTarget());
                     _state = State.SelectingTargetsStanding;
                 }
                 break;
@@ -791,8 +781,8 @@ public partial class ExperimentManager: MonoBehaviour
                 ShowErrorToParticipant();
                 break;
             case nameof(OnServerSaidFinishTraining):
-                StopListeningTrackEvents();
-                metronome.SetActive(false);
+                listeningTrackEventsFlag = false;
+                metronome.enabled = false;
                 walkingStateTrigger.enabled = false; // also hides track borders
                 _state = State.Idle;
                 break;
@@ -807,6 +797,20 @@ public partial class ExperimentManager: MonoBehaviour
     {
         switch (eventName)
         {
+            case nameof(OnCountdownFinished):
+                // We need just to activate first target and start logging if this is trial
+                targetsIndexesSequence.MoveNext();
+                targetsManager.ActivateTarget(targetsIndexesSequence.Current);
+                listeningTargetsEventsFlag = true;
+
+                bool isTrial = !_runConfig.isTraining; 
+                if (isTrial)
+                {
+                    activateFirstTargetMoment = TimeMeasurementHelper.GetHighResolutionDateTime();
+                    highFrequencyLoggingIsOnFlag = true;
+                }
+                break;
+                
             case nameof(OnSelectorEnteredTargetZone):
                 _targetsSelected++;
                 if (!_runConfig.isTraining)
@@ -842,19 +846,15 @@ public partial class ExperimentManager: MonoBehaviour
                 {
                     // We go here if the just-selected target was the last with such size
 
-                    void ActivateNextTargetSize()
-                    {
-                        targetsManager.TargetSize = targetSizesSequence.Current;
-                        targetsIndexesSequence = GenerateTargetsIndexesSequence();
-                        targetsIndexesSequence.MoveNext();
-                        targetsManager.ActivateTarget(targetsIndexesSequence.Current);
-                    }
+                    listeningTargetsEventsFlag = false;
+                    highFrequencyLoggingIsOnFlag = false;
                     
-                    // Now, resize the targets to next size if next size is present
                     bool hasNextTargetSize = targetSizesSequence.MoveNext();
                     if (hasNextTargetSize)
                     {
-                        ActivateNextTargetSize();
+                        targetsManager.TargetSize = targetSizesSequence.Current;
+                        targetsIndexesSequence = GenerateTargetsIndexesSequence();
+                        Invoke(nameof(OnCountdownFinished), GenerateTimeToActivateFirstTarget());
                         break;
                     }
 
@@ -863,23 +863,28 @@ public partial class ExperimentManager: MonoBehaviour
                         // rerun the whole pipeline if this was training
                         targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID, _runConfig.referenceFrame, _runConfig.context);
                         targetSizesSequence.MoveNext();
-                        ActivateNextTargetSize();
+                        targetsManager.TargetSize = targetSizesSequence.Current;
+                        targetsIndexesSequence = GenerateTargetsIndexesSequence();
+                        Invoke(nameof(OnCountdownFinished), GenerateTimeToActivateFirstTarget());
                     }
                     else
                     {
                         // Now trial is finished (all three target sizes). Stop logging, cleanup and tell server
                         
-                        highFrequencyLoggingIsOnFlag = false;
                         _measurementId = 0;
                         _targetsSelected = 0;
                         targetSizesSequence = null;
                         targetsIndexesSequence = null;
                         
-                        StopListeningTargetsEvents();
                         targetsManager.HideTargets();
                         
                         _selectionsLogger.SaveDataToDisk();
                         _highFrequencyLogger.SaveDataToDisk();
+
+                        // GC, now it's your time
+                        // todo: uncomment this
+                        // _selectionsLogger = null;
+                        // _highFrequencyLogger = null;
                         
                         _state = State.Idle;
                         trialFinished.Invoke();
@@ -888,9 +893,10 @@ public partial class ExperimentManager: MonoBehaviour
                 break;
             case nameof(OnServerSaidFinishTraining):
                 if (!_runConfig.isTraining) throw new ArgumentException($"{eventName} got called in SelectingTargetsStanding state while trials. This is not supposed to happen");
-                
+
                 targetsManager.HideTargets();
-                StopListeningTargetsEvents();
+                listeningTargetsEventsFlag = false;
+                CancelInvoke(nameof(OnCountdownFinished));
                 _targetsSelected = 0;
                 targetSizesSequence = null;
                 targetsIndexesSequence = null;
@@ -912,16 +918,10 @@ public partial class ExperimentManager: MonoBehaviour
             case nameof(OnParticipantSwervedOffTrack):
                 break; // These events can happen but we ignore them. We are interested only in "OnParticipantEnteredTrack" event
             case nameof(OnParticipantEnteredTrack):
-                if (_runConfig.isMetronomeTraining)
-                {
-                    _state = State.WalkingWithMetronomeTraining;
-                }
-                else
-                {
-                    // We now assume this is walking context trial/training. We need to start Countdown to show targets
-                    
-                    _state = State.SelectingTargetsWalking;
-                }
+                _state = _runConfig.isMetronomeTraining ? 
+                    State.WalkingWithMetronomeTraining :
+                    State.SelectingTargetsWalking; // We now assume this is walking context trial/training. We need to start Countdown to show targets
+                // TODO: Countdown
                 break;
             default: 
                 throw eventRedirectingMethods.Contains(eventName)
@@ -962,12 +962,12 @@ public partial class ExperimentManager: MonoBehaviour
     };
     
     private void OnCountdownFinished() => HandleState(nameof(OnCountdownFinished));
-    private void OnSelectorEnteredTargetZone() => HandleState(nameof(OnSelectorEnteredTargetZone));
-    private void OnSelectorExitedTargetZone() => HandleState(nameof(OnSelectorExitedTargetZone));
-    private void OnParticipantEnteredTrack() => HandleState(nameof(OnParticipantEnteredTrack));
-    private void OnParticipantFinishedTrack() => HandleState(nameof(OnParticipantFinishedTrack));
-    private void OnParticipantSwervedOffTrack() => HandleState(nameof(OnParticipantSwervedOffTrack));
-    private void OnParticipantSlowedDown() => HandleState(nameof(OnParticipantSlowedDown));
+    private void OnSelectorEnteredTargetZone() { if (listeningTargetsEventsFlag) HandleState(nameof(OnSelectorEnteredTargetZone)); }
+    private void OnSelectorExitedTargetZone() { if (listeningTargetsEventsFlag) HandleState(nameof(OnSelectorExitedTargetZone)); }
+    private void OnParticipantEnteredTrack() { if (listeningTrackEventsFlag) HandleState(nameof(OnParticipantEnteredTrack)); }
+    private void OnParticipantFinishedTrack() { if (listeningTrackEventsFlag) HandleState(nameof(OnParticipantFinishedTrack)); }
+    private void OnParticipantSwervedOffTrack() { if (listeningTrackEventsFlag) HandleState(nameof(OnParticipantSwervedOffTrack)); }
+    private void OnParticipantSlowedDown() { if (listeningTrackEventsFlag) HandleState(nameof(OnParticipantSlowedDown)); }
     public void OnServerSaidStart() => HandleState(nameof(OnServerSaidStart));
     public void OnServerSaidFinishTraining() => HandleState(nameof(OnServerSaidFinishTraining));
 
