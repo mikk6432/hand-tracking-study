@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Text;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using Logging;
 using SpatialUIPlacement;
 using UnityEngine;
@@ -41,42 +38,6 @@ public partial class ExperimentManager: MonoBehaviour
         "Success", // 0 or 1, where 1 means that selection was successful
         "SelectionDuration" // time passed from the previous selection. For the 1st selection equal to 0
     };
-    
-    void LogLastSelectionIntoSelectionLogger(int systemClockMilliseconds, int selectionDurationMilliseconds)
-    {
-        var row = _selectionsLogger.CurrentRow;
-        
-        // ids
-        row.SetColumnValue("ParticipantID", _runConfig.participantID);
-        row.SetColumnValue("SelectionID", _targetsSelected);
-
-        var selection = targetsManager.LastSelectionData;
-        
-        // conditions
-        row.SetColumnValue("Walking", _runConfig.context == Context.Standing ? 0 : 1);
-        row.SetColumnValue("ReferenceFrame", (int)_runConfig.referenceFrame);
-        row.SetColumnValue("TargetSize", selection.targetSize);
-        row.SetColumnValue("DominantHand", _runConfig.leftHanded ? 1 : 0);
-
-        var currentTime = TimeMeasurementHelper.GetHighResolutionDateTime();
-        
-        // time
-        row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString("dd-MM-yyyy HH:mm:ss.ffffff", CultureInfo.InvariantCulture));
-        row.SetColumnValue("SystemClockTimestampMs", systemClockMilliseconds);
-        
-        // selection
-        row.SetColumnValue("ActiveTargetIndex", selection.activeTargetIndex);
-        row.SetColumnValue("AbsoluteTargetPositionX", selection.targetAbsoluteCoordinates.x);
-        row.SetColumnValue("AbsoluteTargetPositionY", selection.targetAbsoluteCoordinates.y);
-        row.SetColumnValue("AbsoluteSelectionPositionX", selection.selectionAbsoluteCoordinates.x);
-        row.SetColumnValue("AbsoluteSelectionPositionY", selection.selectionAbsoluteCoordinates.y);
-        row.SetColumnValue("LocalSelectionPositionX", selection.selectionLocalCoordinates.x);
-        row.SetColumnValue("LocalSelectionPositionY", selection.selectionLocalCoordinates.y);
-        row.SetColumnValue("Success", selection.success ? 1 : 0);
-        row.SetColumnValue("SelectionDuration", selectionDurationMilliseconds);
-        
-        row.LogAndClear(); // no write to file yet, just enqueue. Maybe it will be deleted by calling "_selectionsLogger.ClearUnsavedData()"
-    }
 
     private static readonly string[] highFrequencyLogColumns =
     {
@@ -85,9 +46,10 @@ public partial class ExperimentManager: MonoBehaviour
         "MeasurementID", // increments every measurement (90Hz). Starts with 0
         
         // conditions
-        "Walking", // 0 or 1. 0 – false, means Standing, 1 – true, means Walking
-        "ReferenceFrame", // 0 or 1 or 2 or 3. 0 – palmReferenced, 1 – handReferenced, 2 – pathReferenced, 3 – pathReferencedNeck
+        "Walking", // 0 – means Standing, 1 – means Walking
+        "ReferenceFrame", // 0 – palmReferenced, 1 – handReferenced, 2 – pathReferenced, 3 – pathReferencedNeck
         "TargetSize", // 0.015 or 0.025 or 0.035
+        "DominantHand", // Which hand index tip selects targets. 0 – means right, 1 – means left
         
         // time
         "HumanReadableTimestampUTC", // absolute time of the selection
@@ -297,7 +259,8 @@ public partial class ExperimentManager: MonoBehaviour
 
     // public bool IsRunning { get; private set; }
 
-    private int _targetsSelected = 0;
+    private int _targetsSelected;
+    private int measurementId;
     private DateTime activateFirstTargetMoment;
     private DateTime selectFirstTargetMoment;
     private DateTime selectPreviousTargetMoment;
@@ -308,10 +271,6 @@ public partial class ExperimentManager: MonoBehaviour
     private AsyncHighFrequencyCSVLogger _selectionsLogger;
     private AsyncHighFrequencyCSVLogger _highFrequencyLogger;
 
-    private void Start()
-    {
-    }
-
     private void LateUpdate()
     {
         // asyncHighFrequencyLogging stuff goes here
@@ -319,9 +278,72 @@ public partial class ExperimentManager: MonoBehaviour
         if (!highFrequencyLoggingIsOnFlag) return;
         // now we assume that we are inside trial session and logger is initialized already
 
+        try
+        {
+            LogHighFrequencyRow();
+        }
+        catch (Exception e)
+        {
+            unexpectedErrorOccured.Invoke($"Error when logging new row of highFrequency: {e.Message}\n\n");
+        }
+    }
+    
+    
+    void LogLastSelectionIntoSelectionLogger(int systemClockMilliseconds, int selectionDurationMilliseconds)
+    {
+        var row = _selectionsLogger.CurrentRow;
+        
+        // ids
+        row.SetColumnValue("ParticipantID", _runConfig.participantID);
+        row.SetColumnValue("SelectionID", _targetsSelected);
+
+        var selection = targetsManager.LastSelectionData;
+        
+        // conditions
+        row.SetColumnValue("Walking", _runConfig.context == Context.Standing ? 0 : 1);
+        row.SetColumnValue("ReferenceFrame", (int)_runConfig.referenceFrame);
+        row.SetColumnValue("TargetSize", selection.targetSize);
+        row.SetColumnValue("DominantHand", _runConfig.leftHanded ? 1 : 0);
+
+        var currentTime = TimeMeasurementHelper.GetHighResolutionDateTime();
+        
+        // time
+        row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString("dd-MM-yyyy HH:mm:ss.ffffff", CultureInfo.InvariantCulture));
+        row.SetColumnValue("SystemClockTimestampMs", systemClockMilliseconds);
+        
+        // selection
+        row.SetColumnValue("ActiveTargetIndex", selection.activeTargetIndex);
+        row.SetColumnValue("AbsoluteTargetPositionX", selection.targetAbsoluteCoordinates.x);
+        row.SetColumnValue("AbsoluteTargetPositionY", selection.targetAbsoluteCoordinates.y);
+        row.SetColumnValue("AbsoluteSelectionPositionX", selection.selectionAbsoluteCoordinates.x);
+        row.SetColumnValue("AbsoluteSelectionPositionY", selection.selectionAbsoluteCoordinates.y);
+        row.SetColumnValue("LocalSelectionPositionX", selection.selectionLocalCoordinates.x);
+        row.SetColumnValue("LocalSelectionPositionY", selection.selectionLocalCoordinates.y);
+        row.SetColumnValue("Success", selection.success ? 1 : 0);
+        row.SetColumnValue("SelectionDuration", selectionDurationMilliseconds);
+        
+        row.LogAndClear(); // no write to file yet, just enqueue. Maybe it will be deleted by calling "_selectionsLogger.ClearUnsavedData()"
+    }
+
+    private void LogHighFrequencyRow()
+    {
         var row = _highFrequencyLogger.CurrentRow;
         
-        // TODO: add Ids, Conditions, Times
+        // ids
+        row.SetColumnValue("ParticipantID", _runConfig.participantID);
+        row.SetColumnValue("MeasurementID", ++measurementId);
+        
+        // conditions
+        row.SetColumnValue("Walking", _runConfig.context == Context.Walking ? 1 : 0);
+        row.SetColumnValue("ReferenceFrame", (int)_runConfig.referenceFrame);
+        row.SetColumnValue("TargetSize", TargetsManager.GetTargetDiameter(targetSizesSequence.Current));
+        row.SetColumnValue("DominantHand", _runConfig.leftHanded ? 1 : 0);
+        
+        // time
+        var now = TimeMeasurementHelper.GetHighResolutionDateTime();
+        row.SetColumnValue("HumanReadableTimestampUTC", now.ToString("dd-MM-yyyy HH:mm:ss.ffffff", CultureInfo.InvariantCulture));
+        row.SetColumnValue("SystemClockTimestampMs", (int)(now - activateFirstTargetMoment).TotalMilliseconds);
+
 
         var trackTransform = _runConfig.context == Context.Walking ? track.transform : sceneLight.transform;
         LogObjectTransform("Track", trackTransform);
@@ -342,7 +364,7 @@ public partial class ExperimentManager: MonoBehaviour
         LogObjectTransform("ActiveTarget", activeTarget);
 
         var selectorPosition = dominantHandIndexTip.transform.position;
-        var selectorProjection = Utils.Math.ProjectPointOntoOXYPlane(allTargets, selectorPosition);
+        var selectorProjection = Math.ProjectPointOntoOXYPlane(allTargets, selectorPosition);
         row.SetColumnValue("SelectorProjectionOntoAllTargetsX", selectorProjection.local.x);
         row.SetColumnValue("SelectorProjectionOntoAllTargetsY", selectorProjection.local.y);
         var isInside = targetsManager.IsSelectorInsideCollider;
@@ -352,9 +374,11 @@ public partial class ExperimentManager: MonoBehaviour
         row.SetColumnValue("DistanceFromSelectorToAllTargetsOXYPlane", distanceToLog);
         
         row.SetColumnValue("ActiveTargetIndex", targetsManager.ActiveTarget.targetIndex);
-        var activeTargetProjection = Utils.Math.ProjectPointOntoOXYPlane(allTargets, activeTarget.position);
+        var activeTargetProjection = Math.ProjectPointOntoOXYPlane(allTargets, activeTarget.position);
         row.SetColumnValue("ActiveTargetInsideAllTargetsX", activeTargetProjection.local.x);
         row.SetColumnValue("ActiveTargetInsideAllTargetsY", activeTargetProjection.local.y);
+        
+        row.LogAndClear(); // no write to file yet, just enqueue. Maybe it will be deleted by calling "_selectionsLogger.ClearUnsavedData()"
     }
 
     private void LogObjectTransform(string objectPrefix, Transform objectTransform)
@@ -523,7 +547,7 @@ public partial class ExperimentManager: MonoBehaviour
     {
         try
         {
-            var filename = $"{_runConfig.participantID}_selections.csv";
+            var filename = $"{_runConfig.participantID}_{Enum.GetName(typeof(Context), _runConfig.context)}_{Enum.GetName(typeof(ReferenceFrame), _runConfig.referenceFrame)}_selections.csv";
             _selectionsLogger = new AsyncHighFrequencyCSVLogger(filename);
 
             if (!_selectionsLogger.HasBeenInitialised())
@@ -534,49 +558,55 @@ public partial class ExperimentManager: MonoBehaviour
         }
         catch (Exception e)
         {
-            throw new Exception($"Message= {e.Message}\n\nInner= {e?.InnerException?.ToString()}\n\nStackTrace= {e.StackTrace}");
+            throw new Exception($"Error while initializing selections logger: Message= {e.Message}\n\nInner= {e.InnerException?.Message}");
         }
     }
 
     void InitHighFrequencyLogger()
     {
-        var filename = $"{_runConfig.participantID}_highFrequency.csv";
-        _highFrequencyLogger = new AsyncHighFrequencyCSVLogger(filename);
-
-        if (!_highFrequencyLogger.HasBeenInitialised())
+        try
         {
-            _highFrequencyLogger.AddColumns(highFrequencyLogColumns);
-            _highFrequencyLogger.Initialise();
-        }
-    }
+            var filename = $"{_runConfig.participantID}_{Enum.GetName(typeof(Context), _runConfig.context)}_{Enum.GetName(typeof(ReferenceFrame), _runConfig.referenceFrame)}_highFrequency.csv";
+            _highFrequencyLogger = new AsyncHighFrequencyCSVLogger(filename);
 
-    private static IEnumerator<TargetsManager.TargetSizeVariant> GenerateTargetSizesSequence(bool isTraining)
-    {
-        IEnumerator<TargetsManager.TargetSizeVariant> TrainingSequence()
-        {
-            while (true)
+            if (!_highFrequencyLogger.HasBeenInitialised())
             {
-                yield return TargetsManager.TargetSizeVariant.Big;
-                yield return TargetsManager.TargetSizeVariant.Medium;
-                yield return TargetsManager.TargetSizeVariant.Small;
+                _highFrequencyLogger.AddColumns(highFrequencyLogColumns);
+                _highFrequencyLogger.Initialise();
             }
         }
-
-        IEnumerator<TargetsManager.TargetSizeVariant> TrialSequence()
+        catch (Exception e)
         {
-            // TODO: implement random
-            yield return TargetsManager.TargetSizeVariant.Big;
-            yield return TargetsManager.TargetSizeVariant.Medium;
-            yield return TargetsManager.TargetSizeVariant.Small;
+            throw new Exception($"Error while initializing highFrequency logger: Message= {e.Message}\n\nInner= {e.InnerException?.Message}");
         }
-
-        return isTraining ? TrainingSequence() : TrialSequence();
     }
 
-    private static IEnumerator<int> GenerateTargetsIndexesSequence(bool isTraining)
+    private static IEnumerator<TargetsManager.TargetSizeVariant> GenerateTargetSizesSequence(int participantId, ReferenceFrame referenceFrame, Context context)
+    {
+        var seed = participantId * 100
+                   + (int)referenceFrame * 10
+                   + (int)context;
+        var random = new System.Random(seed);
+
+        // same sequence for equal (participantId, referenceFrame, context)
+        return new List<TargetsManager.TargetSizeVariant>
+        {
+           TargetsManager.TargetSizeVariant.Small,
+           TargetsManager.TargetSizeVariant.Medium,
+           TargetsManager.TargetSizeVariant.Big,
+        }
+            .Select(size => new { size, rnd= random.Next() })
+            .OrderBy(x => x.rnd)
+            .Select(x => x.size)
+            .GetEnumerator();
+    }
+    
+    
+
+    private static IEnumerator<int> GenerateTargetsIndexesSequence()
     {
         return Math.FittsLaw(TargetsManager.TargetsCount)
-            .Take(isTraining ? TargetsManager.TargetsCount : TargetsManager.TargetsCount + 1)
+            .Take(TargetsManager.TargetsCount + 1)
             .GetEnumerator();
     }
 
@@ -671,11 +701,11 @@ public partial class ExperimentManager: MonoBehaviour
                         if (isTrial)
                         {
                             InitSelectionsLogger();
-                            // InitHighFrequencyLogger(); // todo: uncomment this
+                            InitHighFrequencyLogger();
                         }
                         
-                        targetSizesSequence = GenerateTargetSizesSequence(_runConfig.isTraining);
-                        targetsIndexesSequence = GenerateTargetsIndexesSequence(_runConfig.isTraining);
+                        targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID, _runConfig.referenceFrame, _runConfig.context);
+                        targetsIndexesSequence = GenerateTargetsIndexesSequence();
 
                         targetSizesSequence.MoveNext();
                         targetsManager.TargetSize = targetSizesSequence.Current;
@@ -706,14 +736,14 @@ public partial class ExperimentManager: MonoBehaviour
                     if (!_runConfig.isTraining)
                     {
                         activateFirstTargetMoment = TimeMeasurementHelper.GetHighResolutionDateTime();
-                        // highFrequencyLoggingIsOnFlag = true; // todo: uncomment this
+                        highFrequencyLoggingIsOnFlag = true;
+                        measurementId = 0;
                     }
                     
                     _state = State.SelectingTargetsStanding;
                     break;
                 }
 
-                throw new ArgumentException("for some reason context is not standing"); // todo: delete
                 break;
             default:
                 throw new ArgumentException($"It seems you have implemented new event but forgot to handle in method {nameof(HandleIdleState)}");
@@ -797,69 +827,41 @@ public partial class ExperimentManager: MonoBehaviour
                     if (hasNextTargetSize)
                     {
                         targetsManager.TargetSize = targetSizesSequence.Current;
-                        targetsIndexesSequence = GenerateTargetsIndexesSequence(_runConfig.isTraining);
+                        targetsIndexesSequence = GenerateTargetsIndexesSequence();
                         targetsIndexesSequence.MoveNext();
                         targetsManager.ActivateTarget(targetsIndexesSequence.Current);
                     }
                     else
                     {
-                        // we now sure this is not training, because in training
-                        // targetSizesSequence.MoveNext() always returns true cause sequence is infinite
-                        highFrequencyLoggingIsOnFlag = false;
-                        _targetsSelected = 0;
-                        targetSizesSequence = null;
-                        targetsIndexesSequence = null;
-                        
-                        StopListeningTargetsEvents();
-                        targetsManager.HideTargets();
-                        
-                        _selectionsLogger.SaveDataToDisk();
-                        // _highFrequencyLogger.SaveDataToDisk(); // TODO: uncomment this
-                        
-                        _state = State.Idle;
-                        trialFinished.Invoke();
-                    }
-                    
-                    /*targetsManager.HideTargets(); 
-
-                    if (_runConfig.isTraining)
-                    {
-                        if (targetSizesSequence.MoveNext())
+                        if (_runConfig.isTraining)
                         {
+                            targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID, _runConfig.referenceFrame, _runConfig.context);
+                            targetSizesSequence.MoveNext();
                             targetsManager.TargetSize = targetSizesSequence.Current;
-                            targetsManager.ShowTargets();
-                            targetsManager.ActivateFirstTarget();
-                        }
-                        else
-                        {
-                            StopListeningTargetsEvents();
-                            _targetsSelected = 0;
-                            targetSizesSequence = null;
-                        }
-                    }
-                    else
-                    {
-                        bool hasNextSizeToMeasure = targetSizesSequence.MoveNext(); // if false, then stop logging, save data and go Idle
-                        if (hasNextSizeToMeasure)
-                        {
-                            targetsManager.TargetSize = targetSizesSequence.Current;
-                            targetsManager.ShowTargets();
-                            targetsManager.ActivateFirstTarget();
-                            // now continue logging with new target size
-                        }
-                        else
-                        {
-                            highFrequencyLoggingIsOnFlag = false;
-                            StopListeningTargetsEvents();
-                            _targetsSelected = 0;
-                            targetSizesSequence = null;
                             
+                            targetsIndexesSequence = GenerateTargetsIndexesSequence();
+                            targetsIndexesSequence.MoveNext();
+                            targetsManager.ActivateTarget(targetsIndexesSequence.Current);
+                        }
+                        else
+                        {
+                            // participant selected all targets with all sizes in trial. Let's stop logging and tell server trial is finished
+                            highFrequencyLoggingIsOnFlag = false;
+                            measurementId = 0;
+                            _targetsSelected = 0;
+                            targetSizesSequence = null;
+                            targetsIndexesSequence = null;
+                        
+                            StopListeningTargetsEvents();
+                            targetsManager.HideTargets();
+                        
                             _selectionsLogger.SaveDataToDisk();
-                            // _highFrequencyLogger.SaveDataToDisk(); // TODO: uncomment this
+                            _highFrequencyLogger.SaveDataToDisk();
+                        
                             _state = State.Idle;
                             trialFinished.Invoke();
                         }
-                    }*/
+                    }
                 }
                 else
                 {

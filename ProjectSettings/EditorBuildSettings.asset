@@ -5,12 +5,6 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
-    path: Assets/Scenes/SampleScene.unity
-    guid: 9fc0d4010bbf28b4594072e72b8655ab
-  - enabled: 0
-    path: Assets/Scenes/WalkingTrials.unity
-    guid: 4bef4e9710ecf4111ba6606a0a1689ae
   - enabled: 1
     path: Assets/Scenes/OculusExperiment.unity
     guid: 1f21f2eded7b040b8af348244a5f7422

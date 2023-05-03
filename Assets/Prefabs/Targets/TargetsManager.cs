@@ -114,7 +114,7 @@ public class TargetsManager : MonoBehaviour
         }
     }
 
-    private static float GetTargetDiameter(TargetSizeVariant targetSize)
+    public static float GetTargetDiameter(TargetSizeVariant targetSize)
     {
         return targetSize == TargetSizeVariant.Big ? 0.035f : 
             targetSize == TargetSizeVariant.Medium ? 0.025f :
