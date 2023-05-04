@@ -264,8 +264,9 @@ namespace Logging
                         _file.WriteLine(ToString(row.Values));
                 // Store it to the disk
                 _file.Flush();
-                
-                int timeToSleep = (int)UnityEngine.Random.Range(4000f, 10000f);
+
+                var random = new System.Random();
+                int timeToSleep = random.Next(1000, 2000);
                 Debug.Log($"Imitating thread sleep {timeToSleep}ms inside logger");
                 Thread.Sleep(timeToSleep);
                 

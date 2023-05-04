@@ -74,8 +74,8 @@ public class HelmetMainProcess: ExperimentNetworkClient
 
         // return result.Where(config => config.isMetronomeTraining || (config.isTraining && config.context==ExperimentManager.Context.Standing)).ToArray();
         // return result.Where(config => config.context == ExperimentManager.Context.Standing && !config.isMetronomeTraining).ToArray();
-        return result.Where(config => config.context == ExperimentManager.Context.Walking || config.isMetronomeTraining).ToArray();
-        // return result.ToArray();
+        // return result.Where(config => config.context == ExperimentManager.Context.Walking || config.isMetronomeTraining).ToArray();
+        return result.ToArray();
     }
 
     private void UpdateRunConfigs()

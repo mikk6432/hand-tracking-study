@@ -58,7 +58,7 @@ public partial class ExperimentManager: MonoBehaviour
         // asyncHighFrequencyLogging stuff goes here
 
         if (!highFrequencyLoggingIsOnFlag) return;
-        // now we assume that we are inside trial session and logger is initialized already
+        // now we assume that we are inside trial session and logger is initialized already and participant is selecting targets
 
         try
         {
@@ -66,7 +66,7 @@ public partial class ExperimentManager: MonoBehaviour
         }
         catch (Exception e)
         {
-            unexpectedErrorOccured.Invoke($"Error when logging new row of highFrequency: {e.Message}\n\n");
+            unexpectedErrorOccured.Invoke($"LateUpdate: {e.Message}\n\n {e.StackTrace.Substring(0, 70)}");
         }
     }
 
@@ -140,9 +140,11 @@ public partial class ExperimentManager: MonoBehaviour
     
     void ShowErrorToParticipant()
     {
-        var headsetTransform = headset.transform;
-        var errorPosition = headsetTransform.position + headsetTransform.forward * 0.5f;
-        errorIndicator.transform.SetPositionAndRotation(errorPosition, headsetTransform.rotation);
+        // var headsetTransform = headset.transform;
+        // var errorPosition = headsetTransform.position + headsetTransform.forward * 0.5f;
+        // errorIndicator.transform.SetPositionAndRotation(errorPosition, headsetTransform.rotation);
+        
+        // we assume that errorIndicator is child of headset with just forward offset about 0.5 meters.
         errorIndicator.SetActive(true); // will be set inactive automatically 
     }
     #endregion
@@ -727,7 +729,8 @@ public partial class ExperimentManager: MonoBehaviour
                 // doesn't need for training, but who cares..
                 _measurementId = 0;
                 _selectionsValidated = 0;
-                
+
+                highFrequencyLoggingIsOnFlag = false;
                 bool isTrial = !_runConfig.isTraining;
                 if (isTrial)
                 {
@@ -1022,9 +1025,10 @@ public partial class ExperimentManager: MonoBehaviour
                 
                 _targetsSelected = _selectionsValidated;
                 // targetsIndexesSequence = GenerateTargetsIndexesSequence();
-                
+
                 if (!_runConfig.isTraining)
                 {
+                    highFrequencyLoggingIsOnFlag = false;
                     _selectionsLogger.ClearUnsavedData();
                     _highFrequencyLogger.ClearUnsavedData();   
                 }
@@ -1108,7 +1112,7 @@ public partial class ExperimentManager: MonoBehaviour
                         
                         // TODO: delete this mock and change it to real server response
                         // requestTrialValidation.Invoke();
-                        float probabilityOfSuccess = _runConfig.leftHanded ? 0.7f : 1.01f;
+                        float probabilityOfSuccess = 0.75f;
                         var success = probabilityOfSuccess > UnityEngine.Random.Range(0f, 1f);
                         if (success) Invoke(nameof(OnServerValidatedTrial), 10);
                         else Invoke(nameof(OnServerInvalidatedTrial), 10);
@@ -1185,6 +1189,7 @@ public partial class ExperimentManager: MonoBehaviour
                     // UPD: mind-breaking situation, because of multithreading (if we just call SaveDataDisk(), the application will freeze => we need to wait)
 
                     Debug.Log($"Next targetSize will be {Enum.GetName(typeof(TargetsManager.TargetSizeVariant), targetSizesSequence.Current)?.ToUpper()}. But we have to make a trick with multithreading");
+                    targetsManager.TargetSize = targetSizesSequence.Current;
                     
                     var startNextTrial = new Action(() =>
                     {
@@ -1193,8 +1198,6 @@ public partial class ExperimentManager: MonoBehaviour
                         listeningTrackEventsFlag = true;
                         targetsManager.ShowTargets();
 
-                        // targetsIndexesSequence = GenerateTargetsIndexesSequence();
-                        
                         _selectionsLogger.DataSavedToDiskCallback = null;
                         _highFrequencyLogger.DataSavedToDiskCallback = null;
 
@@ -1225,12 +1228,15 @@ public partial class ExperimentManager: MonoBehaviour
                 // server said no (as usual, because participant has walked without metronome)
                 // Let's clearUnsavedData in loggers (if this is not training) and rerun trial with this size once more
                 // TODO
+                Debug.Log("Invalid trial? Let's show error to participant");
+                ShowErrorToParticipant();
                 Debug.Log($"Before: _targetsSelected={_targetsSelected},  _selectionsValidated={_selectionsValidated}");
                 _targetsSelected = _selectionsValidated;
                 Debug.Log($"After: _targetsSelected={_targetsSelected},  _selectionsValidated={_selectionsValidated}");
                 
                 listeningTrackEventsFlag = true;
                 metronome.enabled = true;
+                targetsManager.ShowTargets();
                 
                 _selectionsLogger.ClearUnsavedData();
                 _highFrequencyLogger.ClearUnsavedData();
@@ -1238,7 +1244,6 @@ public partial class ExperimentManager: MonoBehaviour
                 Debug.Log($"We cleared data and started listening track events. Go AwaitingParticipantEnterTrack state");
 
                 _state = State.AwaitingParticipantEnterTrack;
-                
                 break;
             default: 
                 throw eventRedirectingMethods.Contains(eventName)
