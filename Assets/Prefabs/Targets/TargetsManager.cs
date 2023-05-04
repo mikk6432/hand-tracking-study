@@ -166,7 +166,7 @@ public class TargetsManager : MonoBehaviour
         _targetToRendererComponentMap[target].material.color = _activeColor;
     }
 
-    private void EnsureNoActiveTargets()
+    public void EnsureNoActiveTargets()
     {
         bool needToDeactivateActiveTarget = ActiveTarget.targetIndex != -1;
         if (needToDeactivateActiveTarget)

@@ -12,7 +12,8 @@ using Math = Utils.Math;
 public partial class ExperimentManager: MonoBehaviour
 {
     // not used for trainings. To finish training, method (OnServerSaidFinishTraining should be called)
-    public readonly UnityEvent trialFinished = new();
+    public readonly UnityEvent trialsFinished = new();
+    public readonly UnityEvent requestTrialValidation = new();
     public readonly UnityEvent<string> unexpectedErrorOccured = new();
 
     private State _state;
@@ -38,6 +39,17 @@ public partial class ExperimentManager: MonoBehaviour
         walkingStateTrigger.ParticipantSwervedOff.RemoveListener(OnParticipantSwervedOffTrack);
         walkingStateTrigger.ParticipantSlowedDown.RemoveListener(OnParticipantSlowedDown);
         walkingStateTrigger.ParticipantFinished.RemoveListener(OnParticipantFinishedTrack);
+    }
+
+    // absolutely crazy thing
+    private Action doOnNextUpdate;
+    private void Update()
+    {
+        if (doOnNextUpdate != null)
+        {
+            doOnNextUpdate();
+            doOnNextUpdate = null;
+        }
     }
 
     private void LateUpdate()
@@ -265,6 +277,7 @@ public partial class ExperimentManager: MonoBehaviour
     private float _timeUntilPrompt = 0.6f;
     
     private int _targetsSelected;
+    private int _selectionsValidated; // used only for walking trials to reset _targetsSelected when server responded with invalidate result
     private int _measurementId;
     private DateTime activateFirstTargetMoment;
     private DateTime selectFirstTargetMoment;
@@ -707,7 +720,9 @@ public partial class ExperimentManager: MonoBehaviour
                 targetsIndexesSequence = GenerateTargetsIndexesSequence();
 
                 _targetsSelected = 0;
-                _measurementId = 0; // doesn't need for training, but who cares..
+                // doesn't need for training, but who cares..
+                _measurementId = 0;
+                _selectionsValidated = 0;
                 
                 bool isTrial = !_runConfig.isTraining;
                 if (isTrial)
@@ -785,8 +800,9 @@ public partial class ExperimentManager: MonoBehaviour
             case nameof(OnParticipantEnteredTrack):
             case nameof(OnParticipantFinishedTrack):
                 break; // this is ok. Good job, participant! Move on!
+            case nameof(OnParticipantSlowedDown):
+                break; // TODO: delete this
             case nameof(OnParticipantSwervedOffTrack):
-            // case nameof(OnParticipantSlowedDown): // TODO: uncomment this
                 ShowErrorToParticipant();
                 break;
             case nameof(OnServerSaidFinishTraining):
@@ -819,7 +835,6 @@ public partial class ExperimentManager: MonoBehaviour
                     highFrequencyLoggingIsOnFlag = true;
                 }
                 break;
-                
             case nameof(OnSelectorEnteredTargetZone):
                 _targetsSelected++;
                 if (!_runConfig.isTraining)
@@ -891,7 +906,7 @@ public partial class ExperimentManager: MonoBehaviour
                         _highFrequencyLogger.SaveDataToDisk();
 
                         _state = State.Idle;
-                        trialFinished.Invoke();
+                        trialsFinished.Invoke();
                     }
                 }
                 break;
@@ -922,10 +937,39 @@ public partial class ExperimentManager: MonoBehaviour
             case nameof(OnParticipantSwervedOffTrack):
                 break; // These events can happen but we ignore them. We are interested only in "OnParticipantEnteredTrack" event
             case nameof(OnParticipantEnteredTrack):
-                _state = _runConfig.isMetronomeTraining ? 
-                    State.WalkingWithMetronomeTraining :
-                    State.SelectingTargetsWalking; // We now assume this is walking context trial/training. We need to start Countdown to show targets
-                // TODO: Countdown
+                if (_runConfig.isMetronomeTraining)
+                {
+                    _state = State.WalkingWithMetronomeTraining;
+                    break;
+                }
+                
+                Invoke(nameof(OnCountdownFinished), GenerateTimeToActivateFirstTarget());
+                _state = State.SelectingTargetsWalking;
+                break;
+            case nameof(OnServerSaidFinishTraining):
+                if (_runConfig.isMetronomeTraining)
+                {
+                    listeningTrackEventsFlag = false;
+                    metronome.enabled = false;
+                    walkingStateTrigger.enabled = false; // also hides track borders
+                    _state = State.Idle;
+                }
+                else
+                {
+                    if (!_runConfig.isTraining) throw new ArgumentException($"{nameof(HandleAwaitingParticipantEnterTrackState)}: Cannot stop trials");
+                    
+                    // we now assume we are in walking training with selecting targets. Cleanup!
+                    CancelInvoke(nameof(OnCountdownFinished));
+                    listeningTrackEventsFlag = false;
+                    metronome.enabled = false;
+                    walkingStateTrigger.enabled = false; // also hides track borders
+                    targetsManager.HideTargets();
+                    listeningTargetsEventsFlag = false;
+                    _targetsSelected = 0;
+                    targetSizesSequence = null;
+                    targetsIndexesSequence = null;
+                    _state = State.Idle;
+                }
                 break;
             default: 
                 throw eventRedirectingMethods.Contains(eventName)
@@ -938,6 +982,129 @@ public partial class ExperimentManager: MonoBehaviour
     {
         switch (eventName)
         {
+            case nameof(OnCountdownFinished):
+                // participant is walking, countdown finished. Let's activate target and start logging if this is trial
+                // TODO
+                targetsIndexesSequence.MoveNext();
+                targetsManager.ActivateTarget(targetsIndexesSequence.Current);
+                listeningTargetsEventsFlag = true;
+
+                bool isTrial = !_runConfig.isTraining; 
+                if (isTrial)
+                {
+                    activateFirstTargetMoment = TimeMeasurementHelper.GetHighResolutionDateTime();
+                    highFrequencyLoggingIsOnFlag = true;
+                }
+                break;
+            case nameof(OnParticipantSlowedDown):
+                break; // TODO: delete this "break". Slow down must be interpreted as swervedOff 
+            case nameof(OnParticipantFinishedTrack):
+            case nameof(OnParticipantSwervedOffTrack):
+                // participant has to select all targets first. We assume this as an error 
+                // TODO
+                ShowErrorToParticipant();
+                targetsManager.EnsureNoActiveTargets();
+                
+                _targetsSelected = _selectionsValidated;
+                targetsIndexesSequence = GenerateTargetsIndexesSequence();
+                
+                if (!_runConfig.isTraining)
+                {
+                    _selectionsLogger.ClearUnsavedData();
+                    _highFrequencyLogger.ClearUnsavedData();   
+                }
+
+                CancelInvoke(nameof(OnCountdownFinished)); // curious situation, when participant has run the whole track before countdown finished
+                _state = State.AwaitingParticipantEnterTrack;
+                break;
+            case nameof(OnSelectorEnteredTargetZone):
+                // participant selected target? Good job!
+                // TODO
+                _targetsSelected++;
+                if (!_runConfig.isTraining)
+                {
+                    bool isFirstWithSuchSize = _targetsSelected % (TargetsManager.TargetsCount + 1) == 1;
+                    
+                    var now = TimeMeasurementHelper.GetHighResolutionDateTime();
+                    
+                    int systemClockMilliseconds, selectionDurationMilliseconds;
+                    if (isFirstWithSuchSize)
+                    {
+                        selectFirstTargetMoment = now;
+                        systemClockMilliseconds = 0;
+                        selectionDurationMilliseconds = 0;
+                    }
+                    else
+                    {
+                        systemClockMilliseconds = (int)(now - selectFirstTargetMoment).TotalMilliseconds;
+                        selectionDurationMilliseconds = (int)(now - selectPreviousTargetMoment).TotalMilliseconds;
+                    }
+
+                    selectPreviousTargetMoment = now;
+
+                    LogLastSelectionIntoSelectionLogger(systemClockMilliseconds, selectionDurationMilliseconds);
+                }
+                break;
+            case nameof(OnSelectorExitedTargetZone):
+                // let's activate next target if needed, or set next target size, or rerun training, or request server validation
+                // TODO
+                if (targetsIndexesSequence.MoveNext())
+                {
+                    targetsManager.ActivateTarget(targetsIndexesSequence.Current);
+                }
+                else
+                {
+                    listeningTargetsEventsFlag = false;
+                    listeningTrackEventsFlag = false;
+                    highFrequencyLoggingIsOnFlag = false;
+                    
+                    if (_runConfig.isTraining)
+                    {
+                        if (!targetSizesSequence.MoveNext())
+                        {
+                            // rerun the whole training pipeline
+                            targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID,
+                                _runConfig.referenceFrame, _runConfig.context);
+                            targetSizesSequence.MoveNext();
+                        }
+                        
+                        targetsManager.TargetSize = targetSizesSequence.Current;
+                        targetsIndexesSequence = GenerateTargetsIndexesSequence();
+
+                        listeningTrackEventsFlag = true;
+                        _state = State.AwaitingParticipantEnterTrack;
+                    }
+                    else
+                    {
+                        // request server validation. Keep in mind, that logging data is still in RAM memory (not on disk) and can be cleared
+                        
+                        metronome.enabled = false; // we don't need metronome sound when participant is waiting for the validation
+                        _state = State.AwaitingServerValidationOfLastTrial;
+                        
+                        // TODO: delete this mock and change it to real server response
+                        // requestTrialValidation.Invoke();
+                        float probabilityOfSuccess = 1.01f;
+                        var success = probabilityOfSuccess > UnityEngine.Random.Range(0f, 1f);
+                        if (success) Invoke(nameof(OnServerValidatedTrial), 3);
+                        else Invoke(nameof(OnServerInvalidatedTrial), 3);
+                    }
+                }
+                break;
+            case nameof(OnServerSaidFinishTraining): 
+                if (!_runConfig.isTraining) throw new ArgumentException($"{nameof(HandleSelectingTargetsWalkingState)}: Cannot stop trials");
+                    
+                // we now assume we are in walking training with selecting targets. Cleanup!
+                CancelInvoke(nameof(OnCountdownFinished));
+                listeningTrackEventsFlag = false;
+                metronome.enabled = false;
+                walkingStateTrigger.enabled = false; // also hides track borders
+                targetsManager.HideTargets();
+                listeningTargetsEventsFlag = false;
+                _targetsSelected = 0;
+                targetSizesSequence = null;
+                targetsIndexesSequence = null;
+                _state = State.Idle;
+                break;
             default: 
                 throw eventRedirectingMethods.Contains(eventName)
                     ? NotSupposedException(eventName, State.SelectingTargetsWalking)
@@ -949,6 +1116,90 @@ public partial class ExperimentManager: MonoBehaviour
     {
         switch (eventName)
         {
+            case nameof(OnServerValidatedTrial):
+                // was success. Let's check if more target sizes participant has to make a trial with
+                // TODO
+                _selectionsValidated += TargetsManager.TargetsCount + 1;
+                if (!targetSizesSequence.MoveNext())
+                {
+                    // this is end. Clean up, save data and tell server trials are finished
+                    _measurementId = 0;
+                    _targetsSelected = 0;
+                    _selectionsValidated = 0;
+                    targetSizesSequence = null;
+                    targetsIndexesSequence = null;
+
+                    // just to be sure
+                    listeningTargetsEventsFlag = false;
+                    listeningTrackEventsFlag = false;
+                    highFrequencyLoggingIsOnFlag = false;
+                    metronome.enabled = false;
+                    CancelInvoke(nameof(OnCountdownFinished));
+                    
+                    walkingStateTrigger.enabled = false; // hide track
+                        
+                    targetsManager.HideTargets();
+                        
+                    _selectionsLogger.SaveDataToDisk();
+                    _highFrequencyLogger.SaveDataToDisk();
+
+                    _state = State.Idle;
+                }
+                else
+                {
+                    // previous was validated, but we have at least one more target size. Save data to disk and wait for use enter track
+                    // remark: saveDataToDisk is needed, because if next trial will be invalidated, we will not have an opportunity to clearUnSavedData only of it
+                    // remark2: saveDataToDisk is not thread safe. We just pray, that it will finish until
+                    // UPD: mind-breaking situation, because of multithreading (if we just call SaveDataDisk(), the application will freeze => we need to wait)
+
+                    var startNextTrial = new Action(() =>
+                    {
+                        metronome.enabled = true;
+                        listeningTrackEventsFlag = true;
+                        
+                        _selectionsLogger.DataSavedToDiskCallback = null;
+                        _highFrequencyLogger.DataSavedToDiskCallback = null;
+
+                        _state = State.AwaitingParticipantEnterTrack;
+                    });
+
+                    object callbackLock = new();
+                    int saved = 0;
+                    
+                    Action callback = () =>
+                    {
+                        lock (callbackLock)
+                        {
+                            saved++;
+                            if (saved == 2) doOnNextUpdate = startNextTrial;
+                        }
+                    };
+
+                    _selectionsLogger.DataSavedToDiskCallback = callback;
+                    _highFrequencyLogger.DataSavedToDiskCallback = callback;
+                    
+                    _selectionsLogger.SaveDataToDisk();
+                    _highFrequencyLogger.SaveDataToDisk();
+                }
+                break;
+            case nameof(OnServerInvalidatedTrial):
+                // server said no (as usual, because participant has walked without metronome)
+                // Let's clearUnsavedData in loggers (if this is not training) and rerun trial with this size once more
+                // TODO
+                _targetsSelected = _selectionsValidated;
+                targetsIndexesSequence = GenerateTargetsIndexesSequence();
+                
+                listeningTrackEventsFlag = true;
+                metronome.enabled = true;
+                
+                // TODO: maybe this is not enough. Check after changing mocking probability
+
+                _selectionsLogger.ClearUnsavedData();
+                _highFrequencyLogger.ClearUnsavedData();
+
+                _state = State.AwaitingParticipantEnterTrack;
+                
+                break;
             default: 
                 throw eventRedirectingMethods.Contains(eventName)
                     ? NotSupposedException(eventName, State.AwaitingServerValidationOfLastTrial)
@@ -1040,7 +1291,7 @@ partial class ExperimentManager
         
         SelectingTargetsStanding, // used both for training and trials, it is enough
         
-        // these two states make walking context (both training and trials) easy
+        // these two states (together with AwaitingParticipantEnterTrack) make walking context (both training and trials) easy
         SelectingTargetsWalking,
         AwaitingServerValidationOfLastTrial
     }

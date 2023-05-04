@@ -73,7 +73,8 @@ public class HelmetMainProcess: ExperimentNetworkClient
             ));
 
         // return result.Where(config => config.isMetronomeTraining || (config.isTraining && config.context==ExperimentManager.Context.Standing)).ToArray();
-        return result.Where(config => config.context == ExperimentManager.Context.Standing && !config.isMetronomeTraining).ToArray();
+        // return result.Where(config => config.context == ExperimentManager.Context.Standing && !config.isMetronomeTraining).ToArray();
+        return result.Where(config => config.context == ExperimentManager.Context.Walking || config.isMetronomeTraining).ToArray();
         // return result.ToArray();
     }
 
@@ -105,7 +106,7 @@ public class HelmetMainProcess: ExperimentNetworkClient
         {
             Send(new MessageFromHelmet.UnexpectedError(error));
         });
-        experimentManager.trialFinished.AddListener(() =>
+        experimentManager.trialsFinished.AddListener(() =>
         {
             currentRunConfigIndex++;
             currentRunStage = RunStage.Idle;

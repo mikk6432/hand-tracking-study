@@ -234,6 +234,7 @@ namespace Logging
             return res;
         }
 
+        public Action DataSavedToDiskCallback;
         public void SaveDataToDisk()
         {
             if (!_initialised)
@@ -262,6 +263,7 @@ namespace Logging
                         _file.WriteLine(ToString(row.Values));
                 // Store it to the disk
                 _file.Flush();
+                DataSavedToDiskCallback?.Invoke();
             }
         }
 
