@@ -27,6 +27,9 @@ public class WalkingStateTrigger : MonoBehaviour
 
     private void Awake()
     {
+        // TODO: uncomment this
+        _thresholdSpeed = 0f;
+        
         westBorder = transform.Find("West Border");
         eastBorder = transform.Find("East Border");
 
