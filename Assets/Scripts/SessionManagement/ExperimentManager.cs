@@ -19,6 +19,8 @@ public partial class ExperimentManager: MonoBehaviour
     private State _state;
     private RunConfig _runConfig;
 
+    #region MonoBehaviour methods
+
     private void Start()
     {
         targetsManager.selectorEnteredTargetsZone.AddListener(OnSelectorEnteredTargetZone);
@@ -69,6 +71,7 @@ public partial class ExperimentManager: MonoBehaviour
             unexpectedErrorOccured.Invoke($"LateUpdate: {e.Message}\n\n {e.StackTrace.Substring(0, 70)}");
         }
     }
+    #endregion
 
     #region Targets stuff
     [SerializeField] private TargetsManager targetsManager;
@@ -998,7 +1001,6 @@ public partial class ExperimentManager: MonoBehaviour
         {
             case nameof(OnCountdownFinished):
                 // participant is walking, countdown finished. Let's activate target and start logging if this is trial
-                // TODO
                 Debug.Log($"Countdown finished, so let's call GenerateTargetsIndexesSequence()");
                 targetsIndexesSequence = GenerateTargetsIndexesSequence();
                 targetsIndexesSequence.MoveNext();
@@ -1018,7 +1020,6 @@ public partial class ExperimentManager: MonoBehaviour
             case nameof(OnParticipantSlowedDown):
             case nameof(OnParticipantSwervedOffTrack):
                 // participant has to select all targets first. We assume this as an error 
-                // TODO
                 Debug.Log("Participant has not selected all targets, but finished walking. Show error and clear unsaved data (if this is trial). And go AwaitingEnterTrack state");
                 ShowErrorToParticipant();
                 targetsManager.EnsureNoActiveTargets();
@@ -1038,7 +1039,6 @@ public partial class ExperimentManager: MonoBehaviour
                 break;
             case nameof(OnSelectorEnteredTargetZone):
                 // participant selected target? Good job!
-                // TODO
                 _targetsSelected++;
                 Debug.Log($"Selected target N_{_targetsSelected}");
                 if (!_runConfig.isTraining)
@@ -1069,7 +1069,6 @@ public partial class ExperimentManager: MonoBehaviour
                 break;
             case nameof(OnSelectorExitedTargetZone):
                 // let's activate next target if needed, or set next target size, or rerun training, or request server validation
-                // TODO
                 if (targetsIndexesSequence.MoveNext())
                 {
                     Debug.Log($"Activating target N_{targetsIndexesSequence.Current}");
@@ -1109,13 +1108,7 @@ public partial class ExperimentManager: MonoBehaviour
                         metronome.enabled = false; // we don't need metronome sound when participant is waiting for the validation
                         targetsManager.HideTargets();
                         _state = State.AwaitingServerValidationOfLastTrial;
-                        
-                        // TODO: delete this mock and change it to real server response
-                        // requestTrialValidation.Invoke();
-                        float probabilityOfSuccess = 0.75f;
-                        var success = probabilityOfSuccess > UnityEngine.Random.Range(0f, 1f);
-                        if (success) Invoke(nameof(OnServerValidatedTrial), 10);
-                        else Invoke(nameof(OnServerInvalidatedTrial), 10);
+                        requestTrialValidation.Invoke();
                     }
                 }
                 break;
@@ -1149,7 +1142,6 @@ public partial class ExperimentManager: MonoBehaviour
         {
             case nameof(OnServerValidatedTrial):
                 // was success. Let's check if more target sizes participant has to make a trial with
-                // TODO
                 Debug.Log($"Before: _targetsSelected={_targetsSelected},  _selectionsValidated={_selectionsValidated}");
                 _selectionsValidated += TargetsManager.TargetsCount + 1;
                 Debug.Log($"After: _targetsSelected={_targetsSelected},  _selectionsValidated={_selectionsValidated}");
@@ -1227,7 +1219,6 @@ public partial class ExperimentManager: MonoBehaviour
             case nameof(OnServerInvalidatedTrial):
                 // server said no (as usual, because participant has walked without metronome)
                 // Let's clearUnsavedData in loggers (if this is not training) and rerun trial with this size once more
-                // TODO
                 Debug.Log("Invalid trial? Let's show error to participant");
                 ShowErrorToParticipant();
                 Debug.Log($"Before: _targetsSelected={_targetsSelected},  _selectionsValidated={_selectionsValidated}");

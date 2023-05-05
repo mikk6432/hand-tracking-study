@@ -14,6 +14,7 @@ public class ExperimentNetwork: MonoBehaviour
             ExperimentSummary,
             InvalidOperation, // for example, server said to toggle leftHanded, while trial or training was running
             UnexpectedError, // to be deleted. HelmetProcess can surround dangerous code-blocks with rty catch and sent to server info about error which occured unexpectedly
+            RequestTrialValidation,
         }
 
         public readonly Code code;
@@ -88,7 +89,10 @@ public class ExperimentNetwork: MonoBehaviour
             RefreshExperimentSummary,
             PrepareNextRun,
             StartNextRun,
-            FinishTraining
+            FinishTraining,
+            // walking context trials. User has selected all targets with such size, but was he really walking with metronome?
+            ValidateTrial,
+            InvalidateTrial
         }
 
         public readonly Code code;

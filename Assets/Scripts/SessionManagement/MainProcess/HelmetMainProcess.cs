@@ -112,6 +112,10 @@ public class HelmetMainProcess: ExperimentNetworkClient
             currentRunStage = RunStage.Idle;
             SendSummary();
         });
+        experimentManager.requestTrialValidation.AddListener(() =>
+        {
+            Send(new MessageFromHelmet(MessageFromHelmet.Code.RequestTrialValidation));
+        });
     }
 
     protected override void Receive(MessageToHelmet message)
@@ -186,6 +190,23 @@ public class HelmetMainProcess: ExperimentNetworkClient
                 {
                     Send(new MessageFromHelmet.InvalidOperation(
                         "Invalid stop command. Can stop only if training is running"));
+                }
+                break;
+            case MessageToHelmet.Code.ValidateTrial:
+            case MessageToHelmet.Code.InvalidateTrial:
+                if (currentRunStage == RunStage.Running &&
+                    _runConfigs[currentRunConfigIndex].context == ExperimentManager.Context.Walking &&
+                    !_runConfigs[currentRunConfigIndex].isTraining
+                    )
+                {
+                    if (message.code == MessageToHelmet.Code.ValidateTrial)
+                        experimentManager.OnServerValidatedTrial();
+                    else experimentManager.OnServerInvalidatedTrial();
+                }
+                else
+                {
+                    Send(new MessageFromHelmet.InvalidOperation(
+                        "Validate/invalidate can only be called during walking trials run"));
                 }
                 break;
             default:

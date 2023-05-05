@@ -540,6 +540,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5262642185918879705, guid: 85bc85f7ad330694fa32ba719133ed56, type: 3}
+      propertyPath: _thresholdSpeed
+      value: 0.4
+      objectReference: {fileID: 0}
     - target: {fileID: 6503163420089715369, guid: 85bc85f7ad330694fa32ba719133ed56, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -558,7 +562,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7670004146539008624, guid: 85bc85f7ad330694fa32ba719133ed56, type: 3}
       propertyPath: m_LocalScale.z
-      value: 1
+      value: 5.5
       objectReference: {fileID: 0}
     - target: {fileID: 7670004146539008624, guid: 85bc85f7ad330694fa32ba719133ed56, type: 3}
       propertyPath: m_LocalPosition.x

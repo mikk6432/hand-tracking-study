@@ -25,6 +25,8 @@ public class DesktopMainProcess: ExperimentNetworkServer
     [SerializeField] private Button prepareButton;
     [SerializeField] private Button startButton;
     [SerializeField] private Button finishTrainingButton;
+    [SerializeField] private Button validateButton;
+    [SerializeField] private Button invalidateButton;
     
     private bool connected = false;
     
@@ -32,6 +34,8 @@ public class DesktopMainProcess: ExperimentNetworkServer
     private MessageFromHelmet.Summary summary;
 
     private string error;
+
+    private bool awaitingValidation;
     
     protected override void Start()
     {
@@ -48,6 +52,19 @@ public class DesktopMainProcess: ExperimentNetworkServer
         prepareButton.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.PrepareNextRun)));
         startButton.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.StartNextRun)));
         finishTrainingButton.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.FinishTraining)));
+        
+        validateButton.onClick.AddListener(() =>
+        {
+            Send(new MessageToHelmet(MessageToHelmet.Code.ValidateTrial));
+            awaitingValidation = false;
+            Render();
+        });
+        invalidateButton.onClick.AddListener(() =>
+        {
+            Send(new MessageToHelmet(MessageToHelmet.Code.InvalidateTrial));
+            awaitingValidation = false;
+            Render();
+        });
 
         setParticipantIdButton.onClick.AddListener(() =>
         {
@@ -84,6 +101,10 @@ public class DesktopMainProcess: ExperimentNetworkServer
                 error = (message as MessageFromHelmet.UnexpectedError)?.errorMessage;
                 Render();
                 break;
+            case MessageFromHelmet.Code.RequestTrialValidation:
+                awaitingValidation = true;
+                Render();
+                break;
             default:
                 throw new ArgumentException($"It seems you have implemented a new message from helmet but forget to handle in {nameof(Receive)} method");
         }
@@ -104,6 +125,8 @@ public class DesktopMainProcess: ExperimentNetworkServer
             prepareButton.gameObject.SetActive(false);
             startButton.gameObject.SetActive(false);
             finishTrainingButton.gameObject.SetActive(false);
+            validateButton.gameObject.SetActive(false);
+            invalidateButton.gameObject.SetActive(false);
             
             if (!connected)
             {
@@ -129,6 +152,10 @@ public class DesktopMainProcess: ExperimentNetworkServer
         refreshButton.gameObject.SetActive(true);
         summaryIndexIndicator.gameObject.SetActive(true);
         summaryIndexIndicator.text = $"Showing ExpSummary №{summaryIndex}";
+        
+        // validation walking trial stuff
+        validateButton.gameObject.SetActive(awaitingValidation);
+        invalidateButton.gameObject.SetActive(awaitingValidation);
         
         // participant id controller stuff
         participantIDTextField.gameObject.SetActive(true);
