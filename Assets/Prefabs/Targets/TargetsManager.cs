@@ -52,7 +52,8 @@ public class TargetsManager : MonoBehaviour
     {
         Small,
         Medium,
-        Big
+        Big,
+        VeryBig
     }
     
     public class SelectionDonePayload
@@ -116,7 +117,8 @@ public class TargetsManager : MonoBehaviour
 
     public static float GetTargetDiameter(TargetSizeVariant targetSize)
     {
-        return targetSize == TargetSizeVariant.Big ? 0.035f : 
+        return targetSize == TargetSizeVariant.VeryBig ? 0.045f : 
+            targetSize == TargetSizeVariant.Big ? 0.035f : 
             targetSize == TargetSizeVariant.Medium ? 0.025f :
             0.015f; /*TargetSize == TargetSizeVariant.Small*/
     }

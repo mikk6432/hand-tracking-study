@@ -84,12 +84,13 @@ public partial class ExperimentManager: MonoBehaviour
                    + (int)context;
         var random = new System.Random(seed);
 
-        // same sequence for equal (participantId, referenceFrame, context)
+        // same sequence for equal (participantId, referenceFrame, context) because of random-seed
         return new List<TargetsManager.TargetSizeVariant>
             {
                 TargetsManager.TargetSizeVariant.Small,
                 TargetsManager.TargetSizeVariant.Medium,
                 TargetsManager.TargetSizeVariant.Big,
+                TargetsManager.TargetSizeVariant.VeryBig,
             }
             .Select(size => new { size, rnd= random.Next() })
             .OrderBy(x => x.rnd)
@@ -507,9 +508,9 @@ public partial class ExperimentManager: MonoBehaviour
         
         // conditions
         row.SetColumnValue("Walking", _runConfig.context == Context.Standing ? 0 : 1);
-        row.SetColumnValue("ReferenceFrame", (int)_runConfig.referenceFrame);
+        row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ReferenceFrame), _runConfig.referenceFrame));
         row.SetColumnValue("TargetSize", selection.targetSize);
-        row.SetColumnValue("DominantHand", _runConfig.leftHanded ? 1 : 0);
+        row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "left" : "right");
 
         var currentTime = TimeMeasurementHelper.GetHighResolutionDateTime();
         
@@ -541,9 +542,9 @@ public partial class ExperimentManager: MonoBehaviour
         
         // conditions
         row.SetColumnValue("Walking", _runConfig.context == Context.Walking ? 1 : 0);
-        row.SetColumnValue("ReferenceFrame", (int)_runConfig.referenceFrame);
+        row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ReferenceFrame), _runConfig.referenceFrame));
         row.SetColumnValue("TargetSize", TargetsManager.GetTargetDiameter(targetSizesSequence.Current));
-        row.SetColumnValue("DominantHand", _runConfig.leftHanded ? 1 : 0);
+        row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "left" : "right");
         
         // time
         var now = TimeMeasurementHelper.GetHighResolutionDateTime();

@@ -4,8 +4,8 @@ using UnityEngine.Events;
 
 public class WalkingStateTrigger : MonoBehaviour
 {
-    private static readonly float HALF_TRACK_LENGTH = 0.5f;
-    private static readonly float HALF_TRACK_WIDTH = 0.5f;
+    private static readonly float HALF_TRACK_LENGTH = 2.75f;
+    private static readonly float HALF_TRACK_WIDTH = 0.35f;
     private static readonly float REPEAT_RATE = 1f; // Every second
 
     [SerializeField] private Transform _headset;

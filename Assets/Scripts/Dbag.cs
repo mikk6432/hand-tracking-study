@@ -9,32 +9,11 @@ using Math = Utils.Math;
 
 public class Dbag : MonoBehaviour
 {
-    private int i = 0;
-    void Foo()
-    {
-        Debug.Log(i++);
-    }
+    [SerializeField] private TargetsManager tm;
 
     private void Start()
     {
-        UnityEvent eventt = new();
-        
-        eventt.AddListener(Foo);
-        
-        eventt.Invoke();
-        
-        eventt.RemoveListener(Foo);
-        
-        eventt.Invoke();
-        
-        eventt.AddListener(Foo);
-        eventt.AddListener(Foo);
-        eventt.AddListener(Foo);
-        
-        eventt.Invoke();
-        
-        eventt.RemoveListener(Foo);
-        
-        eventt.Invoke();
+        tm.TargetSize = TargetsManager.TargetSizeVariant.VeryBig;
+        tm.ShowTargets();
     }
 }
