@@ -139,14 +139,14 @@ public class TargetsManager : MonoBehaviour
             transform.SetPositionAndRotation(Anchor.transform.position, Anchor.transform.rotation);
     }
 
-    public void ShowTargets()
+    public void EnsureTargetsShown()
     {
         if (IsShowingTargets) return;
         _targets.ForEach(target => _targetToRendererComponentMap[target].enabled = true);
         IsShowingTargets = true;
     }
     
-    public void HideTargets()
+    public void EnsureTargetsHidden()
     {
         if (!IsShowingTargets) return;
         _targets.ForEach(target => _targetToRendererComponentMap[target].enabled = false);
