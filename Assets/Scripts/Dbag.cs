@@ -10,6 +10,8 @@ using Math = Utils.Math;
 public class Dbag : MonoBehaviour
 {
     [SerializeField] private TargetsManager tm;
+    [SerializeField] private GameObject colliderVisualizer;
+    [SerializeField] private GameObject side;
 
     Gradient gradient;
     GradientColorKey[] colorKey;
@@ -30,13 +32,33 @@ public class Dbag : MonoBehaviour
 
         // Populate the alpha  keys at relative time 0 and 1  (0 and 100%)
         alphaKey = new GradientAlphaKey[2];
-        alphaKey[0].alpha = 1.0f;
+        alphaKey[0].alpha = .1f;
         alphaKey[0].time = 0.0f;
-        alphaKey[1].alpha = 0.0f;
+        alphaKey[1].alpha = .1f;
         alphaKey[1].time = 1.0f;
         
         gradient.SetKeys(colorKey, alphaKey);
 
         gradient.Evaluate(.8f);
+
+        StartCoroutine(ShowCollider());
+    }
+
+    private IEnumerator ShowCollider()
+    {
+        bool active = false;
+        int i = 0;
+        while (true)
+        {
+            colliderVisualizer.SetActive(active);
+            // side.GetComponent<Renderer>().material.color = gradient.Evaluate((i + 1f) * (i + 2f) % 1f);
+            side.GetComponent<Renderer>().material.color = gradient.Evaluate(.2f);
+
+            active = !active;
+            i++;
+            yield return new WaitForSeconds(2);
+        }
+        colliderVisualizer.SetActive(false);
+        
     }
 }

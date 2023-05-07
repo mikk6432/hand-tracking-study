@@ -5,122 +5,107 @@ using Math = Utils.Math;
 
 public class SelectorAnimatedProjector: MonoBehaviour
 {
-    private static Vector3 targetsColliderScale = new(.2f, .2f, .1f);
-
-    [SerializeField] private LineRenderer projectionLineRenderer;
-    // [SerializeField] private LineRenderer selectorLineRenderer;
+    private static Vector3 targetsColliderScale = new(.22f, .22f, .06f);
+    private static Color insideColor = Color.black;
+    private static Color outsideColor = Color.white;
     
-    [SerializeField] private List<GameObject> borders = new(12);
-    private Gradient gradient;
+    private GameObject colliderVisualizer;
+    private List<Renderer> bordersRenderers;
+    private Transform projection;
+    private Renderer projectionRenderer;
 
+    private (bool insideCollider, float distanceToOXY) prevIsInside;
+    
     public Transform Selector;
 
     private void OnEnable()
     {
-        projectionLineRenderer.gameObject.SetActive(true);
-        // selectorLineRenderer.gameObject.SetActive(true);
-        borders.ForEach(b => b.SetActive(true));
-        enabled = true;
-        Update();
+        if (!Selector) enabled = false;
+        
+        colliderVisualizer.SetActive(true);
+        projectionRenderer.gameObject.SetActive(true);
+
+        prevIsInside = IsSelectorInside();
+        ApplyColor(prevIsInside.insideCollider);
+        ApplyDistance(prevIsInside.distanceToOXY);
+        ApplyPosition();
     }
 
     private void OnDisable()
     {
-        projectionLineRenderer.gameObject.SetActive(false);
-        // selectorLineRenderer.gameObject.SetActive(false);
-        borders.ForEach(b => b.SetActive(false));
+        colliderVisualizer.SetActive(false);
+        projectionRenderer.gameObject.SetActive(false);
+        prevIsInside = default(ValueTuple<bool, float>);
     }
 
     private void Awake()
     {
-        DrawCircle(projectionLineRenderer);
-        // DrawCircle(selectorLineRenderer);
-        
-        // todo: create borders of the collider
-        
-        gradient = new Gradient();
+        colliderVisualizer = transform.Find("ColliderVisualizer").gameObject;
+        bordersRenderers = new List<Renderer>(12);
+        foreach (Transform border in colliderVisualizer.transform)
+            bordersRenderers.Add(border.GetComponent<Renderer>());
 
-        var colorKey = new GradientColorKey[4];
-        colorKey[0].color = Color.yellow;
-        colorKey[0].time = 0f;
-        colorKey[1].color = Color.yellow;
-        colorKey[1].time = 0.5f;
-        colorKey[2].color = Color.blue;
-        colorKey[2].time = .55f;
-        colorKey[2].color = Color.blue;
-        colorKey[2].time = 1f;
-
-        // Populate the alpha  keys at relative time 0 and 1  (0 and 100%)
-        var alphaKey = new GradientAlphaKey[6];
-        alphaKey[0].alpha = 0f;
-        alphaKey[0].time = 0.0f;
-        alphaKey[1].alpha = .1f;
-        alphaKey[1].time = 0.0001f;
-        alphaKey[2].alpha = .5f;
-        alphaKey[2].time = 0.3f;
-        alphaKey[3].alpha = 1f;
-        alphaKey[3].time = .45f;
-        alphaKey[4].alpha = 1f;
-        alphaKey[4].time = .55f;
-        alphaKey[5].alpha = .2f;
-        alphaKey[5].alpha = 1f;
-        
-        gradient.SetKeys(colorKey, alphaKey);
+        projection = transform.Find("SelectorProjection");
+        projectionRenderer = projection.Find("Cylinder").GetComponent<Renderer>();
     }
 
     private void Update()
     {
         if (!Selector) return;
 
-        var time = CalcTime();
-        var color = gradient.Evaluate(time);
-
-        projectionLineRenderer.material.color = color;
-
-        var (_, local) = Math.ProjectPointOntoOXYPlane(transform, Selector.position);
-
-        projectionLineRenderer.gameObject.transform.localPosition = local;
-        // projectionLineRenderer.gameObject.transform.localScale = new Vector3();
-
-        // todo: color borders
-
-    }
-
-    private float CalcTime()
-    {
-        var (_, local) = Math.ProjectPointOntoOXYPlane(transform, Selector.position);
-
-        var insideOXYBorders = Mathf.Abs(local.x) < targetsColliderScale.x / 2 &&
-                               Mathf.Abs(local.y) < targetsColliderScale.y / 2;
-
-        if (!insideOXYBorders) return 0f;
-
-        var insideCollider = local.z >= 0 && local.z < targetsColliderScale.z;
-
-        if (insideCollider)
-        {
-            return 0.5f + 0.5f * (local.z / targetsColliderScale.z);
-        }
-
-        var tooFar = local.z > .5f;
-
-        if (tooFar) return .0001f;
-        return 0.5f * (local.z / .5f);
+        var isInside = IsSelectorInside();
         
+        if (isInside.insideCollider != prevIsInside.insideCollider) 
+            ApplyColor(isInside.insideCollider);
+        
+        ApplyDistance(isInside.distanceToOXY);
+        ApplyPosition();
+
+        prevIsInside = isInside;
     }
 
-    private static void DrawCircle(LineRenderer lineRenderer)
+    private (bool insideCollider, float distanceToOXY) IsSelectorInside()
     {
-        lineRenderer.positionCount = 100;
-        for (int i = 0; i < 100; i++)
-        {
-            float progress = ((float)i) / 100;
-            float currentRadian = progress * 2 * Mathf.PI;
+        var selectorPosition = Selector.position;
+        var (world, local) = Math.ProjectPointOntoOXYPlane(transform, selectorPosition);
 
-            float xScaled = Mathf.Cos(currentRadian);
-            float yScaled = Mathf.Sin(currentRadian);
-            
-            lineRenderer.SetPosition(i, new Vector3(xScaled, yScaled, 0));
-        }
+        var fromSelectorToProjection = selectorPosition - world;
+        var distanceToOXY = fromSelectorToProjection.magnitude;
+
+        var inside = Mathf.Abs(local.x) < targetsColliderScale.x / 2 &&
+                     Mathf.Abs(local.y) < targetsColliderScale.y / 2 &&
+                     Vector3.Dot(transform.forward, fromSelectorToProjection) >= 0 &&
+                     distanceToOXY <= targetsColliderScale.z;
+
+        return (inside, distanceToOXY);
+    }
+
+    private void ApplyColor(bool inside)
+    {
+        var color = inside ? insideColor : outsideColor;
+        projectionRenderer.material.color = color;
+        bordersRenderers.ForEach(r => r.material.color = color);
+    }
+
+    private const float minBorder = .01f;
+    private const float maxBorder = .25f;
+    private const float minSize = .005f;
+    private const float maxSize = .02f;
+    private static Func<float, float> interpolate = 
+        distance => 
+            minSize + 
+            (maxSize - minSize) * (distance - minBorder) / (maxBorder - minBorder);
+    private void ApplyDistance(float distance)
+    {
+        float size = distance < minBorder ? minSize :
+            distance > maxBorder ? maxSize :
+            interpolate(distance);
+        projection.localScale = new Vector3(size, size, 0.0001f);
+    }
+
+    private void ApplyPosition()
+    {
+        var (_, local) = Math.ProjectPointOntoOXYPlane(transform, Selector.position);
+        projection.localPosition = new Vector3(local.x, local.y, -0.001f);
     }
 }
