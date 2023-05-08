@@ -27,7 +27,7 @@ public class HelmetMainProcess: ExperimentNetworkClient
     {
         var generateNotTrainingRunConfig =
             new Func<ExperimentManager.ReferenceFrame, ExperimentManager.Context, ExperimentManager.RunConfig>
-                ((rf, ctx) => new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ctx, rf));
+                ((rf, ctx) => new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ctx, rf, false));
 
         var result = new List<ExperimentManager.RunConfig>(17); // 4refFrame * (standing/walking) * (training/trial) + 1metronomeTraining (rf*context)
 
@@ -45,7 +45,7 @@ public class HelmetMainProcess: ExperimentNetworkClient
 
         var turnIntoTraining = new Func<ExperimentManager.RunConfig, ExperimentManager.RunConfig>
             (config => new ExperimentManager.RunConfig(config.participantID, config.leftHanded, false, true,
-                config.context, config.referenceFrame));
+                config.context, config.referenceFrame, false));
 
         // adding training and not trainings with reference frames
         int added = 0;
@@ -69,12 +69,22 @@ public class HelmetMainProcess: ExperimentNetworkClient
             // now below parameters don't matter
             true,
             ExperimentManager.Context.Walking,
-            ExperimentManager.ReferenceFrame.PalmReferenced
+            ExperimentManager.ReferenceFrame.PalmReferenced,
+            false
             ));
 
-        // return result.Where(config => config.isMetronomeTraining || (config.isTraining && config.context==ExperimentManager.Context.Standing)).ToArray();
-        // return result.Where(config => config.context == ExperimentManager.Context.Standing && !config.isMetronomeTraining).ToArray();
-        // return result.Where(config => config.context == ExperimentManager.Context.Walking || config.isMetronomeTraining).ToArray();
+        index = 0;
+        foreach (var runConfig in result)
+        {
+            if (runConfig.referenceFrame is 
+                ExperimentManager.ReferenceFrame.PathReferenced or 
+                ExperimentManager.ReferenceFrame.PathReferencedNeck) 
+                break;
+            index++;
+        }
+        // now insert run config, which consists of just one step for the participant – please, place UI where it will be comfortable for you
+        result.Insert(index, new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ExperimentManager.Context.Standing, ExperimentManager.ReferenceFrame.PathReferenced, true));
+        
         return result.ToArray();
     }
 
@@ -195,7 +205,6 @@ public class HelmetMainProcess: ExperimentNetworkClient
             case MessageToHelmet.Code.ValidateTrial:
             case MessageToHelmet.Code.InvalidateTrial:
                 if (currentRunStage == RunStage.Running &&
-                    _runConfigs[currentRunConfigIndex].context == ExperimentManager.Context.Walking &&
                     !_runConfigs[currentRunConfigIndex].isTraining
                     )
                 {
@@ -206,7 +215,7 @@ public class HelmetMainProcess: ExperimentNetworkClient
                 else
                 {
                     Send(new MessageFromHelmet.InvalidOperation(
-                        "Validate/invalidate can only be called during walking trials run"));
+                        "Validate/invalidate can only be called during trials run"));
                 }
                 break;
             default:

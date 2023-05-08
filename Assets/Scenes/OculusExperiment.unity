@@ -336,6 +336,67 @@ MonoBehaviour:
     position: {x: -0.2, y: 0, z: 0.05}
     rotation: {x: 40, y: 0, z: 0}
   _parametrisedOffsetComponents: []
+--- !u!1 &370049989
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 370049990}
+  - component: {fileID: 370049991}
+  m_Layer: 0
+  m_Name: UIPlacerRefFrameRightHand
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &370049990
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 370049989}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 590562724}
+  m_RootOrder: 5
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &370049991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 370049989}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef544212103d45a4ca6c7c2968e64e93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _axesRepresent: 1
+  _anchoredTo:
+    position:
+      x: {fileID: 0}
+      y: {fileID: 1678169434}
+      z: {fileID: 1678169434}
+    rotation:
+      x: {fileID: 0}
+      y: {fileID: 1633351605}
+      z: {fileID: 0}
+  _referenceFrame:
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0}
+  _offset:
+    position: {x: 0, y: 0.15, z: 0}
+    rotation: {x: 40, y: 0, z: 0}
+  _parametrisedOffsetComponents: []
 --- !u!1 &400282863
 GameObject:
   m_ObjectHideFlags: 0
@@ -546,7 +607,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5262642185918879705, guid: 85bc85f7ad330694fa32ba719133ed56, type: 3}
       propertyPath: _thresholdSpeed
-      value: 0.4
+      value: 0.7
       objectReference: {fileID: 0}
     - target: {fileID: 7670004146539008624, guid: 85bc85f7ad330694fa32ba719133ed56, type: 3}
       propertyPath: m_RootOrder
@@ -800,6 +861,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   targetsManager: {fileID: 1059347511}
+  selectorProjector: {fileID: 1059347512}
   track: {fileID: 546022618}
   sceneLight: {fileID: 464248388}
   walkingStateTrigger: {fileID: 546022619}
@@ -824,6 +886,8 @@ MonoBehaviour:
   pathRefFrameWalking: {fileID: 1896238942}
   pathRefFrameNeckStanding: {fileID: 2006898292}
   pathRefFrameNeckWalking: {fileID: 1051595377}
+  UIPlacerRefFrameLeftHand: {fileID: 1315399859}
+  UIPlacerRefFrameRightHand: {fileID: 370049989}
 --- !u!1 &700124722
 GameObject:
   m_ObjectHideFlags: 0
@@ -1027,7 +1091,7 @@ MonoBehaviour:
   _anchoredTo:
     position:
       x: {fileID: 0}
-      y: {fileID: 1627985124}
+      y: {fileID: 0}
       z: {fileID: 1069837146}
     rotation:
       x: {fileID: 0}
@@ -1037,7 +1101,7 @@ MonoBehaviour:
     position: {x: 0, y: 0, z: 0}
     rotation: {x: 0, y: 0, z: 0}
   _offset:
-    position: {x: 0, y: 0.075, z: 0.33}
+    position: {x: 0, y: 1.35, z: 0.33}
     rotation: {x: 40, y: 0, z: 0}
   _parametrisedOffsetComponents: []
 --- !u!1001 &1059347510
@@ -1047,6 +1111,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2323797215614695092, guid: 1c0dc093960ee45d39c572257b1a2c6d, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2727302563415495804, guid: 1c0dc093960ee45d39c572257b1a2c6d, type: 3}
       propertyPath: m_RootOrder
       value: 8
@@ -1110,6 +1178,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eca6545f45e2400aac99db90935166b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1059347512 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2323797215614695092, guid: 1c0dc093960ee45d39c572257b1a2c6d, type: 3}
+  m_PrefabInstance: {fileID: 1059347510}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 402c233e6c5b40d4bc7c76d60a395349, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &1069837144
@@ -1253,6 +1332,67 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7670004146539008624, guid: 85bc85f7ad330694fa32ba719133ed56, type: 3}
   m_PrefabInstance: {fileID: 546022617}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1315399859
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1315399860}
+  - component: {fileID: 1315399861}
+  m_Layer: 0
+  m_Name: UIPlacerRefFrameLeftHand
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &1315399860
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1315399859}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 590562724}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1315399861
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1315399859}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef544212103d45a4ca6c7c2968e64e93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _axesRepresent: 1
+  _anchoredTo:
+    position:
+      x: {fileID: 0}
+      y: {fileID: 1622867131}
+      z: {fileID: 1622867131}
+    rotation:
+      x: {fileID: 0}
+      y: {fileID: 1633351605}
+      z: {fileID: 0}
+  _referenceFrame:
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0}
+  _offset:
+    position: {x: 0, y: 0.15, z: 0}
+    rotation: {x: 40, y: 0, z: 0}
+  _parametrisedOffsetComponents: []
 --- !u!1001 &1325433328
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1784,7 +1924,7 @@ MonoBehaviour:
   _anchoredTo:
     position:
       x: {fileID: 0}
-      y: {fileID: 1627985124}
+      y: {fileID: 0}
       z: {fileID: 1633876944}
     rotation:
       x: {fileID: 0}
@@ -1794,7 +1934,7 @@ MonoBehaviour:
     position: {x: 0, y: 0, z: 0}
     rotation: {x: 0, y: 0, z: 0}
   _offset:
-    position: {x: 0, y: 0, z: 0.25}
+    position: {x: 0, y: 1.35, z: 0.33}
     rotation: {x: 40, y: 0, z: 0}
   _parametrisedOffsetComponents: []
 --- !u!1 &1951869171
@@ -1977,7 +2117,7 @@ MonoBehaviour:
   _anchoredTo:
     position:
       x: {fileID: 0}
-      y: {fileID: 1627985124}
+      y: {fileID: 0}
       z: {fileID: 1069837146}
     rotation:
       x: {fileID: 0}
@@ -1987,7 +2127,7 @@ MonoBehaviour:
     position: {x: 0, y: 0, z: 0}
     rotation: {x: 0, y: 0, z: 0}
   _offset:
-    position: {x: 0, y: 0.075, z: 0.33}
+    position: {x: 0, y: 1.35, z: 0.25}
     rotation: {x: 40, y: 0, z: 0}
   _parametrisedOffsetComponents: []
 --- !u!1 &2009297596
@@ -2038,7 +2178,7 @@ MonoBehaviour:
   _anchoredTo:
     position:
       x: {fileID: 0}
-      y: {fileID: 1627985124}
+      y: {fileID: 0}
       z: {fileID: 1633876944}
     rotation:
       x: {fileID: 0}
@@ -2048,6 +2188,6 @@ MonoBehaviour:
     position: {x: 0, y: 0, z: 0}
     rotation: {x: 0, y: 0, z: 0}
   _offset:
-    position: {x: 0, y: 0, z: 0.25}
+    position: {x: 0, y: 1.35, z: 0.25}
     rotation: {x: 40, y: 0, z: 0}
   _parametrisedOffsetComponents: []

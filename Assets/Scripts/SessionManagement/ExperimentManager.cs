@@ -30,6 +30,14 @@ public partial class ExperimentManager: MonoBehaviour
         walkingStateTrigger.ParticipantSwervedOff.AddListener(OnParticipantSwervedOffTrack);
         walkingStateTrigger.ParticipantSlowedDown.AddListener(OnParticipantSlowedDown);
         walkingStateTrigger.ParticipantFinished.AddListener(OnParticipantFinishedTrack);
+
+        pathRefFrames = new List<SpatialUIPlacement.ReferenceFrame>()
+        {
+            pathRefFrameStanding.GetComponent<SpatialUIPlacement.ReferenceFrame>(),
+            pathRefFrameWalking.GetComponent<SpatialUIPlacement.ReferenceFrame>(),
+            pathRefFrameNeckStanding.GetComponent<SpatialUIPlacement.ReferenceFrame>(),
+            pathRefFrameNeckWalking.GetComponent<SpatialUIPlacement.ReferenceFrame>()
+        };
     }
 
     private void OnDestroy()
@@ -75,6 +83,7 @@ public partial class ExperimentManager: MonoBehaviour
 
     #region Targets stuff
     [SerializeField] private TargetsManager targetsManager;
+    [SerializeField] private SelectorAnimatedProjector selectorProjector;
     private bool listeningTargetsEventsFlag;
 
     private static IEnumerator<TargetsManager.TargetSizeVariant> GenerateTargetSizesSequence(int participantId, ReferenceFrame referenceFrame, Context context, bool isTraining = false)
@@ -236,6 +245,11 @@ public partial class ExperimentManager: MonoBehaviour
     [SerializeField] private GameObject pathRefFrameNeckWalking;
     private GameObject activeRefFrame;
     private GameObject[] inactiveRefFrames;
+    // as path referenced, but depends on hand (not head)
+    [Space]
+    [SerializeField] private GameObject UIPlacerRefFrameLeftHand;
+    [SerializeField] private GameObject UIPlacerRefFrameRightHand;
+    private List<SpatialUIPlacement.ReferenceFrame> pathRefFrames;
     
     private void ActualizeReferenceFrames()
     {
@@ -282,6 +296,22 @@ public partial class ExperimentManager: MonoBehaviour
         activeRefFrame.SetActive(true);
         foreach (var refFrame in inactiveRefFrames)
             refFrame.SetActive(false);
+    }
+
+    private void UpdatePathRefFrames()
+    {
+        var targetsPosition = targetsManager.transform.position;
+        var y = targetsPosition.y;
+
+        var fromHeadToTargets = headset.transform.position - targetsPosition;
+        fromHeadToTargets.y = 0;
+        var z = fromHeadToTargets.magnitude;
+        
+        pathRefFrames.ForEach(refFrame =>
+        {
+            refFrame._offset.position.y = y;
+            refFrame._offset.position.z = z;
+        });
     }
     #endregion
     
@@ -743,6 +773,7 @@ public partial class ExperimentManager: MonoBehaviour
         metronome.enabled = false;
         walkingStateTrigger.enabled = false; // also hides track borders
         targetsManager.EnsureTargetsHidden();
+        selectorProjector.enabled = false;
     } 
     
     private void HandleState(string eventName = "")
@@ -790,6 +821,20 @@ public partial class ExperimentManager: MonoBehaviour
         switch (eventName)
         {
             case nameof(OnServerSaidPrepare):
+                if (_runConfig.isPlacingComfortYAndZ)
+                {
+                    ActualizeHands();
+                    PlaceLightWhereHeadset();
+                    var handRefFrame = _runConfig.leftHanded ? UIPlacerRefFrameRightHand : UIPlacerRefFrameLeftHand;
+                    handRefFrame.SetActive(true);
+                    targetsManager.Anchor = handRefFrame;
+                    targetsManager.TargetSize = TargetsManager.TargetSizeVariant.Big;
+                    targetsManager.EnsureTargetsShown();
+                    selectorProjector.Selector = dominantHandIndexTip.transform;
+                    selectorProjector.enabled = true;
+                    _state = State.Preparing;
+                    break;
+                }
                 if (_runConfig.isMetronomeTraining)
                 {
                     walkingStateTrigger.enabled = true; // just show track, but not listening events yet
@@ -801,6 +846,8 @@ public partial class ExperimentManager: MonoBehaviour
                 ActualizeHands();
                 ActualizeReferenceFrames();
                 targetsManager.Anchor = activeRefFrame;
+                selectorProjector.Selector = dominantHandIndexTip.transform;
+                selectorProjector.enabled = true;
                 
                 targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID, _runConfig.referenceFrame, _runConfig.context);
                 targetSizesSequence.MoveNext();
@@ -839,6 +886,10 @@ public partial class ExperimentManager: MonoBehaviour
         switch (eventName)
         {
             case nameof(OnServerSaidPrepare):
+                if (_runConfig.isPlacingComfortYAndZ)
+                {
+                    break;
+                }
                 if (_runConfig.isMetronomeTraining)
                 {
                     PlaceTrackForwardFromHeadset();
@@ -854,6 +905,17 @@ public partial class ExperimentManager: MonoBehaviour
 
                 break;
             case nameof(OnServerSaidStart):
+                if (_runConfig.isPlacingComfortYAndZ)
+                {
+                    UpdatePathRefFrames();
+                    UIPlacerRefFrameRightHand.SetActive(false);
+                    UIPlacerRefFrameLeftHand.SetActive(false);
+                    targetsManager.EnsureTargetsHidden();
+                    selectorProjector.enabled = false;
+                    _state = State.Idle;
+                    trialsFinished.Invoke();
+                    break;
+                }
                 if (_runConfig.isMetronomeTraining || _runConfig.context == Context.Walking)
                 {
                     // We have to wait for the participant to enter the track (no matter if this is training with metronome or not)
@@ -926,6 +988,7 @@ public partial class ExperimentManager: MonoBehaviour
                     listeningTargetsEventsFlag = false;
                     highFrequencyLoggingIsOnFlag = false;
                     
+                    selectorProjector.enabled = false;
                     targetsManager.EnsureTargetsHidden();
 
                     if (_runConfig.isTraining) Invoke(nameof(OnServerValidatedTrial), 2f); // imitating, always success for training
@@ -935,7 +998,7 @@ public partial class ExperimentManager: MonoBehaviour
                 break;
             case nameof(OnServerSaidFinishTraining):
                 if (!_runConfig.isTraining) throw new ArgumentException($"{eventName} got called in SelectingTargetsStanding state while trials. This is not supposed to happen");
-
+                
                 Cleanup();
                 _state = State.Idle;
                 break;
@@ -1023,7 +1086,8 @@ public partial class ExperimentManager: MonoBehaviour
                     listeningTargetsEventsFlag = false;
                     highFrequencyLoggingIsOnFlag = false;
                     listeningTrackEventsFlag = false;
-                    
+                    selectorProjector.enabled = false;
+
                     metronome.enabled = false;
                     targetsManager.EnsureTargetsHidden();
 
@@ -1070,6 +1134,7 @@ public partial class ExperimentManager: MonoBehaviour
                     
                     var NextStandingTrial = new Action(() =>
                     {
+                        selectorProjector.enabled = true;
                         targetsManager.EnsureTargetsShown();
                         Invoke(nameof(OnCountdownFinished), GenerateTimeToActivateFirstTarget());
                         _state = State.SelectingTargetsStanding;
@@ -1077,6 +1142,7 @@ public partial class ExperimentManager: MonoBehaviour
 
                     var NextWalkingTrial = new Action(() =>
                     {
+                        selectorProjector.enabled = true;
                         metronome.enabled = true;
                         listeningTrackEventsFlag = true;
                         targetsManager.EnsureTargetsShown();
@@ -1104,12 +1170,14 @@ public partial class ExperimentManager: MonoBehaviour
                 
                 if (_runConfig.context == Context.Standing)
                 {
+                    selectorProjector.enabled = true;
                     targetsManager.EnsureTargetsShown();
                     Invoke(nameof(OnCountdownFinished), GenerateTimeToActivateFirstTarget());
                     _state = State.SelectingTargetsStanding;
                 }
                 else
                 {
+                    selectorProjector.enabled = true;
                     metronome.enabled = true;
                     listeningTrackEventsFlag = true;
                     targetsManager.EnsureTargetsShown();
@@ -1191,8 +1259,13 @@ partial class ExperimentManager
         public readonly bool isTraining;
         public readonly Context context;
         public readonly ReferenceFrame referenceFrame;
+        
+        // not fitting project architecture, but we are short of time
+        // used for participant to place with his hand where he would comfortably set UI path-referenced (Z offset from headset and Y offset from floor)
+        // after "start" command, fixes that offsets and calls "trialsFinished" to make server to go to next step
+        public readonly bool isPlacingComfortYAndZ;
 
-        public RunConfig(int participantID, bool leftHanded, bool isMetronomeTraining, bool isTraining, Context context, ReferenceFrame referenceFrame)
+        public RunConfig(int participantID, bool leftHanded, bool isMetronomeTraining, bool isTraining, Context context, ReferenceFrame referenceFrame, bool isPlacingComfortYAndZ)
         {
             this.participantID = participantID;
             this.leftHanded = leftHanded;
@@ -1200,6 +1273,7 @@ partial class ExperimentManager
             this.isTraining = isTraining;
             this.context = context;
             this.referenceFrame = referenceFrame;
+            this.isPlacingComfortYAndZ = isPlacingComfortYAndZ;
         }
     }
     

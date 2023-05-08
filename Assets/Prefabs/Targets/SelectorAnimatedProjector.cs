@@ -5,9 +5,9 @@ using Math = Utils.Math;
 
 public class SelectorAnimatedProjector: MonoBehaviour
 {
-    private static Vector3 targetsColliderScale = new(.22f, .22f, .06f);
-    private static Color insideColor = Color.black;
-    private static Color outsideColor = Color.white;
+    private static readonly Vector3 targetsColliderScale = new(.22f, .22f, .06f);
+    private static readonly Color insideColor = new(160, 160, 160);
+    private static readonly Color outsideColor = Color.white;
     
     private GameObject colliderVisualizer;
     private List<Renderer> bordersRenderers;

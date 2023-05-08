@@ -179,7 +179,11 @@ public class DesktopMainProcess: ExperimentNetworkServer
         for (int i = 0; i < runConfigs.Length; i++)
         {
             var line = "";
-            if (runConfigs[i].isMetronomeTraining)
+            if (runConfigs[i].isPlacingComfortYAndZ)
+            {
+                line = "Placing UI where participant feel comfort";
+            }
+            else if (runConfigs[i].isMetronomeTraining)
             {
                 line = "Training to go with metronome";
             }

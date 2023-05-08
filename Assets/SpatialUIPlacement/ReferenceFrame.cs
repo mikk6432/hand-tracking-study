@@ -54,7 +54,7 @@ namespace SpatialUIPlacement
         [SerializeField, Tooltip("Represents the pose of the parent object, i.e. the reference frame object. Modify it here becuase the current component takes over the reference frame's Transform")]
         protected Pose _referenceFrame;
         [SerializeField]
-        protected Pose _offset;
+        public Pose _offset;
 
         [Space]
         [SerializeField]
@@ -201,7 +201,7 @@ namespace SpatialUIPlacement
                 }
             }
         }
-
+        
         protected static Transform CreateRefFrameObj(Transform transform)
         {
             // Instntiate the reference frame object and mark it with ReferenceFrameIndicator
