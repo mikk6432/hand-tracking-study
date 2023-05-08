@@ -52,6 +52,8 @@ public class SelectorAnimatedProjector: MonoBehaviour
     private void Update()
     {
         if (!Selector) return;
+        if (!Selector.gameObject) return;
+        if (!Selector.gameObject.activeInHierarchy) return;
 
         var isInside = IsSelectorInside();
         
