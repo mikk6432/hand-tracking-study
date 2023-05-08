@@ -43,7 +43,8 @@ public class OculusBoneAnchor : MonoBehaviour
         if (_bone == null || !_bone.Transform.gameObject.activeInHierarchy) return;
 
         CalculatePositionAndRotation(out Vector3 position, out Quaternion rotation);
-        if (position.magnitude < 0.05f) return; // hand tracking working bad, hands are blinking and jumping to 0
+        // if (position.magnitude < 0.05f) return; // hand tracking working bad, hands are blinking and jumping to 0
+        // upd: disabled previous line, because participant will not understand that his hands are blinking
         transform.SetPositionAndRotation(position, rotation);
     }
 

@@ -31,10 +31,14 @@ public partial class ExperimentManager: MonoBehaviour
         walkingStateTrigger.ParticipantSlowedDown.AddListener(OnParticipantSlowedDown);
         walkingStateTrigger.ParticipantFinished.AddListener(OnParticipantFinishedTrack);
 
-        pathRefFrames = new List<SpatialUIPlacement.ReferenceFrame>()
+        pathRefFrames = new List<SpatialUIPlacement.ReferenceFrame>
         {
             pathRefFrameStanding.GetComponent<SpatialUIPlacement.ReferenceFrame>(),
-            pathRefFrameWalking.GetComponent<SpatialUIPlacement.ReferenceFrame>(),
+            pathRefFrameWalking.GetComponent<SpatialUIPlacement.ReferenceFrame>()
+        };
+
+        pathNeckRefFrames = new List<SpatialUIPlacement.ReferenceFrame>
+        {
             pathRefFrameNeckStanding.GetComponent<SpatialUIPlacement.ReferenceFrame>(),
             pathRefFrameNeckWalking.GetComponent<SpatialUIPlacement.ReferenceFrame>()
         };
@@ -175,8 +179,7 @@ public partial class ExperimentManager: MonoBehaviour
     // SimplifiedComfortUIPlacement position.y depends on headset.
     // We refresh it when we want (usually after "prepare" command from server) by calling comfortUICoordinateY.Refresh()
     // Path-refFrame positioning depend on it.
-    [SerializeField] private SimplifiedComfortUIPlacement comfortUICoordinateY;
-    
+
     private (Vector3 position, Quaternion rotation) HeadsetOXZProjection()
     {
         var headsetTransform = headset.transform;
@@ -250,6 +253,7 @@ public partial class ExperimentManager: MonoBehaviour
     [SerializeField] private GameObject UIPlacerRefFrameLeftHand;
     [SerializeField] private GameObject UIPlacerRefFrameRightHand;
     private List<SpatialUIPlacement.ReferenceFrame> pathRefFrames;
+    private List<SpatialUIPlacement.ReferenceFrame> pathNeckRefFrames;
     
     private void ActualizeReferenceFrames()
     {
@@ -305,12 +309,19 @@ public partial class ExperimentManager: MonoBehaviour
 
         var fromHeadToTargets = headset.transform.position - targetsPosition;
         fromHeadToTargets.y = 0;
-        var z = fromHeadToTargets.magnitude;
-        
+
+        var fromNeckToTargets = neckBase.transform.position - targetsPosition;
+        fromNeckToTargets.y = 0;
+
         pathRefFrames.ForEach(refFrame =>
         {
             refFrame._offset.position.y = y;
-            refFrame._offset.position.z = z;
+            refFrame._offset.position.z = fromHeadToTargets.magnitude;
+        });
+        pathNeckRefFrames.ForEach(refFrame =>
+        {
+            refFrame._offset.position.y = y;
+            refFrame._offset.position.z = fromNeckToTargets.magnitude;
         });
     }
     #endregion
@@ -888,6 +899,7 @@ public partial class ExperimentManager: MonoBehaviour
             case nameof(OnServerSaidPrepare):
                 if (_runConfig.isPlacingComfortYAndZ)
                 {
+                    PlaceLightWhereHeadset();
                     break;
                 }
                 if (_runConfig.isMetronomeTraining)
@@ -896,8 +908,7 @@ public partial class ExperimentManager: MonoBehaviour
                     PlaceLightWhereTrack();
                     break;
                 }
-
-                comfortUICoordinateY.Refresh(); // for both walking and standing context
+                
                 if (_runConfig.context == Context.Standing)
                 {
                     PlaceLightWhereHeadset();
@@ -907,13 +918,13 @@ public partial class ExperimentManager: MonoBehaviour
             case nameof(OnServerSaidStart):
                 if (_runConfig.isPlacingComfortYAndZ)
                 {
-                    UpdatePathRefFrames();
+                    UpdatePathRefFrames(); // call method after "Start command"
                     UIPlacerRefFrameRightHand.SetActive(false);
                     UIPlacerRefFrameLeftHand.SetActive(false);
                     targetsManager.EnsureTargetsHidden();
                     selectorProjector.enabled = false;
                     _state = State.Idle;
-                    trialsFinished.Invoke();
+                    trialsFinished.Invoke(); // and call "finished"
                     break;
                 }
                 if (_runConfig.isMetronomeTraining || _runConfig.context == Context.Walking)
