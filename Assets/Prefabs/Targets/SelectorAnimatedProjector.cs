@@ -6,8 +6,11 @@ using Math = Utils.Math;
 public class SelectorAnimatedProjector: MonoBehaviour
 {
     private static readonly Vector3 targetsColliderScale = new(.22f, .22f, .06f);
-    private static readonly Color insideColor = new(160, 160, 160);
+    private static readonly Color insideColor = Color.grey;
     private static readonly Color outsideColor = Color.white;
+    
+    [SerializeField] private AudioSource _audio;
+    [SerializeField] private AudioClip _selectSound;
     
     private GameObject colliderVisualizer;
     private List<Renderer> bordersRenderers;
@@ -24,6 +27,7 @@ public class SelectorAnimatedProjector: MonoBehaviour
         
         colliderVisualizer.SetActive(true);
         projectionRenderer.gameObject.SetActive(true);
+        projection.gameObject.SetActive(true);
 
         prevIsInside = IsSelectorInside();
         ApplyColor(prevIsInside.insideCollider);
@@ -33,6 +37,7 @@ public class SelectorAnimatedProjector: MonoBehaviour
 
     private void OnDisable()
     {
+        projection.gameObject.SetActive(false);
         colliderVisualizer.SetActive(false);
         projectionRenderer.gameObject.SetActive(false);
         prevIsInside = default(ValueTuple<bool, float>);
@@ -59,6 +64,9 @@ public class SelectorAnimatedProjector: MonoBehaviour
         
         if (isInside.insideCollider != prevIsInside.insideCollider) 
             ApplyColor(isInside.insideCollider);
+
+        bool selectNow = isInside.insideCollider && !prevIsInside.insideCollider;
+        if (selectNow) PlaySound();
         
         ApplyDistance(isInside.distanceToOXY);
         ApplyPosition();
@@ -109,5 +117,14 @@ public class SelectorAnimatedProjector: MonoBehaviour
     {
         var (_, local) = Math.ProjectPointOntoOXYPlane(transform, Selector.position);
         projection.localPosition = new Vector3(local.x, local.y, -0.001f);
+    }
+    
+    private void PlaySound()
+    {
+        // We assume that this AudioSource is used not only by us, so a little cleaning wouldn't hurt
+        _audio.Stop();
+        _audio.clip = _selectSound;
+        
+        _audio.Play();
     }
 }
