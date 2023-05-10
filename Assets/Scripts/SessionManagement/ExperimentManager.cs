@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Logging;
-using SpatialUIPlacement;
 using UnityEngine;
 using UnityEngine.Events;
 using Utils;
 using Math = Utils.Math;
 
+// ReSharper disable once CheckNamespace
 public partial class ExperimentManager: MonoBehaviour
 {
     // not used for trainings. To finish training, method (OnServerSaidFinishTraining should be called)
@@ -107,12 +107,22 @@ public partial class ExperimentManager: MonoBehaviour
             }
             .Select(size => new { size, rnd = random.Next() })
             .OrderBy(x => x.rnd)
-            .Select(x => x.size);
+            .Select(x => x.size)
+            .ToList();
 
         if (!isTraining) return seq.GetEnumerator();
-        else return Enumerable.Repeat(seq, 20) // 20 is 100% enough
-            .Aggregate((a, b) => a.Concat(b))
-            .GetEnumerator();
+
+        IEnumerator<TargetsManager.TargetSizeVariant> TrainingInfiniteEnumerator()
+        {
+            while (true)
+            {
+                foreach (var x in seq)
+                    yield return x;
+            }
+            // ReSharper disable once IteratorNeverReturns
+        }
+
+        return TrainingInfiniteEnumerator();
     }
 
     private static IEnumerator<int> GenerateTargetsIndexesSequence()
@@ -153,7 +163,6 @@ public partial class ExperimentManager: MonoBehaviour
         var trackTransform = track.transform;
         sceneLight.transform.SetPositionAndRotation(trackTransform.position, trackTransform.rotation);
     }
-
     #endregion
     
     #region Sound stuff
@@ -176,9 +185,6 @@ public partial class ExperimentManager: MonoBehaviour
     [Space]
     [SerializeField] private GameObject headset;
     [SerializeField] private GameObject neckBase;
-    // SimplifiedComfortUIPlacement position.y depends on headset.
-    // We refresh it when we want (usually after "prepare" command from server) by calling comfortUICoordinateY.Refresh()
-    // Path-refFrame positioning depend on it.
 
     private (Vector3 position, Quaternion rotation) HeadsetOXZProjection()
     {
@@ -338,11 +344,11 @@ public partial class ExperimentManager: MonoBehaviour
 
     private float GenerateTimeToActivateFirstTarget()
     {
-        var minimum = _runConfig.isTraining ? 1f : 2f;
-        if (_runConfig.context == Context.Standing) return minimum;
+        if (_runConfig.context == Context.Standing) 
+            return 1f + UnityEngine.Random.Range(0f, 1f);
         
         float stepFrequencyInSeconds = 60f / metronome.Tempo;
-        return minimum + UnityEngine.Random.Range(0f, 2f * stepFrequencyInSeconds);
+        return 0.5f + UnityEngine.Random.Range(0f, 2f * stepFrequencyInSeconds);
     }
     #endregion
     
@@ -860,7 +866,7 @@ public partial class ExperimentManager: MonoBehaviour
                 selectorProjector.Selector = dominantHandIndexTip.transform;
                 selectorProjector.enabled = true;
                 
-                targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID, _runConfig.referenceFrame, _runConfig.context);
+                targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID, _runConfig.referenceFrame, _runConfig.context, _runConfig.isTraining);
                 targetSizesSequence.MoveNext();
                 targetsManager.TargetSize = targetSizesSequence.Current;
                 targetsManager.EnsureTargetsShown();
