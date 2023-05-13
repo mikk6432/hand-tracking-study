@@ -144,7 +144,7 @@ public partial class ExperimentManager: MonoBehaviour
     [SerializeField] private GameObject walkingDirection; // walking context (relative to track)
     [SerializeField] private GameObject standingDirection; // standing context (relative to light)
 
-    private void PlaceTrackForwardFromHeadset()
+    public void PlaceTrackForwardFromHeadset()
     {
         var (position, rotation) = HeadsetOXZProjection();
         float halfTrackLength = 2.75f;
@@ -152,13 +152,13 @@ public partial class ExperimentManager: MonoBehaviour
         track.transform.SetPositionAndRotation(position, rotation);
     }
     
-    private void PlaceLightWhereHeadset()
+    public void PlaceLightWhereHeadset()
     {
         var (position, rotation) = HeadsetOXZProjection();
         sceneLight.transform.SetPositionAndRotation(position, rotation);
     }
     
-    private void PlaceLightWhereTrack()
+    public void PlaceLightWhereTrack()
     {
         var trackTransform = track.transform;
         sceneLight.transform.SetPositionAndRotation(trackTransform.position, trackTransform.rotation);

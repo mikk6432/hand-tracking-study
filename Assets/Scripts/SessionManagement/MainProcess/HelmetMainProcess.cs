@@ -218,6 +218,30 @@ public class HelmetMainProcess: ExperimentNetworkClient
                         "Validate/invalidate can only be called during trials run"));
                 }
                 break;
+            case MessageToHelmet.Code.PlaceTrackAndLight:
+                if (_runConfigs[currentRunConfigIndex].context == ExperimentManager.Context.Standing)
+                {
+                    experimentManager.PlaceLightWhereHeadset();                    
+                }
+                else
+                {
+                    experimentManager.PlaceTrackForwardFromHeadset();
+                    experimentManager.PlaceLightWhereTrack();
+                }
+                break;
+            case MessageToHelmet.Code.SkipNSteps:
+                if (currentRunStage != RunStage.Idle)
+                {
+                    Send(new MessageFromHelmet.InvalidOperation(
+                        "Cannot skip when run is preparing/running"));
+                }
+                else
+                {
+                    var skipMsg = (message as MessageToHelmet.SkipNSteps);
+                    currentRunConfigIndex += skipMsg.stepsToSkip;
+                    SendSummary();
+                }
+                break;
             default:
                 throw new ArgumentException($"It seems you have implemented a new message from helmet but forget to handle in {nameof(Receive)} method");
         }

@@ -90,6 +90,11 @@ public class ExperimentNetwork: MonoBehaviour
             PrepareNextRun,
             StartNextRun,
             FinishTraining,
+            
+            // these two are not supposed to happen, only if experiment was interrupted, to continue from where finished
+            SkipNSteps,
+            PlaceTrackAndLight,
+            
             // walking context trials. User has selected all targets with such size, but was he really walking with metronome?
             ValidateTrial,
             InvalidateTrial
@@ -136,6 +141,17 @@ public class ExperimentNetwork: MonoBehaviour
             public override string ToString()
             {
                 return base.ToString() + $", leftHanded={leftHanded}";
+            }
+        }
+        
+        [Serializable]
+        public class SkipNSteps: MessageToHelmet
+        {
+            public readonly int stepsToSkip;
+
+            public SkipNSteps(int stepsToSkip) : base(Code.SkipNSteps)
+            {
+                this.stepsToSkip = stepsToSkip;
             }
         }
     }

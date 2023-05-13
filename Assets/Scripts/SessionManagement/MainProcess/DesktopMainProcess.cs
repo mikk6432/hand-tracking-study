@@ -28,6 +28,10 @@ public class DesktopMainProcess: ExperimentNetworkServer
     [SerializeField] private Button validateButton;
     [SerializeField] private Button invalidateButton;
     
+    [SerializeField] private Button placeLightAndTrack;
+    [SerializeField] private TMP_InputField skipNStepsInput;
+    [SerializeField] private Button skipNStepsButton;
+    
     private bool connected = false;
     
     private int summaryIndex = 0;
@@ -52,6 +56,18 @@ public class DesktopMainProcess: ExperimentNetworkServer
         prepareButton.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.PrepareNextRun)));
         startButton.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.StartNextRun)));
         finishTrainingButton.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.FinishTraining)));
+        
+        placeLightAndTrack.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.PlaceTrackAndLight)));
+        skipNStepsButton.onClick.AddListener(() =>
+        {
+            if (!Int32.TryParse(skipNStepsInput.text, out int stepsToSkip))
+            {
+                Debug.LogError("Cannot set skip non-integer stepsToSkip");
+                return;
+            }
+
+            Send(new MessageToHelmet.SkipNSteps(stepsToSkip));
+        });
         
         validateButton.onClick.AddListener(() =>
         {
@@ -127,6 +143,9 @@ public class DesktopMainProcess: ExperimentNetworkServer
             finishTrainingButton.gameObject.SetActive(false);
             validateButton.gameObject.SetActive(false);
             invalidateButton.gameObject.SetActive(false);
+            skipNStepsButton.gameObject.SetActive(false);
+            skipNStepsInput.gameObject.SetActive(false);
+            placeLightAndTrack.gameObject.SetActive(false);
             
             if (!connected)
             {
@@ -231,5 +250,9 @@ public class DesktopMainProcess: ExperimentNetworkServer
         startButton.gameObject.SetActive(summary.stage == (int)HelmetMainProcess.RunStage.Preparing);
         bool isCurrentTraining = runConfigs[summary.index].isTraining || runConfigs[summary.index].isMetronomeTraining;
         finishTrainingButton.gameObject.SetActive(isCurrentTraining && summary.stage == (int)HelmetMainProcess.RunStage.Running);
+        
+        placeLightAndTrack.gameObject.SetActive(true);
+        skipNStepsButton.gameObject.SetActive(isIdle);
+        skipNStepsInput.gameObject.SetActive(isIdle);
     }
 }
