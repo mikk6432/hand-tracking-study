@@ -10,7 +10,8 @@ public class TargetsManager : MonoBehaviour
     private static readonly Color _successColor = Color.green;
     private static readonly Color _failColor = Color.red;
     private const float diameter = .15f;
-    public const int TargetsCount = 7;
+
+    [SerializeField] public const int TargetsCount = 7;
 
     public readonly UnityEvent selectorEnteredTargetsZone = new();
     public readonly UnityEvent selectorExitedTargetsZone = new();
@@ -26,7 +27,8 @@ public class TargetsManager : MonoBehaviour
     public bool IsSelectorInsideCollider { get; private set; }
     public (GameObject target, int targetIndex) ActiveTarget { get; private set; } = (null, -1);
     public SelectionDonePayload LastSelectionData { get; private set; }
-    public GameObject Anchor { get; set; }
+    [SerializeField] public GameObject Anchor;
+    [SerializeField]
     public TargetSizeVariant TargetSize
     {
         get => _targetSize;
@@ -46,6 +48,16 @@ public class TargetsManager : MonoBehaviour
             _targetSize = value;
         }
     }
+#if UNITY_EDITOR
+    public TargetSizeVariant SpecifiedTargetSize = TargetSizeVariant.Medium;
+    private void OnValidate()
+    {
+        if (SpecifiedTargetSize != TargetSize)
+        {
+            TargetSize = SpecifiedTargetSize;
+        }
+    }
+#endif
 
     public enum TargetSizeVariant
     {
@@ -73,6 +85,11 @@ public class TargetsManager : MonoBehaviour
             this.selectionLocalCoordinates = selectionLocalCoordinates;
             this.success = success;
         }
+    }
+
+    private void Start()
+    {
+        EnsureTargetsShown();
     }
 
     private void OnEnable()

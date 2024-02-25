@@ -51,5 +51,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "Hand-tracking-on-the-go-2024.sln"
+    "dotnet.defaultSolution": "hand-tracking-study.sln"
 }
