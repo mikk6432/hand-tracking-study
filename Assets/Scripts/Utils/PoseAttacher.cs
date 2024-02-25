@@ -1,27 +1,25 @@
 using UnityEngine;
 
-namespace HandInteractionsOnTheGo
+public class PoseAttacher : MonoBehaviour
 {
-    public class PoseAttacher: MonoBehaviour
+    [SerializeField]
+    [Tooltip("The game object to attach this object to")]
+    private Transform attachTo;
+
+    private void OnEnable()
     {
-        [SerializeField] [Tooltip("The game object to attach this object to")]
-        private Transform attachTo;
-
-        private void OnEnable()
+        if (!attachTo)
         {
-            if (!attachTo) 
-            {
-                Debug.LogError($"{nameof(PoseAttacher)}: the '{nameof(attachTo)}' object is not set. Disabling the script.");
-                enabled = false;
-                return;
-            }
-        
-            Update();
+            Debug.LogError($"{nameof(PoseAttacher)}: the '{nameof(attachTo)}' object is not set. Disabling the script.");
+            enabled = false;
+            return;
         }
 
-        protected void Update()
-        {
-            transform.SetPositionAndRotation(attachTo.position, attachTo.rotation);
-        }
+        Update();
+    }
+
+    protected void Update()
+    {
+        transform.SetPositionAndRotation(attachTo.position, attachTo.rotation);
     }
 }
