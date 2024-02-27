@@ -1748,7 +1748,7 @@ GameObject:
   - component: {fileID: 902508684}
   m_Layer: 0
   m_Name: LeftIndexFinger
-  m_TagString: Untagged
+  m_TagString: Selector
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1763,7 +1763,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 364828570}
@@ -1790,7 +1790,7 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 1
+  m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
@@ -2894,7 +2894,7 @@ GameObject:
   - component: {fileID: 1902125968}
   m_Layer: 0
   m_Name: RightIndexFinger
-  m_TagString: Untagged
+  m_TagString: Selector
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2909,7 +2909,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 364828570}
@@ -2936,7 +2936,7 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 1
+  m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
@@ -3408,7 +3408,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!82 &1131295527209713358
 AudioSource:
   m_ObjectHideFlags: 0
@@ -3662,7 +3662,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _audio: {fileID: 4377938979454564804}
   _selectSound: {fileID: 8300000, guid: 1ffaf877133f44b4ab48b1e65819f6e3, type: 3}
-  Selector: {fileID: 0}
+  Selector: {fileID: 1902125967}
 --- !u!4 &2354130663980561205
 Transform:
   m_ObjectHideFlags: 0
@@ -4968,6 +4968,7 @@ MonoBehaviour:
   targetPrefab: {fileID: 1673176625174218644, guid: b1b7d524e0e324864b593081bba8860a, type: 3}
   Anchor: {fileID: 44431635}
   SpecifiedTargetSize: 1
+  trial: 1
 --- !u!1 &7878033449402676556
 GameObject:
   m_ObjectHideFlags: 0

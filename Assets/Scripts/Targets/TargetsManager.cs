@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
+using System.Linq;
+
 public class TargetsManager : MonoBehaviour
 {
     private static readonly Color _activeColor = Color.black;
@@ -87,9 +89,30 @@ public class TargetsManager : MonoBehaviour
         }
     }
 
+    [SerializeField] bool trial;
+
     private void Start()
     {
-        EnsureTargetsShown();
+        if (trial)
+        {
+            EnsureTargetsShown();
+            var targetsIndexesSequence = GenerateTargetsIndexesSequence();
+            targetsIndexesSequence.MoveNext();
+            ActivateTarget(targetsIndexesSequence.Current);
+            selectorExitedTargetsZone.AddListener(() =>
+            {
+                if (targetsIndexesSequence.MoveNext())
+                {
+                    ActivateTarget(targetsIndexesSequence.Current);
+                }
+                else
+                {
+                    targetsIndexesSequence = GenerateTargetsIndexesSequence();
+                    targetsIndexesSequence.MoveNext();
+                    ActivateTarget(targetsIndexesSequence.Current);
+                }
+            });
+        }
     }
 
     private void OnEnable()
@@ -252,5 +275,42 @@ public class TargetsManager : MonoBehaviour
         ActiveTarget = (null, -1);
 
         selectorExitedTargetsZone.Invoke();
+    }
+
+    public static IEnumerator<TargetSizeVariant> GenerateTargetSizesSequence(int seed, bool isTraining = false)
+    {
+        var random = new System.Random(seed);
+        var seq = new List<TargetSizeVariant>
+            {
+                TargetSizeVariant.Small,
+                TargetSizeVariant.Medium,
+                TargetSizeVariant.Big,
+                TargetSizeVariant.VeryBig,
+            }
+            .Select(size => new { size, rnd = random.Next() })
+            .OrderBy(x => x.rnd)
+            .Select(x => x.size)
+            .ToList();
+
+        if (!isTraining) return seq.GetEnumerator();
+
+        IEnumerator<TargetSizeVariant> TrainingInfiniteEnumerator()
+        {
+            while (true)
+            {
+                foreach (var x in seq)
+                    yield return x;
+            }
+            // ReSharper disable once IteratorNeverReturns
+        }
+
+        return TrainingInfiniteEnumerator();
+    }
+
+    public static IEnumerator<int> GenerateTargetsIndexesSequence()
+    {
+        return Math.FittsLaw(TargetsCount)
+            .Take(TargetsCount + 1)
+            .GetEnumerator();
     }
 }

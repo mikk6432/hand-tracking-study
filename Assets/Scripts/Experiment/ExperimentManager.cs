@@ -92,41 +92,12 @@ public partial class ExperimentManager : MonoBehaviour
         var seed = participantId * 100
                    + (int)referenceFrame * 10
                    + (int)context;
-        var random = new System.Random(seed);
-
-        // same sequence for equal (participantId, referenceFrame, context) because of random-seed
-        var seq = new List<TargetsManager.TargetSizeVariant>
-            {
-                TargetsManager.TargetSizeVariant.Small,
-                TargetsManager.TargetSizeVariant.Medium,
-                TargetsManager.TargetSizeVariant.Big,
-                TargetsManager.TargetSizeVariant.VeryBig,
-            }
-            .Select(size => new { size, rnd = random.Next() })
-            .OrderBy(x => x.rnd)
-            .Select(x => x.size)
-            .ToList();
-
-        if (!isTraining) return seq.GetEnumerator();
-
-        IEnumerator<TargetsManager.TargetSizeVariant> TrainingInfiniteEnumerator()
-        {
-            while (true)
-            {
-                foreach (var x in seq)
-                    yield return x;
-            }
-            // ReSharper disable once IteratorNeverReturns
-        }
-
-        return TrainingInfiniteEnumerator();
+        return TargetsManager.GenerateTargetSizesSequence(seed, isTraining);
     }
 
     private static IEnumerator<int> GenerateTargetsIndexesSequence()
     {
-        return Math.FittsLaw(TargetsManager.TargetsCount)
-            .Take(TargetsManager.TargetsCount + 1)
-            .GetEnumerator();
+        return TargetsManager.GenerateTargetsIndexesSequence();
     }
     #endregion
 
