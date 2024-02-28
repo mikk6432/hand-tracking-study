@@ -11,7 +11,7 @@ public class TargetsManager : MonoBehaviour
     private static readonly Color _inactiveColor = Color.white;
     private static readonly Color _successColor = Color.green;
     private static readonly Color _failColor = Color.red;
-    private const float diameter = .15f;
+    private const float diameter = .07f;
 
     [SerializeField] public const int TargetsCount = 7;
 
@@ -23,7 +23,7 @@ public class TargetsManager : MonoBehaviour
 
     [SerializeField] private GameObject targetPrefab;
 
-    private TargetSizeVariant _targetSize = TargetSizeVariant.Medium;
+    private TargetSizeVariant _targetSize = TargetSizeVariant.Small;
 
     public bool IsShowingTargets { get; private set; }
     public bool IsSelectorInsideCollider { get; private set; }
