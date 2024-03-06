@@ -112,6 +112,7 @@ public class TargetsManager : MonoBehaviour
                     ActivateTarget(targetsIndexesSequence.Current);
                 }
             });
+            ChangeHandedness(Hand);
         }
     }
 
@@ -153,13 +154,71 @@ public class TargetsManager : MonoBehaviour
             _targetToRendererComponentMap[target] = rendererComponent;
         }
     }
-
-    public static float GetTargetDiameter(TargetSizeVariant targetSize)
+    [Serializable]
+    public class TargetDiameter
     {
-        return targetSize == TargetSizeVariant.VeryBig ? 0.05f :
-            targetSize == TargetSizeVariant.Big ? 0.04f :
-            targetSize == TargetSizeVariant.Medium ? 0.03f :
-            0.02f; /*TargetSize == TargetSizeVariant.Small*/
+        public float small = 0.02f;
+        public float medium = 0.03f;
+        public float big = 0.04f;
+        public float veryBig = 0.05f;
+    }
+
+    [SerializeField] private TargetDiameter targetDiameters = new();
+
+    public float GetTargetDiameter(TargetSizeVariant targetSize)
+    {
+        return targetSize == TargetSizeVariant.VeryBig ? targetDiameters.veryBig :
+            targetSize == TargetSizeVariant.Big ? targetDiameters.big :
+            targetSize == TargetSizeVariant.Medium ? targetDiameters.medium :
+            targetDiameters.small; /*TargetSize == TargetSizeVariant.Small*/
+    }
+
+    public enum Handed
+    {
+        Left,
+        Right
+    }
+
+    [SerializeField] private Handed Hand = Handed.Right;
+    [SerializeField] private GameObject[] LeftHands;
+    [SerializeField] private GameObject[] RightHands;
+    [SerializeField] private GameObject RightIndexFinger;
+    [SerializeField] private GameObject LeftIndexFinger;
+
+    public void ChangeHandedness(Handed Hand)
+    {
+        if (Hand == Handed.Left)
+        {
+            GetComponent<SelectorAnimatedProjector>().Selector = LeftIndexFinger.transform;
+            RightIndexFinger.SetActive(false);
+            LeftIndexFinger.SetActive(true);
+            foreach (var leftHand in LeftHands)
+            {
+                leftHand.GetComponent<OVRMeshRenderer>().enabled = true;
+                leftHand.GetComponent<SkinnedMeshRenderer>().enabled = true;
+            }
+            foreach (var rightHand in RightHands)
+            {
+                rightHand.GetComponent<OVRMeshRenderer>().enabled = false;
+                rightHand.GetComponent<SkinnedMeshRenderer>().enabled = false;
+            }
+        }
+        if (Hand == Handed.Right)
+        {
+            GetComponent<SelectorAnimatedProjector>().Selector = RightIndexFinger.transform;
+            RightIndexFinger.SetActive(true);
+            LeftIndexFinger.SetActive(false);
+            foreach (var rightHand in RightHands)
+            {
+                rightHand.GetComponent<OVRMeshRenderer>().enabled = true;
+                rightHand.GetComponent<SkinnedMeshRenderer>().enabled = true;
+            }
+            foreach (var leftHand in LeftHands)
+            {
+                leftHand.GetComponent<OVRMeshRenderer>().enabled = false;
+                leftHand.GetComponent<SkinnedMeshRenderer>().enabled = false;
+            }
+        }
     }
 
     private static Vector3 CalcTargetLocalPosition(int targetIndex)

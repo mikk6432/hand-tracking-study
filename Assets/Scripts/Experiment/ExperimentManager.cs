@@ -581,7 +581,7 @@ public partial class ExperimentManager : MonoBehaviour
         // conditions
         row.SetColumnValue("Walking", _runConfig.context == Context.Walking ? 1 : 0);
         row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
-        row.SetColumnValue("TargetSize", TargetsManager.GetTargetDiameter(targetSizesSequence.Current));
+        row.SetColumnValue("TargetSize", targetsManager.GetTargetDiameter(targetSizesSequence.Current));
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
 
         // time
