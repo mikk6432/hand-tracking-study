@@ -27,18 +27,6 @@ public partial class ExperimentManager : MonoBehaviour
         walkingStateTrigger.ParticipantSwervedOff.AddListener(OnParticipantSwervedOffTrack);
         walkingStateTrigger.ParticipantSlowedDown.AddListener(OnParticipantSlowedDown);
         walkingStateTrigger.ParticipantFinished.AddListener(OnParticipantFinishedTrack);
-
-        pathRefFrames = new List<ReferenceFrame>
-        {
-            pathRefFrameStanding.GetComponent<ReferenceFrame>(),
-            pathRefFrameWalking.GetComponent<ReferenceFrame>()
-        };
-
-        pathNeckRefFrames = new List<ReferenceFrame>
-        {
-            pathRefFrameNeckStanding.GetComponent<ReferenceFrame>(),
-            pathRefFrameNeckWalking.GetComponent<ReferenceFrame>()
-        };
     }
 
     private void OnDestroy()
@@ -112,25 +100,6 @@ public partial class ExperimentManager : MonoBehaviour
     [SerializeField] private GameObject walkingDirection; // walking context (relative to track)
     [SerializeField] private GameObject standingDirection; // standing context (relative to light)
 
-    private void PlaceTrackForwardFromHeadset()
-    {
-        var (position, rotation) = HeadsetOXZProjection();
-        float halfTrackLength = 2.75f;
-        position += rotation * new Vector3(0, 0, halfTrackLength + .3f); // half track length and small offset more 
-        track.transform.SetPositionAndRotation(position, rotation);
-    }
-
-    private void PlaceLightWhereHeadset()
-    {
-        var (position, rotation) = HeadsetOXZProjection();
-        sceneLight.transform.SetPositionAndRotation(position, rotation);
-    }
-
-    private void PlaceLightWhereTrack()
-    {
-        var trackTransform = track.transform;
-        sceneLight.transform.SetPositionAndRotation(trackTransform.position, trackTransform.rotation);
-    }
     #endregion
 
     #region Sound stuff
@@ -181,10 +150,7 @@ public partial class ExperimentManager : MonoBehaviour
     {
         if (_runConfig.leftHanded)
         {
-            leftIndexTip.SetActive(true);
-            rightIndexTip.SetActive(false);
-            leftPalmCenter.SetActive(true);
-            rightPalmCenter.SetActive(true);
+            targetsManager.ChangeHandedness(TargetsManager.Handed.Left);
 
             dominantHandPalmCenter = leftPalmCenter;
             dominantHandIndexTip = leftIndexTip;
@@ -192,10 +158,7 @@ public partial class ExperimentManager : MonoBehaviour
         }
         else
         {
-            leftIndexTip.SetActive(false);
-            rightIndexTip.SetActive(true);
-            leftPalmCenter.SetActive(true);
-            rightPalmCenter.SetActive(true);
+            targetsManager.ChangeHandedness(TargetsManager.Handed.Right);
 
             dominantHandIndexTip = rightIndexTip;
             weakHandPalmCenter = leftPalmCenter;
@@ -210,93 +173,32 @@ public partial class ExperimentManager : MonoBehaviour
     // left-right * standing-walking for handRef
     // standing-walking for pathRef
     // only walking for pathRefNeck
-    [SerializeField] private GameObject palmRefFrameLeftHand;
-    [SerializeField] private GameObject palmRefFrameRightHand;
-    [SerializeField] private GameObject handRefFrameLeftHandStanding;
-    [SerializeField] private GameObject handRefFrameRightHandStanding;
-    [SerializeField] private GameObject handRefFrameLeftHandWalking;
-    [SerializeField] private GameObject handRefFrameRightHandWalking;
-    [SerializeField] private GameObject pathRefFrameStanding;
-    [SerializeField] private GameObject pathRefFrameWalking;
-    [SerializeField] private GameObject pathRefFrameNeckStanding;
-    [SerializeField] private GameObject pathRefFrameNeckWalking;
+    [SerializeField] private GameObject[] leftHandedReferenceFrames;
+    [SerializeField] private GameObject[] rightHandedReferenceFrames;
     private GameObject activeRefFrame;
-    private GameObject[] inactiveRefFrames;
+    private int activeRefFrameIndex;
     // as path referenced, but depends on hand (not head)
     [Space]
     [SerializeField] private GameObject UIPlacerRefFrameLeftHand;
     [SerializeField] private GameObject UIPlacerRefFrameRightHand;
-    private List<ReferenceFrame> pathRefFrames;
-    private List<ReferenceFrame> pathNeckRefFrames;
 
     private void ActualizeReferenceFrames()
     {
-        GameObject[] allRefFrames =
-        {
-            palmRefFrameLeftHand,
-            palmRefFrameRightHand,
-            handRefFrameLeftHandStanding,
-            handRefFrameRightHandStanding,
-            handRefFrameLeftHandWalking,
-            handRefFrameRightHandWalking,
-            pathRefFrameStanding,
-            pathRefFrameWalking,
-            pathRefFrameNeckStanding,
-            pathRefFrameNeckWalking
-        };
-
-        GameObject active;
-        switch (_runConfig.referenceFrame)
-        {
-            case ExperimentReferenceFrame.PalmReferenced:
-                active = _runConfig.leftHanded ? palmRefFrameRightHand : palmRefFrameLeftHand;
-                break;
-            case ExperimentReferenceFrame.PathReferenced:
-                active = _runConfig.context == Context.Standing ? pathRefFrameStanding : pathRefFrameWalking;
-                break;
-            case ExperimentReferenceFrame.PathReferencedNeck:
-                active = _runConfig.context == Context.Standing ? pathRefFrameNeckStanding : pathRefFrameNeckWalking;
-                break;
-            case ExperimentReferenceFrame.HandReferenced:
-                if (_runConfig is { context: Context.Standing, leftHanded: false }) active = handRefFrameLeftHandStanding;
-                else if (_runConfig is { context: Context.Standing, leftHanded: true }) active = handRefFrameRightHandStanding;
-                else if (_runConfig is { context: Context.Walking, leftHanded: false }) active = handRefFrameLeftHandWalking;
-                else if (_runConfig is { context: Context.Walking, leftHanded: true }) active = handRefFrameRightHandWalking;
-                else throw new NotSupportedException();
-                break;
-            default:
-                throw new NotSupportedException();
-        }
-
-        activeRefFrame = active;
-        inactiveRefFrames = allRefFrames.Where(rf => rf != active).ToArray();
-
-        activeRefFrame.SetActive(true);
-        foreach (var refFrame in inactiveRefFrames)
-            refFrame.SetActive(false);
+        var refFrames = _runConfig.leftHanded ? leftHandedReferenceFrames : rightHandedReferenceFrames;
+        activeRefFrame = Array.Find(refFrames, rf => rf.GetComponent<ReferenceFrame>().referenceFrameName == _runConfig.referenceFrame);
+        targetsManager.Anchor = activeRefFrame;
     }
 
     private void UpdatePathRefFrames()
     {
-        var targetsPosition = targetsManager.transform.position;
-        var y = targetsPosition.y;
-
-        var fromHeadToTargets = headset.transform.position - targetsPosition;
-        fromHeadToTargets.y = 0;
-
-        var fromNeckToTargets = neckBase.transform.position - targetsPosition;
-        fromNeckToTargets.y = 0;
-
-        pathRefFrames.ForEach(refFrame =>
+        foreach (var refFrame in leftHandedReferenceFrames)
         {
-            refFrame.offsetReference.yOffset = y;
-            refFrame.offsetReference.zOffset = fromHeadToTargets.magnitude;
-        });
-        pathNeckRefFrames.ForEach(refFrame =>
+            refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(targetsManager.transform);
+        }
+        foreach (var refFrame in rightHandedReferenceFrames)
         {
-            refFrame.offsetReference.yOffset = y;
-            refFrame.offsetReference.zOffset = fromNeckToTargets.magnitude;
-        });
+            refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(targetsManager.transform);
+        }
     }
     #endregion
 
@@ -809,9 +711,8 @@ public partial class ExperimentManager : MonoBehaviour
                 if (_runConfig.isPlacingComfortYAndZ)
                 {
                     ActualizeHands();
-                    PlaceLightWhereHeadset();
+                    FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
                     var handRefFrame = _runConfig.leftHanded ? UIPlacerRefFrameRightHand : UIPlacerRefFrameLeftHand;
-                    handRefFrame.SetActive(true);
                     targetsManager.Anchor = handRefFrame;
                     targetsManager.TargetSize = TargetsManager.TargetSizeVariant.Big;
                     targetsManager.EnsureTargetsShown();
@@ -853,7 +754,7 @@ public partial class ExperimentManager : MonoBehaviour
                 if (_runConfig.context == Context.Walking)
                 {
                     walkingStateTrigger.enabled = true; // This is walking context. Just show track, but not listening events yet
-                    PlaceLightWhereTrack();
+                    FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
                 }
 
                 _state = State.Preparing;
@@ -873,28 +774,25 @@ public partial class ExperimentManager : MonoBehaviour
             case nameof(OnServerSaidPrepare):
                 if (_runConfig.isPlacingComfortYAndZ)
                 {
-                    PlaceLightWhereHeadset();
+                    FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
                     break;
                 }
                 if (_runConfig.isMetronomeTraining)
                 {
-                    PlaceTrackForwardFromHeadset();
-                    PlaceLightWhereTrack();
+                    FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
                     break;
                 }
 
                 if (_runConfig.context == Context.Standing)
                 {
-                    PlaceLightWhereHeadset();
+                    FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
                 }
 
                 break;
             case nameof(OnServerSaidStart):
                 if (_runConfig.isPlacingComfortYAndZ)
                 {
-                    UpdatePathRefFrames(); // call method after "Start command"
-                    UIPlacerRefFrameRightHand.SetActive(false);
-                    UIPlacerRefFrameLeftHand.SetActive(false);
+                    UpdatePathRefFrames();
                     targetsManager.EnsureTargetsHidden();
                     selectorProjector.enabled = false;
                     _state = State.Idle;
@@ -1225,7 +1123,8 @@ partial class ExperimentManager
         PalmReferenced, // both rotation and position by hand
         HandReferenced, // position only
         PathReferenced, // head
-        PathReferencedNeck // neck
+        PathReferencedNeck, // neck
+        ChestReferenced // chest
     }
 
     public struct RunConfig

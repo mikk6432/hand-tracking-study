@@ -65,6 +65,11 @@ public abstract class MessageFromHelmet : INetworkSerializable
     {
         public string reason;
 
+        public InvalidOperation()
+        {
+            code = Code.InvalidOperation;
+        }
+
         public InvalidOperation(string reason)
         {
             code = Code.InvalidOperation;
@@ -87,6 +92,11 @@ public abstract class MessageFromHelmet : INetworkSerializable
     public class UnexpectedError : MessageFromHelmet
     {
         public string errorMessage;
+
+        public UnexpectedError()
+        {
+            code = Code.UnexpectedError;
+        }
 
         public UnexpectedError(string errorMessage)
         {

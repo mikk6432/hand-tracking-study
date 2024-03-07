@@ -31,17 +31,12 @@ public class HelmetMainProcess : MonoBehaviour
 
         var result = new List<ExperimentManager.RunConfig>(17); // 4refFrame * (standing/walking) * (training/trial) + 1metronomeTraining (rf*context)
 
-        var latinSquaredNotTrainings = Math.balancedLatinSquare(new[]
-        {
-            generateNotTrainingRunConfig(ExperimentManager.ExperimentReferenceFrame.PalmReferenced, ExperimentManager.Context.Standing),
-            generateNotTrainingRunConfig(ExperimentManager.ExperimentReferenceFrame.HandReferenced, ExperimentManager.Context.Standing),
-            generateNotTrainingRunConfig(ExperimentManager.ExperimentReferenceFrame.PathReferenced, ExperimentManager.Context.Standing),
-            generateNotTrainingRunConfig(ExperimentManager.ExperimentReferenceFrame.PathReferencedNeck, ExperimentManager.Context.Standing),
-            generateNotTrainingRunConfig(ExperimentManager.ExperimentReferenceFrame.PalmReferenced, ExperimentManager.Context.Walking),
-            generateNotTrainingRunConfig(ExperimentManager.ExperimentReferenceFrame.HandReferenced, ExperimentManager.Context.Walking),
-            generateNotTrainingRunConfig(ExperimentManager.ExperimentReferenceFrame.PathReferenced, ExperimentManager.Context.Walking),
-            generateNotTrainingRunConfig(ExperimentManager.ExperimentReferenceFrame.PathReferencedNeck, ExperimentManager.Context.Walking),
-        }, participantId);
+        var refFrames = Enum.GetValues(typeof(ExperimentManager.ExperimentReferenceFrame));
+        var latinSquaredNotTrainings = Math.balancedLatinSquare(
+            refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Standing)).ToArray().Concat(
+                refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Walking)).ToArray()
+            ).ToArray(),
+            participantId);
 
         var turnIntoTraining = new Func<ExperimentManager.RunConfig, ExperimentManager.RunConfig>
             (config => new ExperimentManager.RunConfig(config.participantID, config.leftHanded, false, true,
@@ -122,7 +117,6 @@ public class HelmetMainProcess : MonoBehaviour
 
     private void Start()
     {
-        _runConfigs = GenerateRunConfigs(1, true);
         int startParticipantId = 1;
         PrefsFromFileOrDefault(startParticipantId);
         UpdateRunConfigs();
@@ -208,6 +202,7 @@ public class HelmetMainProcess : MonoBehaviour
 
                 currentRunStage = RunStage.Preparing;
                 SendSummary();
+                Debug.Log(_runConfigs);
                 experimentManager.OnServerSaidPrepare(_runConfigs[currentRunningStepIndex]);
                 break;
             case MessageToHelmet.Code.StartNextRun:

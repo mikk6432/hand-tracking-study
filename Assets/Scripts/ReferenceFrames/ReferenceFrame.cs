@@ -6,6 +6,7 @@ using UnityEngine;
 
 public class ReferenceFrame : MonoBehaviour
 {
+    public ExperimentManager.ExperimentReferenceFrame referenceFrameName;
     [System.Serializable]
     public struct CustomVector3
     {
@@ -99,6 +100,18 @@ public class ReferenceFrame : MonoBehaviour
             offsetRotation.y,
             offsetRotation.z
         );
+    }
+
+    [SerializeField] private bool canUpdateReferenceFrame = false;
+    public void UpdateReferenceFrame(Transform newPosition)
+    {
+        if (!canUpdateReferenceFrame)
+        {
+            return;
+        }
+        offsetReference.xOffset = offsetReference.xReference.transform.InverseTransformPoint(newPosition.position).x;
+        offsetReference.yOffset = offsetReference.yReference.transform.InverseTransformPoint(newPosition.position).y;
+        offsetReference.zOffset = offsetReference.zReference.transform.InverseTransformPoint(newPosition.position).z;
     }
 
 }

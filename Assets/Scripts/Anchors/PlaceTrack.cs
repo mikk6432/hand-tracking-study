@@ -13,7 +13,7 @@ public class PlaceTrack : MonoBehaviour
         }
     }
 
-    private void PlaceTrackForwardFromHeadset()
+    public void PlaceTrackForwardFromHeadset()
     {
         var (position, rotation) = HeadsetOXZProjection();
         float halfTrackLength = 2.75f;

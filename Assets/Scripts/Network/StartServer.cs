@@ -16,7 +16,6 @@ public class StartServer : MonoBehaviour
 #elif UNITY_ANDROID
         GetComponent<NetworkDiscovery>().onReceivedServerResponse.AddListener((NetworkDiscovery.DiscoveryInfo info) =>
         {
-            CancelInvoke("sendBroadcast");
             if (NetworkManager.Singleton.IsClient)
             {
                 return;
@@ -24,12 +23,10 @@ public class StartServer : MonoBehaviour
             GetComponent<UnityTransport>().ConnectionData.Address = info.EndPoint.Address.ToString();
             NetworkManager.Singleton.StartClient();
         });
-        InvokeRepeating("sendBroadcast", 0f, 1.0f);
         string model = SystemInfo.deviceModel;
         if (model.Contains("Quest"))
         {
             Debug.Log("Running on Oculus Quest");
-            GetComponent<NetworkDiscovery>().SendBroadcast();
         }
         else
         {
@@ -39,14 +36,17 @@ public class StartServer : MonoBehaviour
         Debug.Log("Running on an unsupported platform");
 #endif
     }
-    private void sendBroadcast()
+    private void Update()
     {
-        Debug.Log("Running on Android");
+#if UNITY_EDITOR
+        return;
+#elif UNITY_ANDROID
         if (NetworkManager.Singleton.IsClient)
         {
             return;
         }
         Debug.Log("Sending broadcast");
         GetComponent<NetworkDiscovery>().SendBroadcast();
+#endif
     }
 }
