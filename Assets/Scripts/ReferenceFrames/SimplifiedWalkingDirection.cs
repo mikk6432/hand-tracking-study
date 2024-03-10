@@ -2,13 +2,11 @@ using UnityEngine;
 
 public class SimplifiedWalkingDirection : MonoBehaviour
 {
-#pragma warning disable 649
     [SerializeField]
     private Transform _headset;
     [SerializeField]
     [Tooltip("The game object along which the participant walk")]
     private Transform _track;
-#pragma warning restore 649
 
     private void Start()
     {

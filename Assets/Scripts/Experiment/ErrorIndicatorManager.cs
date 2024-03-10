@@ -2,12 +2,10 @@ using UnityEngine;
 
 public class ErrorIndicatorManager : MonoBehaviour
 {
-#pragma warning disable 649
     [SerializeField]
     private AudioSource _audio;
     [SerializeField]
     private AudioClip _errorSound;
-#pragma warning restore 649
 
     [Space]
     [SerializeField, Tooltip("How long the overlay will be displayed in seconds")]

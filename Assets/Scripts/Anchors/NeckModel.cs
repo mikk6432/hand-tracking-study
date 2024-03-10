@@ -7,10 +7,8 @@ namespace SpatialUIPlacement
     {
         private static readonly Vector3 NECK_OFFSET = new Vector3(0.0f, 0.075f, 0.08f);
 
-#pragma warning disable 649
         [SerializeField]
         private Transform _headset;
-#pragma warning restore 649
         [SerializeField]
         private bool GoogleWay = false;
 
@@ -27,7 +25,7 @@ namespace SpatialUIPlacement
         private void Update()
         {
             if (_headset == null) return;
-            
+
             if (GoogleWay)
                 transform.position = ApplyInverseNeckModel(_headset.position, _headset.rotation);
             else

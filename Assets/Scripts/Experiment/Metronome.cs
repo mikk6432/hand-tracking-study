@@ -5,12 +5,10 @@ public class Metronome : MonoBehaviour
     [SerializeField, Tooltip("In beats per minute")]
     private uint _tempo = 100;
 
-#pragma warning disable 649
     [SerializeField]
     private AudioSource _audio;
     [SerializeField]
     private AudioClip _metronomeSound;
-#pragma warning restore 649
 
     public uint Tempo => _tempo;
 

@@ -4,9 +4,8 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Unity.Netcode;
 
-public class DesktopMainProcess : MonoBehaviour
+public class DesktopMainProcess : ExperimentNetworkServer
 {
     // ui stuff
     [SerializeField] private TextMeshProUGUI connectionIndicator;
@@ -36,6 +35,8 @@ public class DesktopMainProcess : MonoBehaviour
     [SerializeField] private Button validateButton;
     [SerializeField] private Button invalidateButton;
 
+    private bool connected = false;
+
     private int summaryIndex = 0;
     private MessageFromHelmet.Summary summary;
 
@@ -45,9 +46,14 @@ public class DesktopMainProcess : MonoBehaviour
 
     private int pointer; // points to step, to which send the command (shows bold in table)
 
-    private void Start()
+    protected override void Start()
     {
-        refreshButton.onClick.AddListener(() => Send(new MessageToHelmet.RefreshExperimentSummary()));
+        base.Start();
+
+        connectionEstablished.AddListener(() => { connected = true; Render(); });
+        connectionLost.AddListener(() => { connected = false; Render(); });
+
+        refreshButton.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.RefreshExperimentSummary)));
 
         setLeftHanded.onClick.AddListener(() => Send(new MessageToHelmet.SetLeftHanded(true)));
         setRightHanded.onClick.AddListener(() => Send(new MessageToHelmet.SetLeftHanded(false)));
@@ -71,17 +77,17 @@ public class DesktopMainProcess : MonoBehaviour
             Render();
         });
 
-        saveButton.onClick.AddListener(() => Send(new MessageToHelmet.SavePrefs()));
+        saveButton.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.SavePrefs)));
 
         validateButton.onClick.AddListener(() =>
         {
-            Send(new MessageToHelmet.ValidateTrial());
+            Send(new MessageToHelmet(MessageToHelmet.Code.ValidateTrial));
             awaitingValidation = false;
             Render();
         });
         invalidateButton.onClick.AddListener(() =>
         {
-            Send(new MessageToHelmet.InvalidateTrial());
+            Send(new MessageToHelmet(MessageToHelmet.Code.InvalidateTrial));
             awaitingValidation = false;
             Render();
         });
@@ -100,12 +106,7 @@ public class DesktopMainProcess : MonoBehaviour
         Render();
     }
 
-    public void Update()
-    {
-        Render();
-    }
-
-    public void Receive(MessageFromHelmet message)
+    protected override void Receive(MessageFromHelmet message)
     {
         switch (message.code)
         {
@@ -137,10 +138,9 @@ public class DesktopMainProcess : MonoBehaviour
 
     private void Render()
     {
-
         connectionIndicator.gameObject.SetActive(true);
 
-        if (!(NetworkManager.Singleton.IsServer && NetworkManager.Singleton.ConnectedClientsList.Count > 0) || summaryIndex == 0) // if not connected or no summary receive yet
+        if (!connected || summaryIndex == 0) // if not connected or no summary receive yet
         {
             participantIDTextField.gameObject.SetActive(false);
             setParticipantIdButton.gameObject.SetActive(false);
@@ -160,7 +160,7 @@ public class DesktopMainProcess : MonoBehaviour
             decrementPointerButton.gameObject.SetActive(false);
             saveButton.gameObject.SetActive(false);
 
-            if (!(NetworkManager.Singleton.IsServer && NetworkManager.Singleton.ConnectedClientsList.Count > 0))
+            if (!connected)
             {
                 connectionIndicator.text = "<color=\"red\">NOT CONNECTED</color>";
                 refreshButton.gameObject.SetActive(false);
@@ -283,68 +283,5 @@ public class DesktopMainProcess : MonoBehaviour
                 finishTrainingButton.gameObject.SetActive(isCurrentTraining && summary.stage == (int)HelmetMainProcess.RunStage.Running);
             }
         }
-
     }
-
-    public void Send(MessageToHelmet.RefreshExperimentSummary message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendClientRpc(message);
-    }
-
-    public void Send(MessageToHelmet.SavePrefs message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendClientRpc(message);
-    }
-
-    public void Send(MessageToHelmet.ValidateTrial message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendClientRpc(message);
-    }
-
-    public void Send(MessageToHelmet.InvalidateTrial message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendClientRpc(message);
-    }
-
-    public void Send(MessageToHelmet.SetParticipantID message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendClientRpc(message);
-    }
-
-    public void Send(MessageToHelmet.PrepareNextStep message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendClientRpc(message);
-    }
-
-    public void Send(MessageToHelmet.StartNextStep message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendClientRpc(message);
-    }
-
-    public void Send(MessageToHelmet.FinishTrainingStep message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendClientRpc(message);
-    }
-
-    public void Send(MessageToHelmet.SetLeftHanded message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendClientRpc(message);
-    }
-
-    public void Send(MessageToHelmet.SetStepIsDone message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendClientRpc(message);
-    }
-
-
 }

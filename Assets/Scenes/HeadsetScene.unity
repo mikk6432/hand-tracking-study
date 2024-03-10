@@ -2096,6 +2096,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1055041121}
   - component: {fileID: 1055041123}
+  - component: {fileID: 1055041124}
   - component: {fileID: 1055041122}
   m_Layer: 0
   m_Name: ExperimentManager
@@ -2172,7 +2173,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca1d61f098164c068d354f3427ab3048, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Done: 0
+  errorIndicator: {fileID: 1675554207}
+  connectionEstablished:
+    m_PersistentCalls:
+      m_Calls: []
+  connectionLost:
+    m_PersistentCalls:
+      m_Calls: []
   experimentManager: {fileID: 1055041122}
+--- !u!114 &1055041124
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1055041119}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d441baa42c494d56b4cf3a93821906a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  onReceivedServerResponse:
+    m_PersistentCalls:
+      m_Calls: []
+  m_serverPort: 18418
+  gameServerPortNumber: 7777
 --- !u!1001 &1148840623
 PrefabInstance:
   m_ObjectHideFlags: 0

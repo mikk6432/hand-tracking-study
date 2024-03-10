@@ -5,7 +5,7 @@ using System.Linq;
 using System.IO;
 using UnityEngine;
 
-public class HelmetMainProcess : MonoBehaviour
+public class HelmetMainProcess : ExperimentNetworkClient
 {
     private ParticipantPrefs participantPrefs;
 
@@ -115,11 +115,15 @@ public class HelmetMainProcess : MonoBehaviour
         participantPrefs.doneBitmap = bitmap;
     }
 
-    private void Start()
+    protected override void Start()
     {
+        base.Start();
+        _runConfigs = new List<ExperimentManager.RunConfig>().ToArray();
         int startParticipantId = 1;
         PrefsFromFileOrDefault(startParticipantId);
         UpdateRunConfigs();
+
+        connectionEstablished.AddListener(SendSummary);
         experimentManager.unexpectedErrorOccured.AddListener((error) =>
         {
             Send(new MessageFromHelmet.UnexpectedError(error));
@@ -134,12 +138,11 @@ public class HelmetMainProcess : MonoBehaviour
         });
         experimentManager.requestTrialValidation.AddListener(() =>
         {
-            Send(new MessageFromHelmet.RequestTrialValidation());
+            Send(new MessageFromHelmet(MessageFromHelmet.Code.RequestTrialValidation));
         });
-        SendSummary();
     }
 
-    public void Receive(MessageToHelmet message)
+    protected override void Receive(MessageToHelmet message)
     {
         Debug.Log(message.ToString());
         switch (message.code)
@@ -202,7 +205,6 @@ public class HelmetMainProcess : MonoBehaviour
 
                 currentRunStage = RunStage.Preparing;
                 SendSummary();
-                Debug.Log(_runConfigs);
                 experimentManager.OnServerSaidPrepare(_runConfigs[currentRunningStepIndex]);
                 break;
             case MessageToHelmet.Code.StartNextRun:
@@ -287,32 +289,9 @@ public class HelmetMainProcess : MonoBehaviour
         }
     }
 
-    private void OnDestroy()
+    protected override void OnDestroy()
     {
+        base.OnDestroy();
         participantPrefs.Save();
-    }
-
-    public void Send(MessageFromHelmet.RequestTrialValidation message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendServerRpc(message);
-    }
-
-    public void Send(MessageFromHelmet.Summary message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendServerRpc(message);
-    }
-
-    public void Send(MessageFromHelmet.InvalidOperation message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendServerRpc(message);
-    }
-
-    public void Send(MessageFromHelmet.UnexpectedError message)
-    {
-        Debug.Log("Sent: " + message.ToString());
-        FindAnyObjectByType<HeadsetBehaviour>().SendServerRpc(message);
     }
 }
