@@ -31,69 +31,23 @@ public class ReferenceFrame : MonoBehaviour
     [SerializeField] public OffsetReference offsetReference;
     [SerializeField] public Vector3 offsetRotation;
 
-    private void Start()
-    {
-        if (locallyPositionedTo == null)
-        {
-            locallyPositionedTo = new GameObject();
-        }
-        if (positionReference.x == null)
-        {
-            positionReference.x = locallyPositionedTo;
-
-        }
-        if (positionReference.y == null)
-        {
-            positionReference.y = locallyPositionedTo;
-        }
-        if (positionReference.z == null)
-        {
-            positionReference.z = locallyPositionedTo;
-        }
-        if (rotationReference.x == null)
-        {
-            rotationReference.x = new GameObject();
-
-        }
-        if (rotationReference.y == null)
-        {
-            rotationReference.y = new GameObject();
-        }
-        if (rotationReference.z == null)
-        {
-            rotationReference.z = new GameObject();
-        }
-        if (offsetReference.xReference == null)
-        {
-            offsetReference.xReference = new GameObject();
-        }
-        if (offsetReference.yReference == null)
-        {
-            offsetReference.yReference = new GameObject();
-        }
-        if (offsetReference.zReference == null)
-        {
-            offsetReference.zReference = new GameObject();
-        }
-    }
-
     private void Update()
     {
-        transform.position = locallyPositionedTo.transform.position;
-        transform.position += locallyPositionedTo.transform.rotation * new Vector3(
-            locallyPositionedTo.transform.InverseTransformPoint(positionReference.x.transform.position).x,
-            locallyPositionedTo.transform.InverseTransformPoint(positionReference.y.transform.position).y,
-            locallyPositionedTo.transform.InverseTransformPoint(positionReference.z.transform.position).z
+        transform.position = (locallyPositionedTo ?? new GameObject()).transform.position;
+        transform.position += (locallyPositionedTo ?? new GameObject()).transform.rotation * new Vector3(
+            (locallyPositionedTo ?? new GameObject()).transform.InverseTransformPoint((positionReference.x ?? locallyPositionedTo).transform.position).x,
+            (locallyPositionedTo ?? new GameObject()).transform.InverseTransformPoint((positionReference.y ?? locallyPositionedTo).transform.position).y,
+            (locallyPositionedTo ?? new GameObject()).transform.InverseTransformPoint((positionReference.z ?? locallyPositionedTo).transform.position).z
         );
         transform.rotation = Quaternion.Euler(
-            rotationReference.x.transform.rotation.eulerAngles.x,
-            rotationReference.y.transform.rotation.eulerAngles.y,
-            rotationReference.z.transform.rotation.eulerAngles.z
+            (rotationReference.x ?? new GameObject()).transform.rotation.eulerAngles.x,
+            (rotationReference.y ?? new GameObject()).transform.rotation.eulerAngles.y,
+            (rotationReference.z ?? new GameObject()).transform.rotation.eulerAngles.z
         );
 
-        transform.position += offsetReference.xReference.transform.rotation * new Vector3(offsetReference.xOffset, 0, 0);
-        transform.position += offsetReference.yReference.transform.rotation * new Vector3(0, offsetReference.yOffset, 0);
-        transform.position += offsetReference.zReference.transform.rotation * new Vector3(0, 0, offsetReference.zOffset);
+        transform.position += (offsetReference.xReference ?? new GameObject()).transform.rotation * new Vector3(offsetReference.xOffset, 0, 0);
+        transform.position += (offsetReference.yReference ?? new GameObject()).transform.rotation * new Vector3(0, offsetReference.yOffset, 0);
+        transform.position += (offsetReference.zReference ?? new GameObject()).transform.rotation * new Vector3(0, 0, offsetReference.zOffset);
 
         transform.rotation *= Quaternion.Euler(
             offsetRotation.x,
@@ -109,9 +63,31 @@ public class ReferenceFrame : MonoBehaviour
         {
             return;
         }
-        offsetReference.xOffset = offsetReference.xReference.transform.InverseTransformPoint(newPosition.position).x;
-        offsetReference.yOffset = offsetReference.yReference.transform.InverseTransformPoint(newPosition.position).y;
-        offsetReference.zOffset = offsetReference.zReference.transform.InverseTransformPoint(newPosition.position).z;
+        if (offsetReference.xReference != null)
+        {
+            var distance = newPosition.position - (positionReference.x ?? locallyPositionedTo).transform.position;
+            var localCoord = offsetReference.xReference.transform;
+            localCoord.position = new Vector3(0, 0, 0);
+            offsetReference.xOffset = localCoord.InverseTransformPoint(distance).x;
+        }
+        if (offsetReference.yReference != null)
+        {
+            var distance = newPosition.position - (positionReference.y ?? locallyPositionedTo).transform.position;
+            var localCoord = offsetReference.yReference.transform;
+            localCoord.position = new Vector3(0, 0, 0);
+            offsetReference.yOffset = localCoord.InverseTransformPoint(distance).y;
+        }
+        if (offsetReference.zReference != null)
+        {
+            var distance = newPosition.position - (positionReference.z ?? locallyPositionedTo).transform.position;
+            var localCoord = offsetReference.zReference.transform;
+            localCoord.position = new Vector3(0, 0, 0);
+            offsetReference.zOffset = localCoord.InverseTransformPoint(distance).z;
+        }
+        Debug.Log("Updated reference frame");
+        Debug.Log("X: " + offsetReference.xOffset);
+        Debug.Log("Y: " + offsetReference.yOffset);
+        Debug.Log("Z: " + offsetReference.zOffset);
     }
 
 }

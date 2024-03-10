@@ -73,7 +73,8 @@ public class HelmetMainProcess : ExperimentNetworkClient
         {
             if (runConfig.referenceFrame is
                 ExperimentManager.ExperimentReferenceFrame.PathReferenced or
-                ExperimentManager.ExperimentReferenceFrame.PathReferencedNeck)
+                ExperimentManager.ExperimentReferenceFrame.PathReferencedNeck or
+                ExperimentManager.ExperimentReferenceFrame.ChestReferenced)
                 break;
             index++;
         }
