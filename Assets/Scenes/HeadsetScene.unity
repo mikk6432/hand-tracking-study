@@ -254,7 +254,7 @@ MonoBehaviour:
     yReference: {fileID: 1917185028}
     yOffset: 0
     zReference: {fileID: 1917185028}
-    zOffset: 0.025
+    zOffset: -0.025
   offsetRotation: {x: 0, y: 0, z: 0}
   canUpdateReferenceFrame: 0
 --- !u!1001 &77204400
@@ -930,7 +930,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 441495097}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 555725d48e9051a4bb6b8d45178c2fdd, type: 3}
   m_Name: 
@@ -3828,7 +3828,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!82 &1131295527209713358
 AudioSource:
   m_ObjectHideFlags: 0
@@ -5386,7 +5386,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   targetPrefab: {fileID: 1673176625174218644, guid: b1b7d524e0e324864b593081bba8860a, type: 3}
-  Anchor: {fileID: 115891161}
+  Anchor: {fileID: 44431635}
   SpecifiedTargetSize: 0
   trial: 0
   targetDiameters:
