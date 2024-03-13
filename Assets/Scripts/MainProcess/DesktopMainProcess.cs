@@ -44,6 +44,8 @@ public class DesktopMainProcess : ExperimentNetworkServer
 
     private bool awaitingValidation;
 
+    private int listLength = 0;
+
     private int pointer; // points to step, to which send the command (shows bold in table)
 
     protected override void Start()
@@ -66,7 +68,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
 
         decrementPointerButton.onClick.AddListener(() =>
         {
-            if (pointer < 18)
+            if (pointer < listLength - 1)
                 pointer++;
             Render();
         });
@@ -214,6 +216,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
         // run configs table stuff
         var text = "Experiment Steps\n\nTYPE\t\t\tContext\t\t\tReferenceFrame";
         var runConfigs = HelmetMainProcess.GenerateRunConfigs(summary.id, summary.left);
+        listLength = runConfigs.Length;
         for (int i = 0; i < runConfigs.Length; i++)
         {
             var line = "";

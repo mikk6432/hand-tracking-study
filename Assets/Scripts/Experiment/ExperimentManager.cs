@@ -22,6 +22,7 @@ public partial class ExperimentManager : MonoBehaviour
     {
         targetsManager.selectorEnteredTargetsZone.AddListener(OnSelectorEnteredTargetZone);
         targetsManager.selectorExitedTargetsZone.AddListener(OnSelectorExitedTargetZone);
+        metronome.enabled = false;
 
         walkingStateTrigger.ParticipantEntered.AddListener(OnParticipantEnteredTrack);
         walkingStateTrigger.ParticipantSwervedOff.AddListener(OnParticipantSwervedOffTrack);
@@ -784,6 +785,11 @@ public partial class ExperimentManager : MonoBehaviour
                 }
 
                 if (_runConfig.context == Context.Standing)
+                {
+                    FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
+                }
+
+                if (_runConfig.context == Context.Walking)
                 {
                     FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
                 }
