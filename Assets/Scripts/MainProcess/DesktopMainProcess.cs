@@ -117,6 +117,8 @@ public class DesktopMainProcess : ExperimentNetworkServer
                 summaryIndex++;
                 summary = (message as MessageFromHelmet.Summary);
                 error = null;
+                if (summaryIndex == 1)
+                    pointer = summary.index;
                 Render();
                 break;
             case MessageFromHelmet.Code.InvalidOperation:

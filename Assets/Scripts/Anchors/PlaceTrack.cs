@@ -7,10 +7,10 @@ public class PlaceTrack : MonoBehaviour
     [SerializeField] private GameObject headset;
     private void Update()
     {
-        if (OVRInput.Get(OVRInput.RawButton.Y))
-        {
-            PlaceTrackForwardFromHeadset();
-        }
+        /*         if (OVRInput.Get(OVRInput.RawButton.Y))
+                {
+                    PlaceTrackForwardFromHeadset();
+                } */
     }
 
     public void PlaceTrackForwardFromHeadset()
