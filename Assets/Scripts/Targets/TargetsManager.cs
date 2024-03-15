@@ -11,8 +11,7 @@ public class TargetsManager : MonoBehaviour
     private static readonly Color _inactiveColor = Color.white;
     private static readonly Color _successColor = Color.green;
     private static readonly Color _failColor = Color.red;
-    private const float diameter = .07f;
-
+    [SerializeField] public float diameter = .15f; // Default: .15f
     [SerializeField] public const int TargetsCount = 7;
 
     public readonly UnityEvent selectorEnteredTargetsZone = new();
@@ -221,7 +220,7 @@ public class TargetsManager : MonoBehaviour
         }
     }
 
-    private static Vector3 CalcTargetLocalPosition(int targetIndex)
+    private Vector3 CalcTargetLocalPosition(int targetIndex)
     {
         var angle = targetIndex * (2 * Mathf.PI / TargetsCount);
         return new Vector3(
