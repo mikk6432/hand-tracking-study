@@ -56,13 +56,8 @@ public class ReferenceFrame : MonoBehaviour
         );
     }
 
-    [SerializeField] private bool canUpdateReferenceFrame = false;
     public void UpdateReferenceFrame(Transform newPosition)
     {
-        if (!canUpdateReferenceFrame)
-        {
-            return;
-        }
         var temp = new GameObject("temp");
         temp.transform.position = new Vector3(0, 0, 0);
         temp.transform.rotation = locallyPositionedTo.transform.rotation;
