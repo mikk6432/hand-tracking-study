@@ -2223,7 +2223,6 @@ MonoBehaviour:
   metronome: {fileID: 1131295527209713352}
   errorIndicator: {fileID: 1675554207}
   headset: {fileID: 349804814}
-  leftcontroller: {fileID: 399231511}
   neckBase: {fileID: 743015852}
   leftIndexTip: {fileID: 902508682}
   rightIndexTip: {fileID: 1902125966}

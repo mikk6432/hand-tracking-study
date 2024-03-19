@@ -122,7 +122,6 @@ public partial class ExperimentManager : MonoBehaviour
     #region Head stuff
     [Space]
     [SerializeField] private GameObject headset;
-    [SerializeField] private GameObject leftcontroller;
     [SerializeField] private GameObject neckBase;
 
     private (Vector3 position, Quaternion rotation) HeadsetOXZProjection()
