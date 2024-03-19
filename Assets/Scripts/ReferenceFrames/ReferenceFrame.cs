@@ -63,26 +63,23 @@ public class ReferenceFrame : MonoBehaviour
         {
             return;
         }
+        var temp = new GameObject("temp");
+        temp.transform.position = new Vector3(0, 0, 0);
+        temp.transform.rotation = locallyPositionedTo.transform.rotation;
         if (offsetReference.xReference != null)
         {
             var distance = newPosition.position - (positionReference.x ?? locallyPositionedTo).transform.position;
-            var localCoord = offsetReference.xReference.transform;
-            localCoord.position = new Vector3(0, 0, 0);
-            offsetReference.xOffset = localCoord.InverseTransformPoint(distance).x;
+            offsetReference.xOffset = temp.transform.InverseTransformPoint(distance).x;
         }
         if (offsetReference.yReference != null)
         {
             var distance = newPosition.position - (positionReference.y ?? locallyPositionedTo).transform.position;
-            var localCoord = offsetReference.yReference.transform;
-            localCoord.position = new Vector3(0, 0, 0);
-            offsetReference.yOffset = localCoord.InverseTransformPoint(distance).y;
+            offsetReference.yOffset = temp.transform.InverseTransformPoint(distance).y;
         }
         if (offsetReference.zReference != null)
         {
             var distance = newPosition.position - (positionReference.z ?? locallyPositionedTo).transform.position;
-            var localCoord = offsetReference.zReference.transform;
-            localCoord.position = new Vector3(0, 0, 0);
-            offsetReference.zOffset = localCoord.InverseTransformPoint(distance).z;
+            offsetReference.zOffset = temp.transform.InverseTransformPoint(distance).z;
         }
         Debug.Log("Updated reference frame");
         Debug.Log("X: " + offsetReference.xOffset);

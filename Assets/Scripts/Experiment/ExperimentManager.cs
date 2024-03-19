@@ -122,6 +122,7 @@ public partial class ExperimentManager : MonoBehaviour
     #region Head stuff
     [Space]
     [SerializeField] private GameObject headset;
+    [SerializeField] private GameObject leftcontroller;
     [SerializeField] private GameObject neckBase;
 
     private (Vector3 position, Quaternion rotation) HeadsetOXZProjection()
@@ -194,6 +195,16 @@ public partial class ExperimentManager : MonoBehaviour
     {
         foreach (var refFrame in leftHandedReferenceFrames)
         {
+            if (refFrame.name == "ChestReferenceFrame")
+            {
+                GameObject newObj = new GameObject("New Object");
+                Vector3 forwardOffset = headset.transform.forward * 0.5f;
+                Vector3 downOffset = new Vector3(0, -0.4f, 0);
+                Vector3 finalPosition = headset.transform.position + forwardOffset + downOffset;
+                newObj.transform.position = finalPosition;
+                newObj.transform.position = leftcontroller.transform.InverseTransformPoint(newObj.transform.position);
+                refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(newObj.transform);
+            }
             refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(targetsManager.transform);
         }
         foreach (var refFrame in rightHandedReferenceFrames)
