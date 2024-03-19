@@ -76,6 +76,12 @@ public class ReferenceFrame : MonoBehaviour
             var distance = newPosition.position - (positionReference.z ?? locallyPositionedTo).transform.position;
             offsetReference.zOffset = temp.transform.InverseTransformPoint(distance).z;
         }
+        var rotation = Quaternion.Euler(
+            (rotationReference.x ?? new GameObject()).transform.rotation.eulerAngles.x,
+            (rotationReference.y ?? new GameObject()).transform.rotation.eulerAngles.y,
+            (rotationReference.z ?? new GameObject()).transform.rotation.eulerAngles.z
+        );
+        offsetRotation = (Quaternion.Inverse(rotation) * newPosition.rotation).eulerAngles;
         Debug.Log("Updated reference frame");
         Debug.Log("X: " + offsetReference.xOffset);
         Debug.Log("Y: " + offsetReference.yOffset);
