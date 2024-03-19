@@ -1,29 +1,40 @@
 using System;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 
 public class WalkingStateTrigger : MonoBehaviour
 {
-    private static readonly float HALF_TRACK_LENGTH = 2.75f;
-    private static readonly float HALF_TRACK_WIDTH = 0.35f;
-    private static readonly float REPEAT_RATE = 1f; // Every second
+    [SerializeField] public float halfTrackLength = 2.75f;
+    [SerializeField] public float halfTrackWidth = 0.35f;
+    [SerializeField] public float repeatRate = 1f; // Every second
 
     [SerializeField] private Transform _headset;
     private Transform westBorder;
     private Transform eastBorder;
-    
+
     [SerializeField, Tooltip("Minimum walking speed which is considered acceptable in meters per second")]
     private float _thresholdSpeed = 1f;
-    
+
     public UnityEvent ParticipantEntered = new();
     public UnityEvent ParticipantFinished = new();
     public UnityEvent ParticipantSwervedOff = new();
     public UnityEvent ParticipantSlowedDown = new();
-    
+
 
     private bool _walking;
     private (bool withinLength, bool withinWidth) _prevLocation;
     private Vector3 _prevCoords;
+
+    private void Start()
+    {
+        // set length of children
+        westBorder.localScale = new Vector3(0.05f, 0.01f, halfTrackLength * 2);
+        eastBorder.localScale = new Vector3(0.05f, 0.01f, halfTrackLength * 2);
+        // set position of children
+        westBorder.localPosition = new Vector3(-halfTrackWidth, 0, 0);
+        eastBorder.localPosition = new Vector3(halfTrackWidth, 0, 0);
+    }
 
     private void Awake()
     {
@@ -54,15 +65,15 @@ public class WalkingStateTrigger : MonoBehaviour
     {
         _walking = false;
         _prevLocation = (false, false);
-        
+
         westBorder.gameObject.SetActive(true);
         eastBorder.gameObject.SetActive(true);
-        
+
         ParticipantEntered.AddListener(OnParticipantEntered);
         ParticipantFinished.AddListener(OnWalkingDone);
         ParticipantSwervedOff.AddListener(OnWalkingDone);
         ParticipantSlowedDown.AddListener(OnWalkingDone);
-        
+
         _prevLocation = IsInsideTheTrack();
     }
 
@@ -70,7 +81,7 @@ public class WalkingStateTrigger : MonoBehaviour
     {
         westBorder.gameObject.SetActive(false);
         eastBorder.gameObject.SetActive(false);
-        
+
         ParticipantEntered.RemoveListener(OnParticipantEntered);
         ParticipantFinished.RemoveListener(OnWalkingDone);
         ParticipantSwervedOff.RemoveListener(OnWalkingDone);
@@ -100,10 +111,10 @@ public class WalkingStateTrigger : MonoBehaviour
         // Transform the head's position to the coordinate system of the track
         Vector3 localPos = transform.InverseTransformPoint(_headset.position);
 
-        return (Mathf.Abs(localPos.z) < HALF_TRACK_LENGTH,
-            Mathf.Abs(localPos.x) < HALF_TRACK_WIDTH);
+        return (Mathf.Abs(localPos.z) < halfTrackLength,
+            Mathf.Abs(localPos.x) < halfTrackWidth);
     }
-    
+
     private void CheckWalkingSpeed()
     {
         // If in the past second the participant has walked less than _thresholdSpeed (m/sec)
@@ -116,8 +127,8 @@ public class WalkingStateTrigger : MonoBehaviour
     private void OnParticipantEntered()
     {
         _prevCoords = _headset.position;
-        InvokeRepeating(nameof(CheckWalkingSpeed), REPEAT_RATE, REPEAT_RATE);
-        
+        InvokeRepeating(nameof(CheckWalkingSpeed), repeatRate, repeatRate);
+
         _walking = true;
     }
 

@@ -16,7 +16,7 @@ public class PlaceTrack : MonoBehaviour
     public void PlaceTrackForwardFromHeadset()
     {
         var (position, rotation) = HeadsetOXZProjection();
-        float halfTrackLength = 2.75f;
+        float halfTrackLength = GetComponent<WalkingStateTrigger>().halfTrackLength;
         position += rotation * new Vector3(0, 0, halfTrackLength + .3f); // half track length and small offset more 
         transform.SetPositionAndRotation(position, rotation);
     }

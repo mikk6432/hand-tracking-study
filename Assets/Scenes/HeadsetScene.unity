@@ -5062,6 +5062,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f300a33d710b4981b484e37fab8e04c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  halfTrackLength: 3.5
+  halfTrackWidth: 0.35
+  repeatRate: 1
   _headset: {fileID: 349804815}
   _thresholdSpeed: 1
   ParticipantEntered:
