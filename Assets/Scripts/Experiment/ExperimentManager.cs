@@ -122,7 +122,6 @@ public partial class ExperimentManager : MonoBehaviour
     #region Head stuff
     [Space]
     [SerializeField] private GameObject headset;
-    [SerializeField] private GameObject leftcontroller;
     [SerializeField] private GameObject neckBase;
 
     private (Vector3 position, Quaternion rotation) HeadsetOXZProjection()
@@ -181,8 +180,8 @@ public partial class ExperimentManager : MonoBehaviour
     private int activeRefFrameIndex;
     // as path referenced, but depends on hand (not head)
     [Space]
-    [SerializeField] private GameObject UIPlacerRefFrameLeftHand;
-    [SerializeField] private GameObject UIPlacerRefFrameRightHand;
+    [SerializeField] private GameObject UIPlacerPath;
+    [SerializeField] private GameObject UIPlacerChest;
 
     private void ActualizeReferenceFrames()
     {
@@ -193,23 +192,20 @@ public partial class ExperimentManager : MonoBehaviour
 
     private void UpdatePathRefFrames()
     {
-        foreach (var refFrame in leftHandedReferenceFrames)
+        foreach (var refFrame in leftHandedReferenceFrames.Concat(rightHandedReferenceFrames))
         {
-            if (refFrame.name == "ChestReferenceFrame")
+            if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.ChestReferenced)
             {
-                GameObject newObj = new GameObject("New Object");
-                Vector3 forwardOffset = headset.transform.forward * 0.5f;
-                Vector3 downOffset = new Vector3(0, -0.4f, 0);
-                Vector3 finalPosition = headset.transform.position + forwardOffset + downOffset;
-                newObj.transform.position = finalPosition;
-                newObj.transform.position = leftcontroller.transform.InverseTransformPoint(newObj.transform.position);
-                refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(newObj.transform);
+                refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerChest.transform);
             }
-            refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(targetsManager.transform);
-        }
-        foreach (var refFrame in rightHandedReferenceFrames)
-        {
-            refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(targetsManager.transform);
+            if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.PathReferencedNeck)
+            {
+                refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerPath.transform);
+            }
+            if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.PathReferenced)
+            {
+                refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerPath.transform);
+            }
         }
     }
     #endregion
@@ -724,12 +720,6 @@ public partial class ExperimentManager : MonoBehaviour
                 {
                     ActualizeHands();
                     FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
-                    var handRefFrame = _runConfig.leftHanded ? UIPlacerRefFrameRightHand : UIPlacerRefFrameLeftHand;
-                    targetsManager.Anchor = handRefFrame;
-                    targetsManager.TargetSize = TargetsManager.TargetSizeVariant.Big;
-                    targetsManager.EnsureTargetsShown();
-                    selectorProjector.Selector = dominantHandIndexTip.transform;
-                    selectorProjector.enabled = true;
                     _state = State.Preparing;
                     break;
                 }
@@ -810,8 +800,6 @@ public partial class ExperimentManager : MonoBehaviour
                 if (_runConfig.isPlacingComfortYAndZ)
                 {
                     UpdatePathRefFrames();
-                    targetsManager.EnsureTargetsHidden();
-                    selectorProjector.enabled = false;
                     _state = State.Idle;
                     trialsFinished.Invoke(); // and call "finished"
                     break;
