@@ -34,6 +34,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
     [SerializeField] private Button finishTrainingButton;
     [SerializeField] private Button validateButton;
     [SerializeField] private Button invalidateButton;
+    [SerializeField] private Button placeLightAndTrack;
 
     private bool connected = false;
 
@@ -65,6 +66,8 @@ public class DesktopMainProcess : ExperimentNetworkServer
         prepareButton.onClick.AddListener(() => Send(new MessageToHelmet.PrepareNextStep(pointer)));
         startButton.onClick.AddListener(() => Send(new MessageToHelmet.StartNextStep(pointer)));
         finishTrainingButton.onClick.AddListener(() => Send(new MessageToHelmet.FinishTrainingStep(pointer)));
+
+        placeLightAndTrack.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.PlaceTrackAndLight)));
 
         decrementPointerButton.onClick.AddListener(() =>
         {
@@ -163,6 +166,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
             incrementPointerButton.gameObject.SetActive(false);
             decrementPointerButton.gameObject.SetActive(false);
             saveButton.gameObject.SetActive(false);
+            placeLightAndTrack.gameObject.SetActive(false);
 
             if (!connected)
             {
@@ -288,5 +292,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
                 finishTrainingButton.gameObject.SetActive(isCurrentTraining && summary.stage == (int)HelmetMainProcess.RunStage.Running);
             }
         }
+
+        placeLightAndTrack.gameObject.SetActive(true);
     }
 }

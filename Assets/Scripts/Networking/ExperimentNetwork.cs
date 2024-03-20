@@ -99,7 +99,8 @@ public class ExperimentNetwork : MonoBehaviour
 
             // trials stiff
             ValidateTrial,
-            InvalidateTrial
+            InvalidateTrial,
+            PlaceTrackAndLight,
         }
 
         public readonly Code code;
