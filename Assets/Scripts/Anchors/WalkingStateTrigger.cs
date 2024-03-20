@@ -32,8 +32,8 @@ public class WalkingStateTrigger : MonoBehaviour
         westBorder.localScale = new Vector3(0.05f, 0.01f, halfTrackLength * 2);
         eastBorder.localScale = new Vector3(0.05f, 0.01f, halfTrackLength * 2);
         // set position of children
-        westBorder.localPosition = new Vector3(-halfTrackWidth, 0, 0);
-        eastBorder.localPosition = new Vector3(halfTrackWidth, 0, 0);
+        westBorder.localPosition = new Vector3(-halfTrackWidth, 0.01f, 0);
+        eastBorder.localPosition = new Vector3(halfTrackWidth, 0.01f, 0);
     }
 
     private void Awake()
