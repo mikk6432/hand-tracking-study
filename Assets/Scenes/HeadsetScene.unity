@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 705507994}
-  m_IndirectSpecularColor: {r: 0.18018535, g: 0.22559482, b: 0.30677685, a: 1}
+  m_IndirectSpecularColor: {r: 0.18028334, g: 0.22571328, b: 0.3069217, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -2259,7 +2259,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1871381201750401551, guid: 237d6c67f05954e64a2a3692511e1a6e, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5212481444563868612, guid: 237d6c67f05954e64a2a3692511e1a6e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2982,7 +2982,7 @@ MonoBehaviour:
     yOffset: -0.05
     zReference: {fileID: 399231511}
     zOffset: -0.05
-  offsetRotation: {x: 0, y: 0, z: 0}
+  offsetRotation: {x: -40, y: 0, z: 180}
 --- !u!1001 &1528156009
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3575,12 +3575,12 @@ MonoBehaviour:
     z: {fileID: 1497153429}
   offsetReference:
     xReference: {fileID: 1497153429}
-    xOffset: -0.03
+    xOffset: 0.14
     yReference: {fileID: 1497153429}
-    yOffset: 0
+    yOffset: 0.05
     zReference: {fileID: 1497153429}
-    zOffset: 0.2
-  offsetRotation: {x: -20, y: 70, z: -20}
+    zOffset: 0.12
+  offsetRotation: {x: -20, y: -40, z: 10}
 --- !u!1 &1902125966
 GameObject:
   m_ObjectHideFlags: 0
