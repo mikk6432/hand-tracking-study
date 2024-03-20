@@ -667,7 +667,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1871381201750401551, guid: 237d6c67f05954e64a2a3692511e1a6e, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5212481444563868612, guid: 237d6c67f05954e64a2a3692511e1a6e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1361,6 +1361,10 @@ PrefabInstance:
       propertyPath: VolumePrefab
       value: 
       objectReference: {fileID: 3618562570146987489, guid: 70ec97ad13e944071ab319289ef1eed1, type: 3}
+    - target: {fileID: 747806495401477012, guid: c813208e672e3074bbe118e1a9ee94fd, type: 3}
+      propertyPath: _initialAnchorParent
+      value: 
+      objectReference: {fileID: 1533442971}
     - target: {fileID: 747806495401477012, guid: c813208e672e3074bbe118e1a9ee94fd, type: 3}
       propertyPath: PrefabOverrides.Array.size
       value: 1
@@ -3782,7 +3786,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1871381201750401551, guid: 237d6c67f05954e64a2a3692511e1a6e, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5212481444563868612, guid: 237d6c67f05954e64a2a3692511e1a6e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -3848,7 +3852,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1871381201750401551, guid: 237d6c67f05954e64a2a3692511e1a6e, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5212481444563868612, guid: 237d6c67f05954e64a2a3692511e1a6e, type: 3}
       propertyPath: m_LocalPosition.x
