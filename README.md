@@ -17,6 +17,16 @@ TODO for week 12:
 * Come prepared
 * Implement 3 passthrough options: VR, AR, blurred behind hands.
 
+TODO for week 13: 
+* Better palm ref angle (more towards you)
+* Track is invisible/below ground
+* Place lights should work (lights at each end of the track)
+* place track on top of mesh
+* look at whz controller is misalligned
+* hand-on-controller/detached controller/just hand state fix
+* Slow down speed (just speed, not tempo)
+* error transparent
+
 TODO for main study
 * Investigate fix for track sometimes appearing below/above ground when starting the app.
 * Chest mount + hand mount should be "plug and play" for participants. There should be no need for adjustments.
