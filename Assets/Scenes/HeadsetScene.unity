@@ -837,7 +837,6 @@ Transform:
   - {fileID: 2121666365}
   m_Father: {fileID: 1629456800}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &232752654
 MonoBehaviour:
   m_ObjectHideFlags: 0
