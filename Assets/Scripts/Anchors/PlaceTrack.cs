@@ -5,17 +5,20 @@ using UnityEngine.Events;
 public class PlaceTrack : MonoBehaviour
 {
     [SerializeField] private GameObject headset;
+    [SerializeField] private GameObject sceneLight1;
+    [SerializeField] private GameObject sceneLight2;
     [SerializeField] private float trackDistanceAboveGround = 0.01f;
     private void Update()
     {
         /*         if (OVRInput.Get(OVRInput.RawButton.Y))
                 {
-                    PlaceTrackForwardFromHeadset();
+                    PlaceTrackAndLightsForwardFromHeadset();
                 } */
     }
 
-    public void PlaceTrackForwardFromHeadset()
+    public void PlaceTrackAndLightsForwardFromHeadset()
     {
+        var floorHeight = 0f;
         RaycastHit[] hits = Physics.RaycastAll(headset.transform.position, Vector3.down);
         if (hits.Length > 0)
         {
@@ -25,11 +28,7 @@ public class PlaceTrack : MonoBehaviour
                 Debug.Log("Hit object: " + hit.collider.gameObject.name);
                 if (hit.collider.gameObject.name == "Quad")
                 {
-                    var floor = hit.collider.gameObject.transform;
-                    var (position, rotation) = HeadsetOXZProjection();
-                    float halfTrackLength = GetComponent<WalkingStateTrigger>().halfTrackLength;
-                    position += rotation * new Vector3(0, floor.position.y + trackDistanceAboveGround, halfTrackLength + .3f); // half track length and small offset more 
-                    transform.SetPositionAndRotation(position, rotation);
+                    floorHeight = hit.collider.gameObject.transform.position.y;
                 }
             }
         }
@@ -37,6 +36,18 @@ public class PlaceTrack : MonoBehaviour
         {
             Debug.Log("No objects hit by the raycast.");
         }
+        var (position, rotation) = HeadsetOXZProjection();
+        float halfTrackLength = GetComponent<WalkingStateTrigger>().halfTrackLength;
+        position += rotation * new Vector3(0, floorHeight + trackDistanceAboveGround, halfTrackLength + .3f); // half track length and small offset more 
+        transform.SetPositionAndRotation(position, rotation);
+
+        // Set one light to point in headset direction. Directional light positions does not matter
+        sceneLight1.transform.SetPositionAndRotation(position, rotation);
+
+        // Set second light to point in opposite direction. Directional light positions does not matter
+        Quaternion originalRotation = rotation;
+        Quaternion flippedRotation = originalRotation * Quaternion.Euler(0, 180, 0);
+        sceneLight2.transform.SetPositionAndRotation(position, flippedRotation);
     }
 
     private (Vector3 position, Quaternion rotation) HeadsetOXZProjection()

@@ -286,7 +286,7 @@ public class HelmetMainProcess : ExperimentNetworkClient
                 SendSummary();
                 break;
             case MessageToHelmet.Code.PlaceTrackAndLight:
-                FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
+                FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
                 break;
             default:
                 throw new ArgumentException($"It seems you have implemented a new message from helmet but forget to handle in {nameof(Receive)} method");

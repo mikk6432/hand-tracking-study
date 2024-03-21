@@ -719,7 +719,7 @@ public partial class ExperimentManager : MonoBehaviour
                 if (_runConfig.isPlacingComfortYAndZ)
                 {
                     ActualizeHands();
-                    FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
+                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
                     _state = State.Preparing;
                     break;
                 }
@@ -756,7 +756,7 @@ public partial class ExperimentManager : MonoBehaviour
                 if (_runConfig.context == Context.Walking)
                 {
                     walkingStateTrigger.enabled = true; // This is walking context. Just show track, but not listening events yet
-                    FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
+                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
                 }
 
                 _state = State.Preparing;
@@ -776,23 +776,23 @@ public partial class ExperimentManager : MonoBehaviour
             case nameof(OnServerSaidPrepare):
                 if (_runConfig.isPlacingComfortYAndZ)
                 {
-                    FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
+                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
                     break;
                 }
                 if (_runConfig.isMetronomeTraining)
                 {
-                    FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
+                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
                     break;
                 }
 
                 if (_runConfig.context == Context.Standing)
                 {
-                    FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
+                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
                 }
 
                 if (_runConfig.context == Context.Walking)
                 {
-                    FindObjectOfType<PlaceTrack>().PlaceTrackForwardFromHeadset();
+                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
                 }
 
                 break;
