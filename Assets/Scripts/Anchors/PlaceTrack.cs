@@ -5,6 +5,7 @@ using UnityEngine.Events;
 public class PlaceTrack : MonoBehaviour
 {
     [SerializeField] private GameObject headset;
+    [SerializeField] private float trackDistanceAboveGround = 0.01f;
     private void Update()
     {
         /*         if (OVRInput.Get(OVRInput.RawButton.Y))
@@ -15,10 +16,27 @@ public class PlaceTrack : MonoBehaviour
 
     public void PlaceTrackForwardFromHeadset()
     {
-        var (position, rotation) = HeadsetOXZProjection();
-        float halfTrackLength = GetComponent<WalkingStateTrigger>().halfTrackLength;
-        position += rotation * new Vector3(0, 0, halfTrackLength + .3f); // half track length and small offset more 
-        transform.SetPositionAndRotation(position, rotation);
+        RaycastHit[] hits = Physics.RaycastAll(headset.transform.position, Vector3.down);
+        if (hits.Length > 0)
+        {
+            Debug.Log($"Raycast hit {hits.Length} objects:");
+            foreach (RaycastHit hit in hits)
+            {
+                Debug.Log("Hit object: " + hit.collider.gameObject.name);
+                if (hit.collider.gameObject.name == "Quad")
+                {
+                    var floor = hit.collider.gameObject.transform;
+                    var (position, rotation) = HeadsetOXZProjection();
+                    float halfTrackLength = GetComponent<WalkingStateTrigger>().halfTrackLength;
+                    position += rotation * new Vector3(0, floor.position.y + trackDistanceAboveGround, halfTrackLength + .3f); // half track length and small offset more 
+                    transform.SetPositionAndRotation(position, rotation);
+                }
+            }
+        }
+        else
+        {
+            Debug.Log("No objects hit by the raycast.");
+        }
     }
 
     private (Vector3 position, Quaternion rotation) HeadsetOXZProjection()
