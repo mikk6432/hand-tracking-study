@@ -265,7 +265,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
         if (isIdle)
         {
             bool done = Bitmap.GetBool(summary.doneBitmap, pointer);
-            prepareButton.gameObject.SetActive(!done);
+            prepareButton.gameObject.SetActive(!done && (pointer >= 0));
             doneButton.gameObject.SetActive(!done);
             undoneButton.gameObject.SetActive(done);
 

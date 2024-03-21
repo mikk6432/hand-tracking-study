@@ -654,6 +654,11 @@ MonoBehaviour:
   boneId: 0
   offsetPosition: {x: 0, y: 0.07, z: 0}
   hand: 1
+--- !u!1 &159721780 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 161463041100041781, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+  m_PrefabInstance: {fileID: 1906255383}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &162758080
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -832,6 +837,7 @@ Transform:
   - {fileID: 2121666365}
   m_Father: {fileID: 1629456800}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &232752654
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -866,6 +872,10 @@ MonoBehaviour:
 Transform:
   m_CorrespondingSourceObject: {fileID: 5212481444563868612, guid: 237d6c67f05954e64a2a3692511e1a6e, type: 3}
   m_PrefabInstance: {fileID: 1100585198}
+--- !u!1 &200220094 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5767636409761171974, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+  m_PrefabInstance: {fileID: 1906255383}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &235968519
 GameObject:
@@ -1965,7 +1975,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!108 &705507994
 Light:
   m_ObjectHideFlags: 0
@@ -4027,9 +4037,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7670004145894168434}
     m_Modifications:
+    - target: {fileID: 161463041100041781, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 280264086152704364, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
       propertyPath: m_Name
       value: TrackLight
+      objectReference: {fileID: 0}
+    - target: {fileID: 3327990041503004214, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+      propertyPath: m_Intensity
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: 4492803385877733085, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
       propertyPath: m_LocalPosition.x
@@ -4068,6 +4086,42 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4492803385877733085, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5767636409761171974, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6658102909508240910, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+      propertyPath: m_Intensity
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 6923739967830817144, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.8191521
+      objectReference: {fileID: 0}
+    - target: {fileID: 6923739967830817144, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.5735764
+      objectReference: {fileID: 0}
+    - target: {fileID: 6923739967830817144, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6923739967830817144, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6923739967830817144, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 70
+      objectReference: {fileID: 0}
+    - target: {fileID: 6923739967830817144, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6923739967830817144, guid: f94ac54fb73efa1418391aabb169e3b8, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
@@ -5651,7 +5705,7 @@ MonoBehaviour:
   halfTrackWidth: 0.35
   repeatRate: 1
   _headset: {fileID: 349804815}
-  _thresholdSpeed: 1
+  _thresholdSpeed: 0.5
   ParticipantEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -6463,6 +6517,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   headset: {fileID: 349804814}
+  sceneLight1: {fileID: 159721780}
+  sceneLight2: {fileID: 200220094}
+  trackDistanceAboveGround: 0
 --- !u!1 &9195398946005239027
 GameObject:
   m_ObjectHideFlags: 0
