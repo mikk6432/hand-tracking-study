@@ -29,7 +29,7 @@ TODO for week 13:
 * Slow down speed (just speed, not tempo)
     * Slowed from 1 m/s to 0.8 m/s.
     * Still need to test this or research what an appropiate threshold is.
-* error transparent
+* Error transparent
 
 TODO for main study
 * (Done) Investigate fix for track sometimes appearing below/above ground when starting the app.

@@ -68,18 +68,8 @@ public class HelmetMainProcess : ExperimentNetworkClient
             false
             ));
 
-        index = 0;
-        foreach (var runConfig in result)
-        {
-            if (runConfig.referenceFrame is
-                ExperimentManager.ExperimentReferenceFrame.PathReferenced or
-                ExperimentManager.ExperimentReferenceFrame.PathReferencedNeck or
-                ExperimentManager.ExperimentReferenceFrame.ChestReferenced)
-                break;
-            index++;
-        }
         // now insert run config, which consists of just one step for the participant – please, place UI where it will be comfortable for you
-        result.Insert(index, new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ExperimentManager.Context.Standing, ExperimentManager.ExperimentReferenceFrame.PathReferenced, true));
+        result.Insert(0, new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ExperimentManager.Context.Standing, ExperimentManager.ExperimentReferenceFrame.PathReferenced, true));
 
         return result.ToArray();
     }
