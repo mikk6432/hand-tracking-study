@@ -19,14 +19,18 @@ TODO for week 12:
 
 TODO for week 13: 
 * Better palm ref angle (more towards you)
-* Track is invisible/below ground
-* Place lights should work (lights at each end of the track)
-* place track on top of mesh
-* look at whz controller is misalligned
+* (Done) Track is invisible/below ground
+* (Done) Place lights should work (lights at each end of the track)
+* (Done) place track on top of mesh
+* Look at why controller is misalligned
+    * Changing Quest 3 tracking frequency from "auto" to "50hz" might help with tracking (setting found in Quest 3 settings -> System -> Headset Tracking).
+    This still has to be tested
 * hand-on-controller/detached controller/just hand state fix
 * Slow down speed (just speed, not tempo)
+    * Slowed from 1 m/s to 0.8 m/s.
+    * Still need to test this or research what an appropiate threshold is.
 * error transparent
 
 TODO for main study
-* Investigate fix for track sometimes appearing below/above ground when starting the app.
+* (Done) Investigate fix for track sometimes appearing below/above ground when starting the app.
 * Chest mount + hand mount should be "plug and play" for participants. There should be no need for adjustments.

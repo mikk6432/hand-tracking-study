@@ -719,7 +719,6 @@ public partial class ExperimentManager : MonoBehaviour
                 if (_runConfig.isPlacingComfortYAndZ)
                 {
                     ActualizeHands();
-                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
                     _state = State.Preparing;
                     break;
                 }
@@ -756,7 +755,6 @@ public partial class ExperimentManager : MonoBehaviour
                 if (_runConfig.context == Context.Walking)
                 {
                     walkingStateTrigger.enabled = true; // This is walking context. Just show track, but not listening events yet
-                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
                 }
 
                 _state = State.Preparing;
@@ -774,27 +772,6 @@ public partial class ExperimentManager : MonoBehaviour
         switch (eventName)
         {
             case nameof(OnServerSaidPrepare):
-                if (_runConfig.isPlacingComfortYAndZ)
-                {
-                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
-                    break;
-                }
-                if (_runConfig.isMetronomeTraining)
-                {
-                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
-                    break;
-                }
-
-                if (_runConfig.context == Context.Standing)
-                {
-                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
-                }
-
-                if (_runConfig.context == Context.Walking)
-                {
-                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
-                }
-
                 break;
             case nameof(OnServerSaidStart):
                 if (_runConfig.isPlacingComfortYAndZ)

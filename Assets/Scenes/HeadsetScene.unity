@@ -5244,7 +5244,7 @@ MonoBehaviour:
   halfTrackWidth: 0.35
   repeatRate: 1
   _headset: {fileID: 349804815}
-  _thresholdSpeed: 1
+  _thresholdSpeed: 0.8
   ParticipantEntered:
     m_PersistentCalls:
       m_Calls: []
