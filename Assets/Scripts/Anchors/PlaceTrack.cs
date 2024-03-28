@@ -7,6 +7,7 @@ public class PlaceTrack : MonoBehaviour
     [SerializeField] private GameObject headset;
     [SerializeField] private GameObject sceneLight1;
     [SerializeField] private GameObject sceneLight2;
+    [SerializeField] private float lightAngle = 70f;
     [SerializeField] private float trackDistanceAboveGround = 0.01f;
     private void Update()
     {
@@ -18,7 +19,7 @@ public class PlaceTrack : MonoBehaviour
 
     public void PlaceTrackAndLightsForwardFromHeadset()
     {
-        var floorHeight = 0f;
+        GameObject floor = null;
         RaycastHit[] hits = Physics.RaycastAll(headset.transform.position, Vector3.down);
         if (hits.Length > 0)
         {
@@ -28,7 +29,7 @@ public class PlaceTrack : MonoBehaviour
                 Debug.Log("Hit object: " + hit.collider.gameObject.name);
                 if (hit.collider.gameObject.name == "Quad")
                 {
-                    floorHeight = hit.collider.gameObject.transform.position.y;
+                    floor = hit.collider.gameObject;
                 }
             }
         }
@@ -37,16 +38,22 @@ public class PlaceTrack : MonoBehaviour
             Debug.Log("No objects hit by the raycast.");
         }
         var (position, rotation) = HeadsetOXZProjection();
+        var floorHeight = 0f;
+        if (floor != null) {
+            gameObject.transform.parent = floor.transform;
+            floorHeight = floor.transform.position.y;
+        }
+        // Set track as child to floor
         float halfTrackLength = GetComponent<WalkingStateTrigger>().halfTrackLength;
         position += rotation * new Vector3(0, floorHeight + trackDistanceAboveGround, halfTrackLength + .3f); // half track length and small offset more 
         transform.SetPositionAndRotation(position, rotation);
 
         // Set one light to point in headset direction. Directional light positions does not matter
-        sceneLight1.transform.SetPositionAndRotation(position, rotation);
+        Quaternion newRotation = Quaternion.Euler(lightAngle, rotation.eulerAngles.y, rotation.eulerAngles.z);
+        sceneLight1.transform.SetPositionAndRotation(position, newRotation);
 
         // Set second light to point in opposite direction. Directional light positions does not matter
-        Quaternion originalRotation = rotation;
-        Quaternion flippedRotation = originalRotation * Quaternion.Euler(0, 180, 0);
+        Quaternion flippedRotation = Quaternion.Euler(lightAngle, rotation.eulerAngles.y + 180, rotation.eulerAngles.z);
         sceneLight2.transform.SetPositionAndRotation(position, flippedRotation);
     }
 
