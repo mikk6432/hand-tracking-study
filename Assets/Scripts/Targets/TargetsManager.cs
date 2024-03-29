@@ -253,6 +253,24 @@ public class TargetsManager : MonoBehaviour
         IsShowingTargets = false;
     }
 
+    [SerializeField] private GameObject TargetCube;
+    [SerializeField] private GameObject Outline;
+    [SerializeField] private GameObject SelectorProjection;
+
+    public void hideCube()
+    {
+        TargetCube.SetActive(false);
+        Outline.SetActive(false);
+        SelectorProjection.SetActive(false);
+    }
+
+    public void showCube()
+    {
+        TargetCube.SetActive(true);
+        Outline.SetActive(true);
+        SelectorProjection.SetActive(true);
+    }
+
     public void ActivateTarget(int targetIndex)
     {
         if (targetIndex >= TargetsCount) throw new ArgumentException($"Invalid target index = {targetIndex}");

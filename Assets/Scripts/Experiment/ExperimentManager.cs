@@ -669,6 +669,7 @@ public partial class ExperimentManager : MonoBehaviour
         walkingStateTrigger.enabled = false; // also hides track borders
         targetsManager.EnsureTargetsHidden();
         selectorProjector.enabled = false;
+        targetsManager.showCube();
     }
 
     private void HandleState(string eventName = "")
@@ -726,6 +727,7 @@ public partial class ExperimentManager : MonoBehaviour
                 {
                     walkingStateTrigger.enabled = true; // just show track, but not listening events yet
                     _state = State.Preparing;
+                    targetsManager.hideCube();
                     HandlePreparingState(nameof(OnServerSaidPrepare));
                     break;
                 }
@@ -817,6 +819,7 @@ public partial class ExperimentManager : MonoBehaviour
             case nameof(OnServerSaidFinishTraining):
                 listeningTrackEventsFlag = false;
                 metronome.enabled = false;
+                targetsManager.showCube();
                 walkingStateTrigger.enabled = false; // also hides track borders
                 _state = State.Idle;
                 break;
