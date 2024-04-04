@@ -39,8 +39,9 @@ public class PlaceTrack : MonoBehaviour
         }
         var (position, rotation) = HeadsetOXZProjection();
         var floorHeight = 0f;
-        if (floor != null) {
-            gameObject.transform.parent = floor.transform;
+        if (floor != null)
+        {
+            gameObject.transform.SetParent(floor.transform);
             floorHeight = floor.transform.position.y;
         }
         // Set track as child to floor

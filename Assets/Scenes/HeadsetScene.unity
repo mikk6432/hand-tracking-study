@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.17501816, g: 0.21896845, b: 0.30123302, a: 1}
+  m_IndirectSpecularColor: {r: 0.17501818, g: 0.21896836, b: 0.30123314, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -739,7 +739,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1871381201750401551, guid: 237d6c67f05954e64a2a3692511e1a6e, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5212481444563868612, guid: 237d6c67f05954e64a2a3692511e1a6e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -937,7 +937,7 @@ MonoBehaviour:
     yOffset: 0.05
     zReference: {fileID: 1345980735}
     zOffset: -0.14
-  offsetRotation: {x: -50, y: -45, z: 0}
+  offsetRotation: {x: -30, y: -45, z: 0}
 --- !u!4 &234866569 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5212481444563868612, guid: 237d6c67f05954e64a2a3692511e1a6e, type: 3}
@@ -3959,7 +3959,7 @@ MonoBehaviour:
     yOffset: 0.05
     zReference: {fileID: 1497153429}
     zOffset: -0.14
-  offsetRotation: {x: -50, y: 45, z: 0}
+  offsetRotation: {x: -30, y: 45, z: 0}
 --- !u!1 &1902125966
 GameObject:
   m_ObjectHideFlags: 0
@@ -6560,6 +6560,7 @@ MonoBehaviour:
   headset: {fileID: 349804814}
   sceneLight1: {fileID: 159721780}
   sceneLight2: {fileID: 200220094}
+  lightAngle: 70
   trackDistanceAboveGround: 0
 --- !u!1 &9195398946005239027
 GameObject:
