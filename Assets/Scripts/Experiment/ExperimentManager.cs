@@ -754,6 +754,10 @@ public partial class ExperimentManager : MonoBehaviour
                 {
                     walkingStateTrigger.enabled = true; // This is walking context. Just show track, but not listening events yet
                 }
+                else
+                {
+                    walkingStateTrigger.enabled = false; // This is standing context.
+                }
 
                 _state = State.Preparing;
                 HandlePreparingState(nameof(OnServerSaidPrepare));
