@@ -386,7 +386,7 @@ public class TargetsManager : MonoBehaviour
     public static IEnumerator<int> GenerateTargetsIndexesSequence()
     {
         return Math.FittsLaw(TargetsCount)
-            .Take(TargetsCount + 1)
+            .Take(TargetsCount)
             .GetEnumerator();
     }
 }
