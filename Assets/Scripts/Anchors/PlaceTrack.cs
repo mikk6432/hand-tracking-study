@@ -29,7 +29,7 @@ public class PlaceTrack : MonoBehaviour
                 Debug.Log("Hit object: " + hit.collider.gameObject.name);
                 if (hit.collider.gameObject.name == "Quad")
                 {
-                    floor = hit.collider.gameObject;
+                    floor = hit.collider.gameObject.transform.parent.gameObject;
                 }
             }
         }
