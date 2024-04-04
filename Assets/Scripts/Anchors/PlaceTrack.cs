@@ -29,7 +29,7 @@ public class PlaceTrack : MonoBehaviour
                 Debug.Log("Hit object: " + hit.collider.gameObject.name);
                 if (hit.collider.gameObject.name == "Quad")
                 {
-                    floor = hit.collider.gameObject;
+                    floor = hit.collider.gameObject.transform.parent.gameObject;
                 }
             }
         }
@@ -40,7 +40,7 @@ public class PlaceTrack : MonoBehaviour
         var (position, rotation) = HeadsetOXZProjection();
         var floorHeight = 0f;
         if (floor != null) {
-            gameObject.transform.parent = floor.transform;
+            gameObject.transform.SetParent(floor.transform);
             floorHeight = floor.transform.position.y;
         }
         // Set track as child to floor

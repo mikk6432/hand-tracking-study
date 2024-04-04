@@ -198,10 +198,6 @@ public partial class ExperimentManager : MonoBehaviour
             {
                 refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerChest.transform);
             }
-            if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.PathReferencedNeck)
-            {
-                refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerPath.transform);
-            }
             if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.PathReferenced)
             {
                 refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerPath.transform);
@@ -239,7 +235,7 @@ public partial class ExperimentManager : MonoBehaviour
         
         // conditions
         "Walking", // 0 – means Standing, 1 – means Walking
-        "ReferenceFrame", // 0 – palmReferenced, 1 – handReferenced, 2 – pathReferenced, 3 – pathReferencedNeck
+        "ReferenceFrame", // 0 – palmReferenced, 1 – handReferenced, 2 – pathReferenced 
         "TargetSize", // 0.015 or 0.025 or 0.035
         "DominantHand", // Which hand index tip selects targets. 0 – means right, 1 – means left
         
@@ -266,7 +262,7 @@ public partial class ExperimentManager : MonoBehaviour
         
         // conditions
         "Walking", // 0 – means Standing, 1 – means Walking
-        "ReferenceFrame", // 0 – palmReferenced, 1 – handReferenced, 2 – pathReferenced, 3 – pathReferencedNeck
+        "ReferenceFrame", // 0 – palmReferenced, 1 – handReferenced, 2 – pathReferenced
         "TargetSize", // 0.015 or 0.025 or 0.035
         "DominantHand", // Which hand index tip selects targets. 0 – means right, 1 – means left
         
@@ -1108,7 +1104,7 @@ partial class ExperimentManager
         PalmReferenced, // both rotation and position by hand
         HandReferenced, // position only
         PathReferenced, // head
-        PathReferencedNeck, // neck
+        // PathReferencedNeck, // neck
         ChestReferenced // chest
     }
 

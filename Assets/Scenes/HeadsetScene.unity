@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.17501816, g: 0.21896845, b: 0.30123302, a: 1}
+  m_IndirectSpecularColor: {r: 0.17511046, g: 0.21907173, b: 0.30137092, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -6372,7 +6372,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   diameter: 0.15
   targetPrefab: {fileID: 1673176625174218644, guid: b1b7d524e0e324864b593081bba8860a, type: 3}
-  Anchor: {fileID: 1894410977}
+  Anchor: {fileID: 121614105}
   SpecifiedTargetSize: 0
   trial: 0
   targetDiameters:
@@ -6560,6 +6560,7 @@ MonoBehaviour:
   headset: {fileID: 349804814}
   sceneLight1: {fileID: 159721780}
   sceneLight2: {fileID: 200220094}
+  lightAngle: 70
   trackDistanceAboveGround: 0
 --- !u!1 &9195398946005239027
 GameObject:
