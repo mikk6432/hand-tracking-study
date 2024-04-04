@@ -713,12 +713,12 @@ public partial class ExperimentManager : MonoBehaviour
         switch (eventName)
         {
             case nameof(OnServerSaidPrepare):
-                if (_runConfig.isPlacingComfortYAndZ)
+                /* if (_runConfig.isPlacingComfortYAndZ)
                 {
                     ActualizeHands();
                     _state = State.Preparing;
                     break;
-                }
+                } */
                 if (_runConfig.isMetronomeTraining)
                 {
                     walkingStateTrigger.enabled = true; // just show track, but not listening events yet
@@ -727,7 +727,7 @@ public partial class ExperimentManager : MonoBehaviour
                     HandlePreparingState(nameof(OnServerSaidPrepare));
                     break;
                 }
-
+                UpdatePathRefFrames();
                 ActualizeHands();
                 ActualizeReferenceFrames();
                 targetsManager.Anchor = activeRefFrame;
@@ -770,15 +770,16 @@ public partial class ExperimentManager : MonoBehaviour
         switch (eventName)
         {
             case nameof(OnServerSaidPrepare):
+                UpdatePathRefFrames();
                 break;
             case nameof(OnServerSaidStart):
-                if (_runConfig.isPlacingComfortYAndZ)
+                /* if (_runConfig.isPlacingComfortYAndZ)
                 {
                     UpdatePathRefFrames();
                     _state = State.Idle;
                     trialsFinished.Invoke(); // and call "finished"
                     break;
-                }
+                } */
                 if (_runConfig.isMetronomeTraining || _runConfig.context == Context.Walking)
                 {
                     // We have to wait for the participant to enter the track (no matter if this is training with metronome or not)

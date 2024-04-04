@@ -69,7 +69,7 @@ public class HelmetMainProcess : ExperimentNetworkClient
             ));
 
         // now insert run config, which consists of just one step for the participant – please, place UI where it will be comfortable for you
-        result.Insert(0, new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ExperimentManager.Context.Standing, ExperimentManager.ExperimentReferenceFrame.PathReferenced, true));
+        // result.Insert(0, new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ExperimentManager.Context.Standing, ExperimentManager.ExperimentReferenceFrame.PathReferenced, true));
 
         return result.ToArray();
     }
