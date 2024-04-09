@@ -238,7 +238,7 @@ public partial class ExperimentManager : MonoBehaviour
         "SelectionID",
         
         // conditions
-        "Walking", // 0 – means Standing, 1 – means Walking
+        "Context", // Standing, Walking, Jogging
         "ReferenceFrame", // 0 – palmReferenced, 1 – handReferenced, 2 – pathReferenced 
         "TargetSize", // 0.015 or 0.025 or 0.035
         "DominantHand", // Which hand index tip selects targets. 0 – means right, 1 – means left
@@ -265,7 +265,7 @@ public partial class ExperimentManager : MonoBehaviour
         "MeasurementID", // increments every measurement (90Hz). Starts with 0
         
         // conditions
-        "Walking", // 0 – means Standing, 1 – means Walking
+        "Context", // Standing, Walking, Jogging
         "ReferenceFrame", // 0 – palmReferenced, 1 – handReferenced, 2 – pathReferenced
         "TargetSize", // 0.015 or 0.025 or 0.035
         "DominantHand", // Which hand index tip selects targets. 0 – means right, 1 – means left
