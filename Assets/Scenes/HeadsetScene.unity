@@ -572,7 +572,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &142164558 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1870938896605422, guid: 835e735ca71bf78459fb2cababd74112, type: 3}
@@ -2628,14 +2628,11 @@ MonoBehaviour:
   - {fileID: 232752652}
   - {fileID: 1052293026}
   - {fileID: 300014859}
-  - {fileID: 121614105}
   rightHandedReferenceFrames:
   - {fileID: 1894410977}
   - {fileID: 528180495}
   - {fileID: 300014859}
-  - {fileID: 121614105}
   UIPlacerPath: {fileID: 115891161}
-  UIPlacerChest: {fileID: 1089140523}
 --- !u!114 &1055041123
 MonoBehaviour:
   m_ObjectHideFlags: 0

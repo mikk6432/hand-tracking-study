@@ -181,7 +181,7 @@ public partial class ExperimentManager : MonoBehaviour
     // as path referenced, but depends on hand (not head)
     [Space]
     [SerializeField] private GameObject UIPlacerPath;
-    [SerializeField] private GameObject UIPlacerChest;
+    // [SerializeField] private GameObject UIPlacerChest;
 
     private void ActualizeReferenceFrames()
     {
@@ -194,10 +194,10 @@ public partial class ExperimentManager : MonoBehaviour
     {
         foreach (var refFrame in leftHandedReferenceFrames.Concat(rightHandedReferenceFrames))
         {
-            if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.ChestReferenced)
-            {
-                refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerChest.transform);
-            }
+            // if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.ChestReferenced)
+            // {
+            //     refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerChest.transform);
+            // }
             if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.PathReferenced)
             {
                 refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerPath.transform);
@@ -758,7 +758,7 @@ public partial class ExperimentManager : MonoBehaviour
                 {
                     walkingStateTrigger.enabled = false; // This is standing context.
                 }
-
+                
                 _state = State.Preparing;
                 HandlePreparingState(nameof(OnServerSaidPrepare));
                 break;
@@ -1110,7 +1110,7 @@ partial class ExperimentManager
         HandReferenced, // position only
         PathReferenced, // head
         // PathReferencedNeck, // neck
-        ChestReferenced // chest
+        // ChestReferenced // chest
     }
 
     public struct RunConfig

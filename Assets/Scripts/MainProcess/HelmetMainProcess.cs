@@ -29,7 +29,9 @@ public class HelmetMainProcess : ExperimentNetworkClient
             new Func<ExperimentManager.ExperimentReferenceFrame, ExperimentManager.Context, ExperimentManager.RunConfig>
                 ((rf, ctx) => new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ctx, rf, false));
 
-        var result = new List<ExperimentManager.RunConfig>(17); // 4refFrame * (standing/walking) * (training/trial) + 1metronomeTraining (rf*context)
+        var numberOfRefs = Enum.GetNames(typeof(ExperimentManager.ExperimentReferenceFrame)).Length;
+        var numberOfContexts = Enum.GetNames(typeof(ExperimentManager.Context)).Length;
+        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + 1); // times 2 for training/trial and plus 1 for metronomeTraining
 
         var refFrames = Enum.GetValues(typeof(ExperimentManager.ExperimentReferenceFrame));
         var latinSquaredNotTrainings = Math.balancedLatinSquare(
