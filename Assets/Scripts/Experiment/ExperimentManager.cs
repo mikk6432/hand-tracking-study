@@ -22,6 +22,7 @@ public partial class ExperimentManager : MonoBehaviour
     {
         targetsManager.selectorEnteredTargetsZone.AddListener(OnSelectorEnteredTargetZone);
         targetsManager.selectorExitedTargetsZone.AddListener(OnSelectorExitedTargetZone);
+        targetsManager.selectorExitedWrongSide.AddListener(OnSelectorExitedWrongSide);
         metronome.enabled = false;
 
         walkingStateTrigger.ParticipantEntered.AddListener(OnParticipantEnteredTrack);
@@ -34,6 +35,7 @@ public partial class ExperimentManager : MonoBehaviour
     {
         targetsManager.selectorEnteredTargetsZone.RemoveListener(OnSelectorEnteredTargetZone);
         targetsManager.selectorExitedTargetsZone.RemoveListener(OnSelectorExitedTargetZone);
+        targetsManager.selectorExitedWrongSide.RemoveListener(OnSelectorExitedWrongSide);
 
         walkingStateTrigger.ParticipantEntered.RemoveListener(OnParticipantEnteredTrack);
         walkingStateTrigger.ParticipantSwervedOff.RemoveListener(OnParticipantSwervedOffTrack);
@@ -423,7 +425,7 @@ public partial class ExperimentManager : MonoBehaviour
 
     private void LogSelectionRow()
     {
-        bool isFirstWithSuchSize = _targetsSelected % (TargetsManager.TargetsCount + 1) == 1;
+        bool isFirstWithSuchSize = _targetsSelected % TargetsManager.TargetsCount == 1;
 
         var now = DateTime.Now;
 
@@ -865,6 +867,17 @@ public partial class ExperimentManager : MonoBehaviour
                     _state = State.AwaitingServerValidationOfLastTrial;
                 }
                 break;
+            case nameof(OnSelectorExitedWrongSide):
+                ShowErrorToParticipant();
+                _targetsSelected = _selectionsValidated;
+                if (!_runConfig.isTraining)
+                {
+                    highFrequencyLoggingIsOnFlag = false;
+                    _selectionsLogger.ClearUnsavedData();
+                    _highFrequencyLogger.ClearUnsavedData();
+                }
+                Invoke(nameof(OnCountdownFinished), GenerateTimeToActivateFirstTarget());
+                break;
             case nameof(OnServerSaidFinishTraining):
                 if (!_runConfig.isTraining) throw new ArgumentException($"{eventName} got called in SelectingTargetsStanding state while trials. This is not supposed to happen");
 
@@ -965,6 +978,18 @@ public partial class ExperimentManager : MonoBehaviour
                     _state = State.AwaitingServerValidationOfLastTrial;
                 }
                 break;
+            case nameof(OnSelectorExitedWrongSide):
+                // participant has to select all targets first. We assume this as an error 
+                ShowErrorToParticipant();
+                _targetsSelected = _selectionsValidated;
+                if (!_runConfig.isTraining)
+                {
+                    highFrequencyLoggingIsOnFlag = false;
+                    _selectionsLogger.ClearUnsavedData();
+                    _highFrequencyLogger.ClearUnsavedData();
+                }
+                Invoke(nameof(OnCountdownFinished), GenerateTimeToActivateFirstTarget());
+                break;
             case nameof(OnServerSaidFinishTraining):
                 if (!_runConfig.isTraining) throw new ArgumentException($"{nameof(HandleSelectingTargetsWalkingState)}: Cannot stop trials");
 
@@ -984,7 +1009,7 @@ public partial class ExperimentManager : MonoBehaviour
         {
             case nameof(OnServerValidatedTrial):
                 // was success. Let's check if more target sizes participant has to make a trial with
-                _selectionsValidated += TargetsManager.TargetsCount + 1;
+                _selectionsValidated += TargetsManager.TargetsCount;
                 if (!targetSizesSequence.MoveNext())
                 {
                     // we now assume we are in trials, not training
@@ -1070,7 +1095,7 @@ public partial class ExperimentManager : MonoBehaviour
     #region Event Redirecting Methods
     private static readonly List<string> eventRedirectingMethods = new List<string>
     {
-        nameof(OnCountdownFinished), nameof(OnSelectorEnteredTargetZone), nameof(OnSelectorExitedTargetZone),
+        nameof(OnCountdownFinished), nameof(OnSelectorEnteredTargetZone), nameof(OnSelectorExitedTargetZone), nameof(OnSelectorExitedWrongSide),
         nameof(OnParticipantEnteredTrack), nameof(OnParticipantFinishedTrack), nameof(OnParticipantSwervedOffTrack), nameof(OnParticipantSlowedDown),
         nameof(OnServerSaidStart), nameof(OnServerSaidPrepare), nameof(OnServerSaidFinishTraining), nameof(OnServerValidatedTrial), nameof(OnServerInvalidatedTrial)
     };
@@ -1078,6 +1103,7 @@ public partial class ExperimentManager : MonoBehaviour
     private void OnCountdownFinished() => HandleState(nameof(OnCountdownFinished));
     private void OnSelectorEnteredTargetZone() { if (listeningTargetsEventsFlag) HandleState(nameof(OnSelectorEnteredTargetZone)); }
     private void OnSelectorExitedTargetZone() { if (listeningTargetsEventsFlag) HandleState(nameof(OnSelectorExitedTargetZone)); }
+    private void OnSelectorExitedWrongSide() { if (listeningTargetsEventsFlag) HandleState(nameof(OnSelectorExitedWrongSide)); }
     private void OnParticipantEnteredTrack() { if (listeningTrackEventsFlag) HandleState(nameof(OnParticipantEnteredTrack)); }
     private void OnParticipantFinishedTrack() { if (listeningTrackEventsFlag) HandleState(nameof(OnParticipantFinishedTrack)); }
     private void OnParticipantSwervedOffTrack() { if (listeningTrackEventsFlag) HandleState(nameof(OnParticipantSwervedOffTrack)); }

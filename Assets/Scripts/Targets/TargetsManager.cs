@@ -8,7 +8,9 @@ using System.Linq;
 public class TargetsManager : MonoBehaviour
 {
     private static readonly Color _activeColor = Color.black;
+    private static readonly Color _activeHoverColor = new Color(0.2f, 0.2f, 0.2f);
     private static readonly Color _inactiveColor = Color.white;
+    private static readonly Color _inactiveHoverColor = new Color(0.8f, 0.8f, 0.8f);
     private static readonly Color _successColor = Color.green;
     private static readonly Color _failColor = Color.red;
     [SerializeField] public float diameter = .15f; // Default: .15f
@@ -16,6 +18,7 @@ public class TargetsManager : MonoBehaviour
 
     public readonly UnityEvent selectorEnteredTargetsZone = new();
     public readonly UnityEvent selectorExitedTargetsZone = new();
+    public readonly UnityEvent selectorExitedWrongSide = new();
 
     private List<GameObject> _targets;
     private Dictionary<GameObject, Renderer> _targetToRendererComponentMap;
@@ -234,6 +237,23 @@ public class TargetsManager : MonoBehaviour
     {
         if (Anchor && Anchor.activeInHierarchy)
             transform.SetPositionAndRotation(Anchor.transform.position, Anchor.transform.rotation);
+        var selector = Hand == Handed.Right ? RightIndexFinger : LeftIndexFinger;
+        var (_, local) = Math.ProjectPointOntoOXYPlane(transform, selector.transform.position);
+        _targetToRendererComponentMap.ToList().ForEach(pair =>
+        {
+            var (target, renderer) = pair;
+            var activeNow = target == ActiveTarget.target;
+            var failNow = renderer.material.color == _failColor;
+            var successNow = renderer.material.color == _successColor;
+            var localPos = target.transform.localPosition;
+            var hover = Mathf.Abs(local.x - localPos.x) < GetTargetDiameter(TargetSize) / 2 &&
+                        Mathf.Abs(local.y - localPos.y) < GetTargetDiameter(TargetSize) / 2;
+            renderer.material.color =
+                failNow ? _failColor :
+                successNow ? _successColor :
+                activeNow ? hover ? _activeHoverColor : _activeColor :
+                hover ? _inactiveHoverColor : _inactiveColor;
+        });
     }
 
     public void EnsureTargetsShown()
@@ -343,14 +363,27 @@ public class TargetsManager : MonoBehaviour
 
         var rendererComponent = _targetToRendererComponentMap[ActiveTarget.target];
         // a bit dirty solution. Used, when at the moment of activating the target, selector was inside the collider
-        bool isNotSelectionEnd = rendererComponent.material.color == _activeColor;
+        bool isNotSelectionEnd = rendererComponent.material.color == _activeColor || rendererComponent.material.color == _activeHoverColor;
         if (isNotSelectionEnd) return; // do nothing in this situation and wait for the selection
 
         rendererComponent.material.color = _inactiveColor;
 
         ActiveTarget = (null, -1);
 
-        selectorExitedTargetsZone.Invoke();
+        var selectorPosition = other.transform.position;
+        var (world, local) = Math.ProjectPointOntoOXYPlane(transform, selectorPosition);
+
+        var fromSelectorToProjection = selectorPosition - world;
+
+        var side = Vector3.Dot(transform.forward, fromSelectorToProjection) >= 0;
+        if (side)
+        {
+            selectorExitedWrongSide.Invoke();
+        }
+        else
+        {
+            selectorExitedTargetsZone.Invoke();
+        }
     }
 
     public static IEnumerator<TargetSizeVariant> GenerateTargetSizesSequence(int seed, bool isTraining = false)

@@ -15,19 +15,13 @@ public class PlaceTrack : MonoBehaviour
         RaycastHit[] hits = Physics.RaycastAll(headset.transform.position, Vector3.down);
         if (hits.Length > 0)
         {
-            Debug.Log($"Raycast hit {hits.Length} objects:");
             foreach (RaycastHit hit in hits)
             {
-                Debug.Log("Hit object: " + hit.collider.gameObject.name);
                 if (hit.collider.gameObject.name == "Quad")
                 {
                     floor = hit.collider.gameObject.transform.parent.gameObject;
                 }
             }
-        }
-        else
-        {
-            Debug.Log("No objects hit by the raycast.");
         }
         if (floor != null)
         {
