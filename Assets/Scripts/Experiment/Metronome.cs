@@ -39,6 +39,11 @@ public class Metronome : MonoBehaviour
         Restart();
     }
 
+    public void SetTempo(uint newTempo)
+    {
+        _tempo = newTempo;
+    }
+
     private void Restart()
     {
         float repeatRate = 60f / _tempo;
