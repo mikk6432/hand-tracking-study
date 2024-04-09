@@ -31,7 +31,7 @@ public class HelmetMainProcess : ExperimentNetworkClient
 
         var numberOfRefs = Enum.GetNames(typeof(ExperimentManager.ExperimentReferenceFrame)).Length;
         var numberOfContexts = Enum.GetNames(typeof(ExperimentManager.Context)).Length;
-        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + 1); // times 2 for training/trial and plus 1 for metronomeTraining
+        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + 2); // times 2 for training/trial and plus 1 for metronomeTraining
 
         var refFrames = Enum.GetValues(typeof(ExperimentManager.ExperimentReferenceFrame));
         var latinSquaredNotTrainings = Math.balancedLatinSquare(
@@ -55,26 +55,41 @@ public class HelmetMainProcess : ExperimentNetworkClient
         }
 
         // adding training to go with metronome
-        int index = 0;
-        foreach (var runConfig in result)
-        {
-            if (runConfig.context == ExperimentManager.Context.Walking || runConfig.context == ExperimentManager.Context.Jogging)
-                break;
-            index++;
-        }
-        result.Insert(index, new ExperimentManager.RunConfig(participantId, leftHanded,
+        var firstWalkingIndex = FirstIndexOfSpecificContext(ref result, ExperimentManager.Context.Walking);
+        result.Insert(firstWalkingIndex, new ExperimentManager.RunConfig(participantId, leftHanded,
             true, // indicates this is training with metronome
                   // now below parameters don't matter
             true,
-            result[index].context,
+            ExperimentManager.Context.Walking,
             ExperimentManager.ExperimentReferenceFrame.PalmReferenced,
             false
             ));
 
+        var firstJoggingIndex = FirstIndexOfSpecificContext(ref result, ExperimentManager.Context.Jogging);
+        result.Insert(firstJoggingIndex, new ExperimentManager.RunConfig(participantId, leftHanded,
+            true, // indicates this is training with metronome
+                  // now below parameters don't matter
+            true,
+            ExperimentManager.Context.Jogging,
+            ExperimentManager.ExperimentReferenceFrame.PalmReferenced,
+            false
+            ));
         // now insert run config, which consists of just one step for the participant – please, place UI where it will be comfortable for you
         // result.Insert(0, new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ExperimentManager.Context.Standing, ExperimentManager.ExperimentReferenceFrame.PathReferenced, true));
 
         return result.ToArray();
+    }
+
+    private static int FirstIndexOfSpecificContext(ref List<ExperimentManager.RunConfig> result, ExperimentManager.Context context)
+    {
+        int index = 0;
+        foreach (var runConfig in result)
+        {
+            if (runConfig.context == context)
+                break;
+            index++;
+        }
+        return index;
     }
 
     private void UpdateRunConfigs()
