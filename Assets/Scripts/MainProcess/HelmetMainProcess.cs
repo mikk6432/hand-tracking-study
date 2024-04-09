@@ -36,8 +36,9 @@ public class HelmetMainProcess : ExperimentNetworkClient
         var refFrames = Enum.GetValues(typeof(ExperimentManager.ExperimentReferenceFrame));
         var latinSquaredNotTrainings = Math.balancedLatinSquare(
             refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Standing)).ToArray().Concat(
-                refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Walking)).ToArray()
-            ).ToArray(),
+                refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Walking)).ToArray().Concat(
+                    refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Jogging)).ToArray()
+            )).ToArray(),
             participantId);
 
         var turnIntoTraining = new Func<ExperimentManager.RunConfig, ExperimentManager.RunConfig>
@@ -57,7 +58,7 @@ public class HelmetMainProcess : ExperimentNetworkClient
         int index = 0;
         foreach (var runConfig in result)
         {
-            if (runConfig.context == ExperimentManager.Context.Walking)
+            if (runConfig.context == ExperimentManager.Context.Walking || runConfig.context == ExperimentManager.Context.Jogging)
                 break;
             index++;
         }
@@ -65,7 +66,7 @@ public class HelmetMainProcess : ExperimentNetworkClient
             true, // indicates this is training with metronome
                   // now below parameters don't matter
             true,
-            ExperimentManager.Context.Walking,
+            result[index].context,
             ExperimentManager.ExperimentReferenceFrame.PalmReferenced,
             false
             ));

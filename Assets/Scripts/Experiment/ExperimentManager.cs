@@ -106,6 +106,8 @@ public partial class ExperimentManager : MonoBehaviour
     #region Sound stuff
     [Space]
     [SerializeField] private Metronome metronome;
+    [SerializeField] private uint walkingTempo = 90;
+    [SerializeField] private uint joggingTempo = 140;
     [SerializeField] private GameObject errorIndicator;
 
     void ShowErrorToParticipant()
@@ -451,7 +453,7 @@ public partial class ExperimentManager : MonoBehaviour
         var selection = targetsManager.LastSelectionData;
 
         // conditions
-        row.SetColumnValue("Walking", _runConfig.context == Context.Standing ? 0 : 1);
+        row.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
         row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
         row.SetColumnValue("TargetSize", selection.targetSize);
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
@@ -476,6 +478,11 @@ public partial class ExperimentManager : MonoBehaviour
         row.LogAndClear(); // no write to file yet, just enqueue. Maybe it will be deleted by calling "_selectionsLogger.ClearUnsavedData()"
     }
 
+    private bool IsMovingContext(Context context)
+    {
+        return context == Context.Walking || context == Context.Jogging;
+    }
+
     private void LogHighFrequencyRow()
     {
         var row = _highFrequencyLogger.CurrentRow;
@@ -485,7 +492,7 @@ public partial class ExperimentManager : MonoBehaviour
         row.SetColumnValue("MeasurementID", ++_measurementId);
 
         // conditions
-        row.SetColumnValue("Walking", _runConfig.context == Context.Walking ? 1 : 0);
+        row.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
         row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
         row.SetColumnValue("TargetSize", targetsManager.GetTargetDiameter(targetSizesSequence.Current));
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
@@ -496,10 +503,10 @@ public partial class ExperimentManager : MonoBehaviour
         row.SetColumnValue("SystemClockTimestampMs", (int)(now - activateFirstTargetMoment).TotalMilliseconds);
 
 
-        var trackTransform = _runConfig.context == Context.Walking ? track.transform : sceneLight.transform;
+        var trackTransform = IsMovingContext(_runConfig.context) ? track.transform : sceneLight.transform;
         LogObjectTransform("Track", trackTransform);
 
-        var walkingDirectionTransform = _runConfig.context == Context.Walking ? walkingDirection.transform : standingDirection.transform;
+        var walkingDirectionTransform = IsMovingContext(_runConfig.context) ? walkingDirection.transform : standingDirection.transform;
         LogObjectTransform("WalkingDirection", walkingDirectionTransform);
 
         LogObjectTransform("Head", headset.transform); // center eye anchor
@@ -750,7 +757,7 @@ public partial class ExperimentManager : MonoBehaviour
                     EnsureFrequencyLoggerInitialized();
                 }
 
-                if (_runConfig.context == Context.Walking)
+                if (IsMovingContext(_runConfig.context))
                 {
                     walkingStateTrigger.enabled = true; // This is walking context. Just show track, but not listening events yet
                 }
@@ -758,7 +765,7 @@ public partial class ExperimentManager : MonoBehaviour
                 {
                     walkingStateTrigger.enabled = false; // This is standing context.
                 }
-                
+
                 _state = State.Preparing;
                 HandlePreparingState(nameof(OnServerSaidPrepare));
                 break;
@@ -784,9 +791,10 @@ public partial class ExperimentManager : MonoBehaviour
                     trialsFinished.Invoke(); // and call "finished"
                     break;
                 } */
-                if (_runConfig.isMetronomeTraining || _runConfig.context == Context.Walking)
+                if (_runConfig.isMetronomeTraining || IsMovingContext(_runConfig.context))
                 {
                     // We have to wait for the participant to enter the track (no matter if this is training with metronome or not)
+                    SetMetronomeTempo(_runConfig.context);
                     metronome.enabled = true;
                     listeningTrackEventsFlag = true;
                     _state = State.AwaitingParticipantEnterTrack;
@@ -978,6 +986,11 @@ public partial class ExperimentManager : MonoBehaviour
         }
     }
 
+    private void SetMetronomeTempo(Context context)
+    {
+        if (_runConfig.context == Context.Walking) metronome.SetTempo(walkingTempo);
+        if (_runConfig.context == Context.Jogging) metronome.SetTempo(joggingTempo);
+    }
     private void HandleAwaitingServerValidationOfLastTrialState(string eventName)
     {
         switch (eventName)
@@ -1012,6 +1025,7 @@ public partial class ExperimentManager : MonoBehaviour
                     var NextWalkingTrial = new Action(() =>
                     {
                         selectorProjector.enabled = true;
+                        SetMetronomeTempo(_runConfig.context);
                         metronome.enabled = true;
                         listeningTrackEventsFlag = true;
                         targetsManager.EnsureTargetsShown();
@@ -1047,6 +1061,7 @@ public partial class ExperimentManager : MonoBehaviour
                 else
                 {
                     selectorProjector.enabled = true;
+                    SetMetronomeTempo(_runConfig.context);
                     metronome.enabled = true;
                     listeningTrackEventsFlag = true;
                     targetsManager.EnsureTargetsShown();
@@ -1102,6 +1117,7 @@ partial class ExperimentManager
     {
         Standing,
         Walking,
+        Jogging
     }
 
     public enum ExperimentReferenceFrame

@@ -237,7 +237,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
             else
             {
                 var type = runConfigs[i].isTraining ? "Training" : "Trial\t";
-                var context = runConfigs[i].context == ExperimentManager.Context.Standing ? "Standing" : "Walking";
+                var context = Enum.GetName(typeof(ExperimentManager.Context), runConfigs[i].context);
                 var refFrame = Enum.GetName(typeof(ExperimentManager.ExperimentReferenceFrame), runConfigs[i].referenceFrame);
                 line = $"{type}\t\t{context}\t\t\t{refFrame}";
             }
