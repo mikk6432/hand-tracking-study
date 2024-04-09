@@ -11,10 +11,28 @@ public class PlaceTrack : MonoBehaviour
     [SerializeField] private float trackDistanceAboveGround = 0.01f;
     private void Update()
     {
-        /*         if (OVRInput.Get(OVRInput.RawButton.Y))
+        GameObject floor = null;
+        RaycastHit[] hits = Physics.RaycastAll(headset.transform.position, Vector3.down);
+        if (hits.Length > 0)
+        {
+            Debug.Log($"Raycast hit {hits.Length} objects:");
+            foreach (RaycastHit hit in hits)
+            {
+                Debug.Log("Hit object: " + hit.collider.gameObject.name);
+                if (hit.collider.gameObject.name == "Quad")
                 {
-                    PlaceTrackAndLightsForwardFromHeadset();
-                } */
+                    floor = hit.collider.gameObject.transform.parent.gameObject;
+                }
+            }
+        }
+        else
+        {
+            Debug.Log("No objects hit by the raycast.");
+        }
+        if (floor != null)
+        {
+            transform.position = new Vector3(transform.position.x, floor.transform.position.y, transform.position.z);
+        }
     }
 
     public void PlaceTrackAndLightsForwardFromHeadset()
@@ -41,7 +59,6 @@ public class PlaceTrack : MonoBehaviour
         var floorHeight = 0f;
         if (floor != null)
         {
-            gameObject.transform.SetParent(floor.transform);
             floorHeight = floor.transform.position.y;
         }
         // Set track as child to floor
