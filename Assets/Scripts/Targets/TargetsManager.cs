@@ -159,10 +159,10 @@ public class TargetsManager : MonoBehaviour
     [Serializable]
     public class TargetDiameter
     {
-        public float small = 0.02f;
-        public float medium = 0.03f;
-        public float big = 0.04f;
-        public float veryBig = 0.05f;
+        public float small = 0.03f;
+        public float medium = 0.04f;
+        public float big = 0.05f;
+        public float veryBig = 0.06f;
     }
 
     [SerializeField] private TargetDiameter targetDiameters = new();

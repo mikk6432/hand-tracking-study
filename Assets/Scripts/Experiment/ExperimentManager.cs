@@ -722,7 +722,7 @@ public partial class ExperimentManager : MonoBehaviour
         switch (eventName)
         {
             case nameof(OnServerSaidPrepare):
-                /* if (_runConfig.isPlacingComfortYAndZ)
+                /* if (_runConfig.isInitialStandingTraining)
                 {
                     ActualizeHands();
                     _state = State.Preparing;
@@ -786,7 +786,7 @@ public partial class ExperimentManager : MonoBehaviour
                 UpdatePathRefFrames();
                 break;
             case nameof(OnServerSaidStart):
-                /* if (_runConfig.isPlacingComfortYAndZ)
+                /* if (_runConfig.isInitialStandingTraining)
                 {
                     UpdatePathRefFrames();
                     _state = State.Idle;
@@ -1175,9 +1175,9 @@ partial class ExperimentManager
         // not fitting project architecture, but we are short of time
         // used for participant to place with his hand where he would comfortably set UI path-referenced (Z offset from headset and Y offset from floor)
         // after "start" command, fixes that offsets and calls "trialsFinished" to make server to go to next step
-        public readonly bool isPlacingComfortYAndZ;
+        public readonly bool isInitialStandingTraining;
 
-        public RunConfig(int participantID, bool leftHanded, bool isMetronomeTraining, bool isTraining, Context context, ExperimentReferenceFrame referenceFrame, bool isPlacingComfortYAndZ)
+        public RunConfig(int participantID, bool leftHanded, bool isMetronomeTraining, bool isTraining, Context context, ExperimentReferenceFrame referenceFrame, bool isInitialStandingTraining)
         {
             this.participantID = participantID;
             this.leftHanded = leftHanded;
@@ -1185,7 +1185,7 @@ partial class ExperimentManager
             this.isTraining = isTraining;
             this.context = context;
             this.referenceFrame = referenceFrame;
-            this.isPlacingComfortYAndZ = isPlacingComfortYAndZ;
+            this.isInitialStandingTraining = isInitialStandingTraining;
         }
     }
 

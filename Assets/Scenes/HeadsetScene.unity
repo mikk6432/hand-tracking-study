@@ -552,7 +552,7 @@ MonoBehaviour:
     xReference: {fileID: 0}
     xOffset: 0
     yReference: {fileID: 7670004145894168435}
-    yOffset: -0.3
+    yOffset: -0.35
     zReference: {fileID: 144727615}
     zOffset: 0.35
   offsetRotation: {x: 40, y: 0, z: 0}
@@ -6376,10 +6376,10 @@ MonoBehaviour:
   SpecifiedTargetSize: 0
   trial: 0
   targetDiameters:
-    small: 0.02
-    medium: 0.03
-    big: 0.04
-    veryBig: 0.05
+    small: 0.03
+    medium: 0.04
+    big: 0.05
+    veryBig: 0.06
   Hand: 1
   LeftHands:
   - {fileID: 421041424}
