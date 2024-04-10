@@ -482,7 +482,7 @@ public partial class ExperimentManager : MonoBehaviour
 
     private bool IsMovingContext(Context context)
     {
-        return context == Context.Walking || context == Context.Jogging;
+        return context == Context.Walking; // || context == Context.Jogging;
     }
 
     private void LogHighFrequencyRow()
@@ -1014,7 +1014,7 @@ public partial class ExperimentManager : MonoBehaviour
     private void SetMetronomeTempo(Context context)
     {
         if (_runConfig.context == Context.Walking) metronome.SetTempo(walkingTempo);
-        if (_runConfig.context == Context.Jogging) metronome.SetTempo(joggingTempo);
+        // if (_runConfig.context == Context.Jogging) metronome.SetTempo(joggingTempo);
     }
     private void HandleAwaitingServerValidationOfLastTrialState(string eventName)
     {
@@ -1142,8 +1142,8 @@ partial class ExperimentManager
     public enum Context
     {
         Standing,
-        Walking,
-        Jogging
+        Walking
+        // Jogging
     }
 
     public enum ExperimentReferenceFrame

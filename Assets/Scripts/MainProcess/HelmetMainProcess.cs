@@ -31,14 +31,13 @@ public class HelmetMainProcess : ExperimentNetworkClient
 
         var numberOfRefs = Enum.GetNames(typeof(ExperimentManager.ExperimentReferenceFrame)).Length;
         var numberOfContexts = Enum.GetNames(typeof(ExperimentManager.Context)).Length;
-        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + 3); // times 2 for training/trial and plus 3 for training steps
+        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + 2); // times 2 for training/trial and plus 3 for training steps
 
         var refFrames = Enum.GetValues(typeof(ExperimentManager.ExperimentReferenceFrame));
         var latinSquaredNotTrainings = Math.balancedLatinSquare(
             refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Standing)).ToArray().Concat(
-                refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Walking)).ToArray().Concat(
-                    refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Jogging)).ToArray()
-            )).ToArray(),
+                refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Walking)).ToArray()
+            ).ToArray(),
             participantId);
 
         var turnIntoTraining = new Func<ExperimentManager.RunConfig, ExperimentManager.RunConfig>
@@ -65,15 +64,15 @@ public class HelmetMainProcess : ExperimentNetworkClient
             false
             ));
 
-        var firstJoggingIndex = FirstIndexOfSpecificContext(ref result, ExperimentManager.Context.Jogging);
-        result.Insert(firstJoggingIndex, new ExperimentManager.RunConfig(participantId, leftHanded,
-            true, // indicates this is training with metronome
-                  // now below parameters don't matter
-            true,
-            ExperimentManager.Context.Jogging,
-            ExperimentManager.ExperimentReferenceFrame.PalmReferenced,
-            false
-            ));
+        // var firstJoggingIndex = FirstIndexOfSpecificContext(ref result, ExperimentManager.Context.Jogging);
+        // result.Insert(firstJoggingIndex, new ExperimentManager.RunConfig(participantId, leftHanded,
+        //     true, // indicates this is training with metronome
+        //           // now below parameters don't matter
+        //     true,
+        //     ExperimentManager.Context.Jogging,
+        //     ExperimentManager.ExperimentReferenceFrame.PalmReferenced,
+        //     false
+        //     ));
 
         // Insert standing training run config, using whatever reference frame is first. 
         // This is the initial training for the user to get familiar with the selection task.
