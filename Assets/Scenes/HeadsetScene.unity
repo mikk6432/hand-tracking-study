@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.17501816, g: 0.21896845, b: 0.30123302, a: 1}
+  m_IndirectSpecularColor: {r: 0.17511052, g: 0.21907169, b: 0.301371, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -552,7 +552,7 @@ MonoBehaviour:
     xReference: {fileID: 0}
     xOffset: 0
     yReference: {fileID: 7670004145894168435}
-    yOffset: -0.3
+    yOffset: -0.35
     zReference: {fileID: 144727615}
     zOffset: 0.35
   offsetRotation: {x: 40, y: 0, z: 0}
@@ -2617,7 +2617,7 @@ MonoBehaviour:
   walkingDirection: {fileID: 144727615}
   standingDirection: {fileID: 144727615}
   metronome: {fileID: 1131295527209713352}
-  walkingTempo: 90
+  walkingTempo: 100
   joggingTempo: 140
   errorIndicator: {fileID: 1675554207}
   headset: {fileID: 349804814}

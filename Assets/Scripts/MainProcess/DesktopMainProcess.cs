@@ -226,9 +226,10 @@ public class DesktopMainProcess : ExperimentNetworkServer
         for (int i = 0; i < runConfigs.Length; i++)
         {
             var line = "";
-            if (runConfigs[i].isPlacingComfortYAndZ)
+            if (runConfigs[i].isInitialStandingTraining)
             {
-                line = "Placing UI where participant feel comfort";
+                var refFrame = Enum.GetName(typeof(ExperimentManager.ExperimentReferenceFrame), runConfigs[i].referenceFrame);
+                line = $"Initial target selection training ({refFrame})";
             }
             else if (runConfigs[i].isMetronomeTraining)
             {

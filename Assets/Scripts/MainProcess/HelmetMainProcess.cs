@@ -31,14 +31,13 @@ public class HelmetMainProcess : ExperimentNetworkClient
 
         var numberOfRefs = Enum.GetNames(typeof(ExperimentManager.ExperimentReferenceFrame)).Length;
         var numberOfContexts = Enum.GetNames(typeof(ExperimentManager.Context)).Length;
-        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + 2); // times 2 for training/trial and plus 1 for metronomeTraining
+        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + 2); // times 2 for training/trial and plus 3 for training steps
 
         var refFrames = Enum.GetValues(typeof(ExperimentManager.ExperimentReferenceFrame));
         var latinSquaredNotTrainings = Math.balancedLatinSquare(
             refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Standing)).ToArray().Concat(
-                refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Walking)).ToArray().Concat(
-                    refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Jogging)).ToArray()
-            )).ToArray(),
+                refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Walking)).ToArray()
+            ).ToArray(),
             participantId);
 
         var turnIntoTraining = new Func<ExperimentManager.RunConfig, ExperimentManager.RunConfig>
@@ -65,17 +64,19 @@ public class HelmetMainProcess : ExperimentNetworkClient
             false
             ));
 
-        var firstJoggingIndex = FirstIndexOfSpecificContext(ref result, ExperimentManager.Context.Jogging);
-        result.Insert(firstJoggingIndex, new ExperimentManager.RunConfig(participantId, leftHanded,
-            true, // indicates this is training with metronome
-                  // now below parameters don't matter
-            true,
-            ExperimentManager.Context.Jogging,
-            ExperimentManager.ExperimentReferenceFrame.PalmReferenced,
-            false
-            ));
-        // now insert run config, which consists of just one step for the participant – please, place UI where it will be comfortable for you
-        // result.Insert(0, new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ExperimentManager.Context.Standing, ExperimentManager.ExperimentReferenceFrame.PathReferenced, true));
+        // var firstJoggingIndex = FirstIndexOfSpecificContext(ref result, ExperimentManager.Context.Jogging);
+        // result.Insert(firstJoggingIndex, new ExperimentManager.RunConfig(participantId, leftHanded,
+        //     true, // indicates this is training with metronome
+        //           // now below parameters don't matter
+        //     true,
+        //     ExperimentManager.Context.Jogging,
+        //     ExperimentManager.ExperimentReferenceFrame.PalmReferenced,
+        //     false
+        //     ));
+
+        // Insert standing training run config, using whatever reference frame is first. 
+        // This is the initial training for the user to get familiar with the selection task.
+        result.Insert(0, new ExperimentManager.RunConfig(participantId, leftHanded, false, true, ExperimentManager.Context.Standing, result[0].referenceFrame, true));
 
         return result.ToArray();
     }
@@ -117,10 +118,10 @@ public class HelmetMainProcess : ExperimentNetworkClient
         participantPrefs = ParticipantPrefs.ForParticipant(participantId);
 
         int indexOfMetronomeTraining = _runConfigs.ToList().FindIndex(config => config.isMetronomeTraining);
-        int indexOfComfortUIPlacement = _runConfigs.ToList().FindIndex(config => config.isPlacingComfortYAndZ);
+        int indexOfInitialTraining = _runConfigs.ToList().FindIndex(config => config.isInitialStandingTraining);
         long bitmap = participantPrefs.doneBitmap;
         bitmap = Bitmap.SetFalse(bitmap, indexOfMetronomeTraining);
-        bitmap = Bitmap.SetFalse(bitmap, indexOfComfortUIPlacement);
+        bitmap = Bitmap.SetFalse(bitmap, indexOfInitialTraining);
         participantPrefs.doneBitmap = bitmap;
     }
 
