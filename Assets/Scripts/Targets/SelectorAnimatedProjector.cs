@@ -20,6 +20,13 @@ public class SelectorAnimatedProjector : MonoBehaviour
 
     public Transform Selector;
 
+    [SerializeField] private TargetsManager targetsManager;
+
+    private void Start()
+    {
+        targetsManager.click.AddListener(PlaySound);
+    }
+
     private void OnEnable()
     {
         if (!Selector) enabled = false;
@@ -64,8 +71,8 @@ public class SelectorAnimatedProjector : MonoBehaviour
         if (isInside.insideCollider != prevIsInside.insideCollider)
             ApplyColor(isInside.insideCollider);
 
-        bool selectNow = isInside.insideCollider && !prevIsInside.insideCollider;
-        if (selectNow) PlaySound();
+        /* bool selectNow = isInside.insideCollider && !prevIsInside.insideCollider;
+        if (selectNow) PlaySound(); */
 
         ApplyDistance(isInside.distanceToOXY);
         ApplyPosition();

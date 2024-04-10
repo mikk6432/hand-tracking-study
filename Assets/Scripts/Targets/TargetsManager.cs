@@ -238,7 +238,21 @@ public class TargetsManager : MonoBehaviour
         if (Anchor && Anchor.activeInHierarchy)
             transform.SetPositionAndRotation(Anchor.transform.position, Anchor.transform.rotation);
         var selector = Hand == Handed.Right ? RightIndexFinger : LeftIndexFinger;
-        var (_, local) = Math.ProjectPointOntoOXYPlane(transform, selector.transform.position);
+        var (world, local) = Math.ProjectPointOntoOXYPlane(transform, selector.transform.position);
+        var fromSelectorToProjection = selector.transform.position - world;
+        var distanceToOXY = fromSelectorToProjection.magnitude;
+        var colliderBox = GetComponent<BoxCollider>().size;
+        if (IsSelectorInsideCollider && (distanceToOXY > transform.position.z * 3 || !(Mathf.Abs(local.x) < colliderBox.x / 2 &&
+                     Mathf.Abs(local.y) < colliderBox.y / 2)))
+        {
+            IsSelectorInsideCollider = false;
+            if (ActiveTarget.targetIndex != -1)
+            {
+                _targetToRendererComponentMap[ActiveTarget.target].material.color = _inactiveColor;
+                ActiveTarget = (null, -1);
+                selectorExitedWrongSide.Invoke();
+            }
+        }
         _targetToRendererComponentMap.ToList().ForEach(pair =>
         {
             var (target, renderer) = pair;
@@ -313,13 +327,16 @@ public class TargetsManager : MonoBehaviour
         }
     }
 
+    public readonly UnityEvent click = new();
+
     private void OnTriggerEnter(Collider other)
     {
         if (!other.gameObject.CompareTag("Selector")) return;
-        IsSelectorInsideCollider = true;
 
         if (!IsShowingTargets) return;
         if (ActiveTarget.targetIndex == -1) return;
+
+        if (IsSelectorInsideCollider) return;
 
         // plenty of math then
         var projection = Math.ProjectPointOntoOXYPlane(transform, other.transform.position);
@@ -348,7 +365,11 @@ public class TargetsManager : MonoBehaviour
             success
         );
 
+        click.Invoke();
+
         LastSelectionData = payload;
+
+        IsSelectorInsideCollider = true;
 
         selectorEnteredTargetsZone.Invoke();
     }
@@ -356,19 +377,11 @@ public class TargetsManager : MonoBehaviour
     private void OnTriggerExit(Collider other)
     {
         if (!other.gameObject.CompareTag("Selector")) return;
-        IsSelectorInsideCollider = false;
+
+        if (!IsSelectorInsideCollider) return;
 
         if (!IsShowingTargets) return;
         if (ActiveTarget.targetIndex == -1) return;
-
-        var rendererComponent = _targetToRendererComponentMap[ActiveTarget.target];
-        // a bit dirty solution. Used, when at the moment of activating the target, selector was inside the collider
-        bool isNotSelectionEnd = rendererComponent.material.color == _activeColor || rendererComponent.material.color == _activeHoverColor;
-        if (isNotSelectionEnd) return; // do nothing in this situation and wait for the selection
-
-        rendererComponent.material.color = _inactiveColor;
-
-        ActiveTarget = (null, -1);
 
         var selectorPosition = other.transform.position;
         var (world, local) = Math.ProjectPointOntoOXYPlane(transform, selectorPosition);
@@ -376,14 +389,19 @@ public class TargetsManager : MonoBehaviour
         var fromSelectorToProjection = selectorPosition - world;
 
         var side = Vector3.Dot(transform.forward, fromSelectorToProjection) >= 0;
-        if (side)
+        if (!side)
         {
-            selectorExitedWrongSide.Invoke();
+            SelectingEnded();
         }
-        else
-        {
-            selectorExitedTargetsZone.Invoke();
-        }
+    }
+
+    public void SelectingEnded()
+    {
+        var rendererComponent = _targetToRendererComponentMap[ActiveTarget.target];
+        rendererComponent.material.color = _inactiveColor;
+        ActiveTarget = (null, -1);
+        IsSelectorInsideCollider = false;
+        selectorExitedTargetsZone.Invoke();
     }
 
     public static IEnumerator<TargetSizeVariant> GenerateTargetSizesSequence(int seed, bool isTraining = false)

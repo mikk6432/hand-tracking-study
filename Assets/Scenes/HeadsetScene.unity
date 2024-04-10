@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.17501818, g: 0.21896836, b: 0.30123314, a: 1}
+  m_IndirectSpecularColor: {r: 0.17501816, g: 0.21896845, b: 0.30123302, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -2617,6 +2617,8 @@ MonoBehaviour:
   walkingDirection: {fileID: 144727615}
   standingDirection: {fileID: 144727615}
   metronome: {fileID: 1131295527209713352}
+  walkingTempo: 90
+  joggingTempo: 140
   errorIndicator: {fileID: 1675554207}
   headset: {fileID: 349804814}
   neckBase: {fileID: 743015852}
@@ -5060,6 +5062,7 @@ MonoBehaviour:
   _audio: {fileID: 4377938979454564804}
   _selectSound: {fileID: 8300000, guid: 1ffaf877133f44b4ab48b1e65819f6e3, type: 3}
   Selector: {fileID: 1902125967}
+  targetsManager: {fileID: 7803013022128659565}
 --- !u!4 &2354130663980561205
 Transform:
   m_ObjectHideFlags: 0
@@ -6368,9 +6371,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   diameter: 0.15
-  selectorExitedWrongSide:
-    m_PersistentCalls:
-      m_Calls: []
   targetPrefab: {fileID: 1673176625174218644, guid: b1b7d524e0e324864b593081bba8860a, type: 3}
   Anchor: {fileID: 1894410977}
   SpecifiedTargetSize: 0
