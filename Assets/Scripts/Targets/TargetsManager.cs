@@ -242,8 +242,8 @@ public class TargetsManager : MonoBehaviour
         var fromSelectorToProjection = selector.transform.position - world;
         var distanceToOXY = fromSelectorToProjection.magnitude;
         var colliderBox = GetComponent<BoxCollider>().size;
-        if (IsSelectorInsideCollider && (distanceToOXY > transform.position.z * 3 || !(Mathf.Abs(local.x) < colliderBox.x / 2 &&
-                     Mathf.Abs(local.y) < colliderBox.y / 2)))
+        if (IsSelectorInsideCollider && !(Mathf.Abs(local.x) < colliderBox.x / 2 &&
+                     Mathf.Abs(local.y) < colliderBox.y / 2))
         {
             IsSelectorInsideCollider = false;
             if (ActiveTarget.targetIndex != -1)

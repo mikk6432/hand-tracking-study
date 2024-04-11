@@ -134,6 +134,9 @@ public class DesktopMainProcess : ExperimentNetworkServer
                 error = (message as MessageFromHelmet.UnexpectedError)?.errorMessage;
                 Render();
                 break;
+            case MessageFromHelmet.Code.UserError:
+                Debug.LogWarning(message);
+                break;
             case MessageFromHelmet.Code.RequestTrialValidation:
                 awaitingValidation = true;
                 Render();

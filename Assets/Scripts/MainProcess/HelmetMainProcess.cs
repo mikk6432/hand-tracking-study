@@ -138,6 +138,10 @@ public class HelmetMainProcess : ExperimentNetworkClient
         {
             Send(new MessageFromHelmet.UnexpectedError(error));
         });
+        experimentManager.userMistake.AddListener((error) =>
+        {
+            Send(new MessageFromHelmet.UserError(error));
+        });
         experimentManager.trialsFinished.AddListener(() =>
         {
             long bitmap = participantPrefs.doneBitmap;
