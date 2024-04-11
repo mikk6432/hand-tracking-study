@@ -56,25 +56,32 @@ public class ReferenceFrame : MonoBehaviour
         );
     }
 
+    private float Offset(Vector3 from, Vector3 to, Vector3 direction)
+    {
+        var distance = to - from;
+        var distanceInDirection = Vector3.Dot(distance, direction);
+        return distanceInDirection;
+    }
+
     public void UpdateReferenceFrame(Transform newPosition)
     {
-        var temp = new GameObject("temp");
-        temp.transform.position = new Vector3(0, 0, 0);
-        temp.transform.rotation = locallyPositionedTo.transform.rotation;
         if (offsetReference.xReference != null)
         {
-            var distance = newPosition.position - (positionReference.x ?? locallyPositionedTo).transform.position;
-            offsetReference.xOffset = temp.transform.InverseTransformPoint(distance).x;
+            var anchor = (positionReference.x ?? locallyPositionedTo).transform.position;
+            var referenceAxis = offsetReference.xReference.transform.right;
+            offsetReference.xOffset = Offset(anchor, newPosition.position, referenceAxis);
         }
         if (offsetReference.yReference != null)
         {
-            var distance = newPosition.position - (positionReference.y ?? locallyPositionedTo).transform.position;
-            offsetReference.yOffset = temp.transform.InverseTransformPoint(distance).y;
+            var anchor = (positionReference.y ?? locallyPositionedTo).transform.position;
+            var referenceAxis = offsetReference.yReference.transform.up;
+            offsetReference.yOffset = Offset(anchor, newPosition.position, referenceAxis);
         }
         if (offsetReference.zReference != null)
         {
-            var distance = newPosition.position - (positionReference.z ?? locallyPositionedTo).transform.position;
-            offsetReference.zOffset = temp.transform.InverseTransformPoint(distance).z;
+            var anchor = (positionReference.z ?? locallyPositionedTo).transform.position;
+            var referenceAxis = offsetReference.zReference.transform.forward;
+            offsetReference.zOffset = Offset(anchor, newPosition.position, referenceAxis);
         }
         var rotation = Quaternion.Euler(
             (rotationReference.x ?? new GameObject()).transform.rotation.eulerAngles.x,

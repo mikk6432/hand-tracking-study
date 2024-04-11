@@ -12,6 +12,7 @@ public partial class ExperimentManager : MonoBehaviour
     public readonly UnityEvent trialsFinished = new();
     public readonly UnityEvent requestTrialValidation = new();
     public readonly UnityEvent<string> unexpectedErrorOccured = new();
+    public readonly UnityEvent<string> userMistake = new();
 
     private State _state;
     private RunConfig _runConfig;
@@ -109,16 +110,17 @@ public partial class ExperimentManager : MonoBehaviour
     [Space]
     [SerializeField] private Metronome metronome;
     [SerializeField] private uint walkingTempo = 90;
-    [SerializeField] private uint joggingTempo = 140;
+    //[SerializeField] private uint joggingTempo = 140;
     [SerializeField] private GameObject errorIndicator;
 
-    void ShowErrorToParticipant()
+    void ShowErrorToParticipant(string msg)
     {
         // var headsetTransform = headset.transform;
         // var errorPosition = headsetTransform.position + headsetTransform.forward * 0.5f;
         // errorIndicator.transform.SetPositionAndRotation(errorPosition, headsetTransform.rotation);
 
         // we assume that errorIndicator is child of headset with just forward offset about 0.5 meters.
+        userMistake.Invoke(msg);
         errorIndicator.SetActive(true); // will be set inactive automatically 
     }
     #endregion
@@ -824,8 +826,10 @@ public partial class ExperimentManager : MonoBehaviour
             case nameof(OnParticipantFinishedTrack):
                 break; // this is ok. Good job, participant! Move on!
             case nameof(OnParticipantSlowedDown):
+                ShowErrorToParticipant("Participant slowed down.");
+                break;
             case nameof(OnParticipantSwervedOffTrack):
-                ShowErrorToParticipant();
+                ShowErrorToParticipant("Participant swerved off track.");
                 break;
             case nameof(OnServerSaidFinishTraining):
                 listeningTrackEventsFlag = false;
@@ -876,7 +880,7 @@ public partial class ExperimentManager : MonoBehaviour
                 }
                 break;
             case nameof(OnSelectorExitedWrongSide):
-                ShowErrorToParticipant();
+                ShowErrorToParticipant("Selector exited wrong side.");
                 _targetsSelected = _selectionsValidated;
                 if (!_runConfig.isTraining)
                 {
@@ -939,10 +943,40 @@ public partial class ExperimentManager : MonoBehaviour
                 StartSelectingPipeline();
                 break;
             case nameof(OnParticipantFinishedTrack):
+                ShowErrorToParticipant("Participant finished track early.");
+                targetsManager.EnsureNoActiveTargets();
+
+                _targetsSelected = _selectionsValidated;
+
+                if (!_runConfig.isTraining)
+                {
+                    highFrequencyLoggingIsOnFlag = false;
+                    _selectionsLogger.ClearUnsavedData();
+                    _highFrequencyLogger.ClearUnsavedData();
+                }
+
+                CancelInvoke(nameof(OnCountdownFinished)); // curious situation, when participant has run the whole track before countdown finished
+                _state = State.AwaitingParticipantEnterTrack;
+                break;
             case nameof(OnParticipantSlowedDown):
+                ShowErrorToParticipant("Participant slowed down.");
+                targetsManager.EnsureNoActiveTargets();
+
+                _targetsSelected = _selectionsValidated;
+
+                if (!_runConfig.isTraining)
+                {
+                    highFrequencyLoggingIsOnFlag = false;
+                    _selectionsLogger.ClearUnsavedData();
+                    _highFrequencyLogger.ClearUnsavedData();
+                }
+
+                CancelInvoke(nameof(OnCountdownFinished)); // curious situation, when participant has run the whole track before countdown finished
+                _state = State.AwaitingParticipantEnterTrack;
+                break;
             case nameof(OnParticipantSwervedOffTrack):
                 // participant has to select all targets first. We assume this as an error 
-                ShowErrorToParticipant();
+                ShowErrorToParticipant("Participant swerved off trackn.");
                 targetsManager.EnsureNoActiveTargets();
 
                 _targetsSelected = _selectionsValidated;
@@ -988,7 +1022,7 @@ public partial class ExperimentManager : MonoBehaviour
                 break;
             case nameof(OnSelectorExitedWrongSide):
                 // participant has to select all targets first. We assume this as an error 
-                ShowErrorToParticipant();
+                ShowErrorToParticipant("Selector exited wrong side.");
                 _targetsSelected = _selectionsValidated;
                 if (!_runConfig.isTraining)
                 {
@@ -1066,7 +1100,7 @@ public partial class ExperimentManager : MonoBehaviour
             case nameof(OnServerInvalidatedTrial):
                 // server said no (as usual, because participant has walked without metronome)
                 // Let's clearUnsavedData in loggers (if this is not training) and rerun trial with this size once more
-                ShowErrorToParticipant();
+                ShowErrorToParticipant("Server invalidated trial. Please, try again.");
 
                 _targetsSelected = _selectionsValidated;
 
