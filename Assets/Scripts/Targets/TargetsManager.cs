@@ -242,7 +242,7 @@ public class TargetsManager : MonoBehaviour
         var fromSelectorToProjection = selector.transform.position - world;
         var distanceToOXY = fromSelectorToProjection.magnitude;
         var colliderBox = GetComponent<BoxCollider>().size;
-        /* if (IsSelectorInsideCollider && (distanceToOXY > transform.position.z * 3 || !(Mathf.Abs(local.x) < colliderBox.x / 2 &&
+        if (IsSelectorInsideCollider && (distanceToOXY > transform.position.z * 3 || !(Mathf.Abs(local.x) < colliderBox.x / 2 &&
                      Mathf.Abs(local.y) < colliderBox.y / 2)))
         {
             IsSelectorInsideCollider = false;
@@ -252,7 +252,7 @@ public class TargetsManager : MonoBehaviour
                 ActiveTarget = (null, -1);
                 selectorExitedWrongSide.Invoke();
             }
-        } */
+        }
         _targetToRendererComponentMap.ToList().ForEach(pair =>
         {
             var (target, renderer) = pair;
@@ -336,8 +336,7 @@ public class TargetsManager : MonoBehaviour
         if (!IsShowingTargets) return;
         if (ActiveTarget.targetIndex == -1) return;
 
-        //if (IsSelectorInsideCollider) return;
-        IsSelectorInsideCollider = true;
+        if (IsSelectorInsideCollider) return;
 
         // plenty of math then
         var projection = Math.ProjectPointOntoOXYPlane(transform, other.transform.position);
@@ -379,13 +378,12 @@ public class TargetsManager : MonoBehaviour
     {
         if (!other.gameObject.CompareTag("Selector")) return;
 
-        //if (!IsSelectorInsideCollider) return;
-        IsSelectorInsideCollider = false;
+        if (!IsSelectorInsideCollider) return;
 
         if (!IsShowingTargets) return;
         if (ActiveTarget.targetIndex == -1) return;
 
-        /* var selectorPosition = other.transform.position;
+        var selectorPosition = other.transform.position;
         var (world, local) = Math.ProjectPointOntoOXYPlane(transform, selectorPosition);
 
         var fromSelectorToProjection = selectorPosition - world;
@@ -394,8 +392,7 @@ public class TargetsManager : MonoBehaviour
         if (!side)
         {
             SelectingEnded();
-        } */
-        SelectingEnded();
+        }
     }
 
     public void SelectingEnded()
