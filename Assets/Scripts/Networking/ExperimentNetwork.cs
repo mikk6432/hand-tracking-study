@@ -117,6 +117,7 @@ public class ExperimentNetwork : MonoBehaviour
             ValidateTrial,
             InvalidateTrial,
             PlaceTrackAndLight,
+            showHeadsetAdjustmentText,
         }
 
         public readonly Code code;
@@ -192,6 +193,22 @@ public class ExperimentNetwork : MonoBehaviour
             public override string ToString()
             {
                 return base.ToString() + $", index={index}";
+            }
+        }
+
+        [Serializable]
+        public class ToggleShowHeadsetAdjustmentText : MessageToHelmet
+        {
+            public readonly bool shouldShow;
+
+            public ToggleShowHeadsetAdjustmentText(bool _shouldShow) : base(Code.showHeadsetAdjustmentText)
+            {
+                shouldShow = _shouldShow;
+            }
+
+            public override string ToString()
+            {
+                return base.ToString() + $", shouldShow={shouldShow}";
             }
         }
 

@@ -26,6 +26,10 @@ public partial class ExperimentManager : MonoBehaviour
         targetsManager.selectorExitedWrongSide.AddListener(OnSelectorExitedWrongSide);
         metronome.enabled = false;
 
+        // Start app with track and cube invisible
+        targetsManager.hideCube();
+        walkingStateTrigger.enabled = false;
+
         walkingStateTrigger.ParticipantEntered.AddListener(OnParticipantEnteredTrack);
         walkingStateTrigger.ParticipantSwervedOff.AddListener(OnParticipantSwervedOffTrack);
         walkingStateTrigger.ParticipantSlowedDown.AddListener(OnParticipantSlowedDown);
@@ -93,6 +97,8 @@ public partial class ExperimentManager : MonoBehaviour
         return TargetsManager.GenerateTargetsIndexesSequence();
     }
     #endregion
+
+    [SerializeField] private GameObject hmdAdjustmentText;
 
     #region Track & Light stuff
     [Space]
@@ -1174,6 +1180,18 @@ public partial class ExperimentManager : MonoBehaviour
     }
     public void OnServerValidatedTrial() => HandleState(nameof(OnServerValidatedTrial));
     public void OnServerInvalidatedTrial() => HandleState(nameof(OnServerInvalidatedTrial));
+    public void OnToggleHeadsetAdjustmentText(bool shouldShow)
+    {
+        if (shouldShow)
+        {
+            targetsManager.hideCube();
+        }
+        else
+        {
+            targetsManager.showCube();
+        }
+        hmdAdjustmentText.gameObject.SetActive(shouldShow);
+    }
     #endregion
 }
 

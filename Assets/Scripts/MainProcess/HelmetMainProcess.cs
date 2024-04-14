@@ -317,6 +317,10 @@ public class HelmetMainProcess : ExperimentNetworkClient
             case MessageToHelmet.Code.PlaceTrackAndLight:
                 FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
                 break;
+            case MessageToHelmet.Code.showHeadsetAdjustmentText:
+                bool shouldShow = (message as MessageToHelmet.ToggleShowHeadsetAdjustmentText).shouldShow;
+                experimentManager.OnToggleHeadsetAdjustmentText(shouldShow);
+                break;
             default:
                 throw new ArgumentException($"It seems you have implemented a new message from helmet but forget to handle in {nameof(Receive)} method");
         }
