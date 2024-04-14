@@ -35,6 +35,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
     [SerializeField] private Button validateButton;
     [SerializeField] private Button invalidateButton;
     [SerializeField] private Button placeLightAndTrack;
+    [SerializeField] private Toggle showHeadsetAdjustmentText;
 
     private bool connected = false;
 
@@ -68,6 +69,11 @@ public class DesktopMainProcess : ExperimentNetworkServer
         finishTrainingButton.onClick.AddListener(() => Send(new MessageToHelmet.FinishTrainingStep(pointer)));
 
         placeLightAndTrack.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.PlaceTrackAndLight)));
+
+        showHeadsetAdjustmentText.onValueChanged.AddListener((value) =>
+        {
+            Send(new MessageToHelmet.ToggleShowHeadsetAdjustmentText(value));
+        });
 
         decrementPointerButton.onClick.AddListener(() =>
         {
