@@ -9,6 +9,7 @@ public class CircleTrack : MonoBehaviour
     [SerializeField] public float halfTrackWidth = 1f;
     [SerializeField] private Transform inner;
     [SerializeField] private Transform outer;
+    [SerializeField] private Transform startingPosition;
     [SerializeField] private Transform _headset;
 
     private float innerRadius;
@@ -19,13 +20,16 @@ public class CircleTrack : MonoBehaviour
         outerRadius = halfTrackLength + halfTrackWidth;
         inner.localScale = new Vector3(innerRadius * 2, 0.01f, innerRadius * 2);
         outer.localScale = new Vector3(outerRadius * 2, 0.01f, outerRadius * 2);
+        startingPosition.localPosition = new Vector3(0, 0.01f, halfTrackLength);
+        startingPosition.localScale = new Vector3(halfTrackWidth * 2, 0.01f, halfTrackWidth * 2);
     }
     public (bool withinLength, bool withinWidth) IsInsideTheTrack()
     {
         // Transform the head's position to the coordinate system of the track
         var floorPos = new Vector3(_headset.position.x, 0, _headset.position.z);
         var distance = Vector3.Distance(floorPos, transform.position);
-        return (distance < outerRadius && distance > innerRadius, distance < outerRadius && distance > innerRadius);
+        var onStart = Vector3.Distance(floorPos, startingPosition.position) < halfTrackWidth;
+        return (!onStart && distance < outerRadius && distance > innerRadius, distance < outerRadius && distance > innerRadius);
     }
 
     public Transform WalkingDirection()
