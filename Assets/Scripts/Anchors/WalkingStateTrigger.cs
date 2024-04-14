@@ -5,13 +5,17 @@ using UnityEngine.Events;
 
 public class WalkingStateTrigger : MonoBehaviour
 {
-    [SerializeField] public float halfTrackLength = 2.75f;
-    [SerializeField] public float halfTrackWidth = 0.35f;
     [SerializeField] public float repeatRate = 1f; // Every second
 
     [SerializeField] private Transform _headset;
-    private Transform westBorder;
-    private Transform eastBorder;
+
+    public ExperimentManager.Context track = ExperimentManager.Context.Standing;
+
+    [SerializeField] private GameObject standing;
+    [SerializeField] private GameObject circleTrack;
+    [SerializeField] private GameObject straightTrack;
+    [SerializeField] private CircleTrack circleTrackObj;
+    [SerializeField] private StraightTrack straightTrackObj;
 
     [SerializeField, Tooltip("Minimum walking speed which is considered acceptable in meters per second")]
     private float _thresholdSpeed = 1f;
@@ -26,61 +30,47 @@ public class WalkingStateTrigger : MonoBehaviour
     private (bool withinLength, bool withinWidth) _prevLocation;
     private Vector3 _prevCoords;
 
-    private void Start()
-    {
-        // set length of children
-        westBorder.localScale = new Vector3(0.05f, 0.01f, halfTrackLength * 2);
-        eastBorder.localScale = new Vector3(0.05f, 0.01f, halfTrackLength * 2);
-        // set position of children
-        westBorder.localPosition = new Vector3(-halfTrackWidth, 0.01f, 0);
-        eastBorder.localPosition = new Vector3(halfTrackWidth, 0.01f, 0);
-    }
-
-    private void Awake()
-    {
-        westBorder = transform.Find("West Border");
-        eastBorder = transform.Find("East Border");
-
-        if (westBorder == null)
-        {
-            Debug.LogError($"{nameof(westBorder)}: object not found in children");
-            enabled = false;
-            return;
-        }
-        if (eastBorder == null)
-        {
-            Debug.LogError($"{nameof(eastBorder)}: object not found in children");
-            enabled = false;
-            return;
-        }
-        if (_headset == null)
-        {
-            Debug.LogError($"{nameof(WalkingStateTrigger)}: _headset is not provided. Disabling the script");
-            enabled = false;
-            return;
-        }
-    }
-
     private void OnEnable()
     {
         _walking = false;
         _prevLocation = (false, false);
 
-        westBorder.gameObject.SetActive(true);
-        eastBorder.gameObject.SetActive(true);
+        standing.SetActive(false);
+
+        if (track == ExperimentManager.Context.Circle)
+        {
+            circleTrack.SetActive(true);
+            FindObjectOfType<SimplifiedWalkingDirection>().track = ExperimentManager.Context.Circle;
+        }
+        else if (track == ExperimentManager.Context.Walking)
+        {
+            straightTrack.SetActive(true);
+            FindObjectOfType<SimplifiedWalkingDirection>().track = ExperimentManager.Context.Walking;
+        }
+        else
+        {
+            standing.SetActive(true);
+            FindObjectOfType<SimplifiedWalkingDirection>().track = ExperimentManager.Context.Standing;
+        }
+
 
         ParticipantEntered.AddListener(OnParticipantEntered);
         ParticipantFinished.AddListener(OnWalkingDone);
         ParticipantSwervedOff.AddListener(OnWalkingDone);
         ParticipantSlowedDown.AddListener(OnWalkingDone);
 
-        _prevLocation = IsInsideTheTrack();
+        _prevLocation = track == ExperimentManager.Context.Circle
+            ? circleTrackObj.IsInsideTheTrack()
+            : track == ExperimentManager.Context.Walking ? straightTrackObj
+            .IsInsideTheTrack() : (withinLength: false, withinWidth: false);
     }
 
     private void OnDisable()
     {
-        westBorder.gameObject.SetActive(false);
-        eastBorder.gameObject.SetActive(false);
+        circleTrack.SetActive(false);
+        straightTrack.SetActive(false);
+        standing.SetActive(true);
+        FindObjectOfType<SimplifiedWalkingDirection>().track = ExperimentManager.Context.Standing;
 
         ParticipantEntered.RemoveListener(OnParticipantEntered);
         ParticipantFinished.RemoveListener(OnWalkingDone);
@@ -89,8 +79,12 @@ public class WalkingStateTrigger : MonoBehaviour
 
     private void Update()
     {
-        var currentLocation = IsInsideTheTrack();
-
+        if (track == ExperimentManager.Context.Standing)
+            return;
+        var currentLocation = track == ExperimentManager.Context.Circle
+            ? circleTrackObj.IsInsideTheTrack()
+            : track == ExperimentManager.Context.Walking ? straightTrackObj
+            .IsInsideTheTrack() : (withinLength: false, withinWidth: false);
         // If the participant crosses the start line from outside the track
         if (!_prevLocation.withinLength && currentLocation.withinWidth && currentLocation.withinLength)
             ParticipantEntered.Invoke();
@@ -104,15 +98,6 @@ public class WalkingStateTrigger : MonoBehaviour
             ParticipantFinished.Invoke();
 
         _prevLocation = currentLocation;
-    }
-
-    private (bool withinLength, bool withinWidth) IsInsideTheTrack()
-    {
-        // Transform the head's position to the coordinate system of the track
-        Vector3 localPos = transform.InverseTransformPoint(_headset.position);
-
-        return (Mathf.Abs(localPos.z) < halfTrackLength,
-            Mathf.Abs(localPos.x) < halfTrackWidth);
     }
 
     private void CheckWalkingSpeed()

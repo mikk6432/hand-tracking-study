@@ -56,7 +56,7 @@ public class PlaceTrack : MonoBehaviour
             floorHeight = floor.transform.position.y;
         }
         // Set track as child to floor
-        float halfTrackLength = GetComponent<WalkingStateTrigger>().halfTrackLength;
+        float halfTrackLength = FindObjectOfType<CircleTrack>()?.halfTrackLength ?? FindObjectOfType<StraightTrack>()?.halfTrackLength ?? 0;
         position += rotation * new Vector3(0, floorHeight + trackDistanceAboveGround, halfTrackLength + .3f); // half track length and small offset more 
         transform.SetPositionAndRotation(position, rotation);
 

@@ -30,6 +30,7 @@ public partial class ExperimentManager : MonoBehaviour
         walkingStateTrigger.ParticipantSwervedOff.AddListener(OnParticipantSwervedOffTrack);
         walkingStateTrigger.ParticipantSlowedDown.AddListener(OnParticipantSlowedDown);
         walkingStateTrigger.ParticipantFinished.AddListener(OnParticipantFinishedTrack);
+        walkingStateTrigger.enabled = false;
     }
 
     private void OnDestroy()
@@ -95,7 +96,8 @@ public partial class ExperimentManager : MonoBehaviour
 
     #region Track & Light stuff
     [Space]
-    [SerializeField] private GameObject track;
+    [SerializeField] private GameObject straightTrack;
+    [SerializeField] private GameObject circleTrack;
     [SerializeField] private GameObject sceneLight; // remark: we interpret it as track in standing context. Hand Ref and path ref depend on it, actually
 
     [SerializeField] private WalkingStateTrigger walkingStateTrigger;
@@ -484,7 +486,7 @@ public partial class ExperimentManager : MonoBehaviour
 
     private bool IsMovingContext(Context context)
     {
-        return context == Context.Walking; // || context == Context.Jogging;
+        return context == Context.Walking || context == Context.Circle; // || context == Context.Jogging;
     }
 
     private void LogHighFrequencyRow()
@@ -507,7 +509,7 @@ public partial class ExperimentManager : MonoBehaviour
         row.SetColumnValue("SystemClockTimestampMs", (int)(now - activateFirstTargetMoment).TotalMilliseconds);
 
 
-        var trackTransform = IsMovingContext(_runConfig.context) ? track.transform : sceneLight.transform;
+        var trackTransform = _runConfig.context == Context.Walking ? straightTrack.transform : _runConfig.context == Context.Circle ? circleTrack.transform : sceneLight.transform;
         LogObjectTransform("Track", trackTransform);
 
         var walkingDirectionTransform = IsMovingContext(_runConfig.context) ? walkingDirection.transform : standingDirection.transform;
@@ -732,6 +734,8 @@ public partial class ExperimentManager : MonoBehaviour
                 } */
                 if (_runConfig.isMetronomeTraining)
                 {
+
+                    walkingStateTrigger.track = _runConfig.context;
                     walkingStateTrigger.enabled = true; // just show track, but not listening events yet
                     _state = State.Preparing;
                     targetsManager.hideCube();
@@ -763,6 +767,8 @@ public partial class ExperimentManager : MonoBehaviour
 
                 if (IsMovingContext(_runConfig.context))
                 {
+
+                    walkingStateTrigger.track = _runConfig.context;
                     walkingStateTrigger.enabled = true; // This is walking context. Just show track, but not listening events yet
                 }
                 else
@@ -1047,7 +1053,7 @@ public partial class ExperimentManager : MonoBehaviour
 
     private void SetMetronomeTempo(Context context)
     {
-        if (_runConfig.context == Context.Walking) metronome.SetTempo(walkingTempo);
+        if (IsMovingContext(_runConfig.context)) metronome.SetTempo(walkingTempo);
         // if (_runConfig.context == Context.Jogging) metronome.SetTempo(joggingTempo);
     }
     private void HandleAwaitingServerValidationOfLastTrialState(string eventName)
@@ -1176,8 +1182,9 @@ partial class ExperimentManager
     public enum Context
     {
         Standing,
-        Walking
+        Walking,
         // Jogging
+        Circle
     }
 
     public enum ExperimentReferenceFrame

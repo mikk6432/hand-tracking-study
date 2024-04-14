@@ -5,8 +5,10 @@ public class SimplifiedWalkingDirection : MonoBehaviour
     [SerializeField]
     private Transform _headset;
     [SerializeField]
-    [Tooltip("The game object along which the participant walk")]
-    private Transform _track;
+    private CircleTrack circularTrack;
+    [SerializeField] private StraightTrack straightTrack;
+    [SerializeField] private Transform standing;
+    public ExperimentManager.Context track = ExperimentManager.Context.Standing;
 
     private void Start()
     {
@@ -17,21 +19,28 @@ public class SimplifiedWalkingDirection : MonoBehaviour
             enabled = false;
             return;
         }
-
-        if (_track == null)
-        {
-            Debug.LogError($"{nameof(SimplifiedWalkingDirection)}: the '{nameof(_track)}' object cannot be left unassigned. Disabling the script");
-            enabled = false;
-            return;
-        }
     }
 
     private void Update()
     {
+        if (track == ExperimentManager.Context.Circle)
+        {
+            var t = circularTrack.WalkingDirection();
+            transform.rotation = t.rotation;
+            transform.position = t.position;
+            return;
+        }
+        if (track == ExperimentManager.Context.Walking)
+        {
+            var t = straightTrack.WalkingDirection();
+            transform.rotation = t.rotation;
+            transform.position = t.position;
+            return;
+        }
         // Check which direction, relative to the track orientation, the user is looking
-        bool sameDirection = Vector3.Dot(_headset.forward, _track.forward) >= 0;
+        bool sameDirection = Vector3.Dot(_headset.forward, standing.forward) >= 0;
         // Always parallel to the track
-        transform.rotation = Quaternion.LookRotation(sameDirection ? _track.forward : -_track.forward);
-        transform.position = _track.position;
+        transform.rotation = Quaternion.LookRotation(sameDirection ? standing.forward : -standing.forward);
+        transform.position = standing.position;
     }
 }

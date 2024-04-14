@@ -34,11 +34,16 @@ public class HelmetMainProcess : ExperimentNetworkClient
         var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + 2); // times 2 for training/trial and plus 3 for training steps
 
         var refFrames = Enum.GetValues(typeof(ExperimentManager.ExperimentReferenceFrame));
-        var latinSquaredNotTrainings = Math.balancedLatinSquare(
-            refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Standing)).ToArray().Concat(
-                refFrames.Cast<ExperimentManager.ExperimentReferenceFrame>().Select(rf => generateNotTrainingRunConfig(rf, ExperimentManager.Context.Walking)).ToArray()
-            ).ToArray(),
-            participantId);
+        var contexts = Enum.GetValues(typeof(ExperimentManager.Context));
+        var allExperiments = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts);
+        foreach (ExperimentManager.ExperimentReferenceFrame rf in refFrames)
+        {
+            foreach (ExperimentManager.Context ctx in contexts)
+            {
+                allExperiments.Add(generateNotTrainingRunConfig(rf, ctx));
+            }
+        }
+        var latinSquaredNotTrainings = Math.balancedLatinSquare(allExperiments.ToArray(), participantId);
 
         var turnIntoTraining = new Func<ExperimentManager.RunConfig, ExperimentManager.RunConfig>
             (config => new ExperimentManager.RunConfig(config.participantID, config.leftHanded, false, true,
@@ -64,6 +69,17 @@ public class HelmetMainProcess : ExperimentNetworkClient
             false
             ));
 
+        // adding training to go with metronome
+        var secondWalkingIndex = FirstIndexOfSpecificContext(ref result, ExperimentManager.Context.Circle);
+        result.Insert(secondWalkingIndex, new ExperimentManager.RunConfig(participantId, leftHanded,
+            true, // indicates this is training with metronome
+                  // now below parameters don't matter
+            true,
+            ExperimentManager.Context.Circle,
+            ExperimentManager.ExperimentReferenceFrame.PalmReferenced,
+            false
+            ));
+
         // var firstJoggingIndex = FirstIndexOfSpecificContext(ref result, ExperimentManager.Context.Jogging);
         // result.Insert(firstJoggingIndex, new ExperimentManager.RunConfig(participantId, leftHanded,
         //     true, // indicates this is training with metronome
@@ -76,7 +92,7 @@ public class HelmetMainProcess : ExperimentNetworkClient
 
         // Insert standing training run config, using whatever reference frame is first. 
         // This is the initial training for the user to get familiar with the selection task.
-        result.Insert(0, new ExperimentManager.RunConfig(participantId, leftHanded, false, true, ExperimentManager.Context.Standing, result[0].referenceFrame, true));
+        result.Insert(0, new ExperimentManager.RunConfig(participantId, leftHanded, false, true, ExperimentManager.Context.Standing, latinSquaredNotTrainings[0].referenceFrame, true));
 
         return result.ToArray();
     }
