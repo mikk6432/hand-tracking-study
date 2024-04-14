@@ -20,7 +20,7 @@ public class CircleTrack : MonoBehaviour
         outerRadius = halfTrackLength + halfTrackWidth;
         inner.localScale = new Vector3(innerRadius * 2, 0.01f, innerRadius * 2);
         outer.localScale = new Vector3(outerRadius * 2, 0.01f, outerRadius * 2);
-        startingPosition.localPosition = new Vector3(0, 0.0005f, halfTrackLength);
+        startingPosition.localPosition = new Vector3(0, 0.0005f, -halfTrackLength);
         startingPosition.localScale = new Vector3(halfTrackWidth * 2, 0.01f, halfTrackWidth * 2);
     }
     public (bool withinLength, bool withinWidth) IsInsideTheTrack()
