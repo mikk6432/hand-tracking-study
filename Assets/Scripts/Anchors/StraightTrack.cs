@@ -18,14 +18,15 @@ public class StraightTrack : MonoBehaviour
         return (Mathf.Abs(localPos.z) < halfTrackLength,
             Mathf.Abs(localPos.x) < halfTrackWidth);
     }
-    public Transform WalkingDirection()
+    public Transform WalkingDirection(Transform _headset)
     {
         // Check which direction, relative to the track orientation, the user is looking
         bool sameDirection = Vector3.Dot(_headset.forward, transform.parent.forward) >= 0;
         // Always parallel to the track
         var result = new GameObject().transform;
+        var headsetLocally = transform.parent.InverseTransformPoint(_headset.position);
         result.rotation = Quaternion.LookRotation(sameDirection ? transform.parent.forward : -transform.parent.forward);
-        result.position = transform.parent.position;
+        result.position = transform.parent.position + transform.parent.rotation * new Vector3(0, 0, headsetLocally.z);
         return result;
 
     }

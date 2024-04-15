@@ -26,18 +26,18 @@ public class CircleTrack : MonoBehaviour
     public (bool withinLength, bool withinWidth) IsInsideTheTrack()
     {
         // Transform the head's position to the coordinate system of the track
-        var floorPos = new Vector3(_headset.position.x, 0, _headset.position.z);
+        var floorPos = new Vector3(_headset.position.x, transform.parent.position.y, _headset.position.z);
         var distance = Vector3.Distance(floorPos, transform.position);
         var onStart = Vector3.Distance(floorPos, startingPosition.position) < halfTrackWidth;
         return (!onStart && distance < outerRadius && distance > innerRadius, distance < outerRadius && distance > innerRadius);
     }
 
-    public Transform WalkingDirection()
+    public Transform WalkingDirection(Transform _headset)
     {
         var centerToHeadset = _headset.position - transform.parent.position;
-        centerToHeadset.y = 0;
+        centerToHeadset.y = transform.parent.position.y;
         // rotate to the left by 90 degrees
-        var centerToHeadsetLeft = new Vector3(centerToHeadset.z, 0, -centerToHeadset.x);
+        var centerToHeadsetLeft = new Vector3(centerToHeadset.z, transform.parent.position.y, -centerToHeadset.x);
         var sameDirection = Vector3.Dot(_headset.forward, centerToHeadsetLeft);
         // Always parallel to the track
         var result = new GameObject().transform;

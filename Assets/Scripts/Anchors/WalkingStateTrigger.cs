@@ -40,17 +40,29 @@ public class WalkingStateTrigger : MonoBehaviour
         if (track == ExperimentManager.Context.Circle)
         {
             circleTrack.SetActive(true);
-            FindObjectOfType<SimplifiedWalkingDirection>().track = ExperimentManager.Context.Circle;
+            var simplifiedWalkingDirections = FindObjectsOfType<SimplifiedWalkingDirection>();
+            foreach (var swd in simplifiedWalkingDirections)
+            {
+                swd.track = ExperimentManager.Context.Circle;
+            }
         }
         else if (track == ExperimentManager.Context.Walking)
         {
             straightTrack.SetActive(true);
-            FindObjectOfType<SimplifiedWalkingDirection>().track = ExperimentManager.Context.Walking;
+            var simplifiedWalkingDirections = FindObjectsOfType<SimplifiedWalkingDirection>();
+            foreach (var swd in simplifiedWalkingDirections)
+            {
+                swd.track = ExperimentManager.Context.Walking;
+            }
         }
         else
         {
             standing.SetActive(true);
-            FindObjectOfType<SimplifiedWalkingDirection>().track = ExperimentManager.Context.Standing;
+            var simplifiedWalkingDirections = FindObjectsOfType<SimplifiedWalkingDirection>();
+            foreach (var swd in simplifiedWalkingDirections)
+            {
+                swd.track = ExperimentManager.Context.Standing;
+            }
         }
 
 
@@ -70,7 +82,11 @@ public class WalkingStateTrigger : MonoBehaviour
         circleTrack.SetActive(false);
         straightTrack.SetActive(false);
         standing.SetActive(true);
-        FindObjectOfType<SimplifiedWalkingDirection>().track = ExperimentManager.Context.Standing;
+        var simplifiedWalkingDirections = FindObjectsOfType<SimplifiedWalkingDirection>();
+        foreach (var swd in simplifiedWalkingDirections)
+        {
+            swd.track = ExperimentManager.Context.Standing;
+        }
 
         ParticipantEntered.RemoveListener(OnParticipantEntered);
         ParticipantFinished.RemoveListener(OnWalkingDone);
