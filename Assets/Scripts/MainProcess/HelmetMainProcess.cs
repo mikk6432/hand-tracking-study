@@ -35,15 +35,24 @@ public class HelmetMainProcess : ExperimentNetworkClient
 
         var refFrames = Enum.GetValues(typeof(ExperimentManager.ExperimentReferenceFrame));
         var contexts = Enum.GetValues(typeof(ExperimentManager.Context));
-        var allExperiments = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts);
+        var counterbalancedExperiments = new List<ExperimentManager.RunConfig>(numberOfRefs);
         foreach (ExperimentManager.ExperimentReferenceFrame rf in refFrames)
         {
-            foreach (ExperimentManager.Context ctx in contexts)
+            counterbalancedExperiments.Add(generateNotTrainingRunConfig(rf, ExperimentManager.Context.Standing));
+        }
+        var latinSquaredNotTrainings = Math.balancedLatinSquare(counterbalancedExperiments.ToArray(), participantId);
+        var allExperiments = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts);
+        for (int i = 0; i < refFrames.Length; i++)
+        {
+            var rf = latinSquaredNotTrainings[i].referenceFrame;
+            var seed = participantId * 10 + (int)rf;
+            var random = new System.Random(seed);
+            var randomized = contexts.Cast<ExperimentManager.Context>().OrderBy(x => random.Next()).ToArray();
+            foreach (var ctx in randomized)
             {
                 allExperiments.Add(generateNotTrainingRunConfig(rf, ctx));
             }
         }
-        var latinSquaredNotTrainings = Math.balancedLatinSquare(allExperiments.ToArray(), participantId);
 
         var turnIntoTraining = new Func<ExperimentManager.RunConfig, ExperimentManager.RunConfig>
             (config => new ExperimentManager.RunConfig(config.participantID, config.leftHanded, false, true,
@@ -51,7 +60,7 @@ public class HelmetMainProcess : ExperimentNetworkClient
 
         // adding training and not trainings with reference frames
         int added = 0;
-        foreach (var notTrainingConfig in latinSquaredNotTrainings)
+        foreach (var notTrainingConfig in allExperiments)
         {
             result.Insert(added, turnIntoTraining(notTrainingConfig));
             result.Insert(added + 1, notTrainingConfig);
@@ -92,7 +101,8 @@ public class HelmetMainProcess : ExperimentNetworkClient
 
         // Insert standing training run config, using whatever reference frame is first. 
         // This is the initial training for the user to get familiar with the selection task.
-        result.Insert(0, new ExperimentManager.RunConfig(participantId, leftHanded, false, true, ExperimentManager.Context.Standing, latinSquaredNotTrainings[0].referenceFrame, true));
+        if (allExperiments[0].context != ExperimentManager.Context.Standing)
+            result.Insert(0, new ExperimentManager.RunConfig(participantId, leftHanded, false, true, ExperimentManager.Context.Standing, allExperiments[0].referenceFrame, true));
 
         return result.ToArray();
     }

@@ -404,9 +404,9 @@ public class TargetsManager : MonoBehaviour
         selectorExitedTargetsZone.Invoke();
     }
 
-    public static IEnumerator<TargetSizeVariant> GenerateTargetSizesSequence(int seed, bool isTraining = false)
+    public static IEnumerator<TargetSizeVariant> GenerateTargetSizesSequence(bool isTraining = false)
     {
-        var random = new System.Random(seed);
+        var random = new System.Random();
         var seq = new List<TargetSizeVariant>
             {
                 TargetSizeVariant.Small,

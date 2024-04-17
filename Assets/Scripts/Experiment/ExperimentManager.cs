@@ -85,12 +85,39 @@ public partial class ExperimentManager : MonoBehaviour
     [SerializeField] private SelectorAnimatedProjector selectorProjector;
     private bool listeningTargetsEventsFlag;
 
-    private static IEnumerator<TargetsManager.TargetSizeVariant> GenerateTargetSizesSequence(int participantId, ExperimentReferenceFrame referenceFrame, Context context, bool isTraining = false)
+    private static IEnumerator<TargetsManager.TargetSizeVariant> GenerateTargetSizesSequence(bool isTraining = false)
     {
-        var seed = participantId * 100
-                   + (int)referenceFrame * 10
-                   + (int)context;
-        return TargetsManager.GenerateTargetSizesSequence(seed, isTraining);
+        return TargetsManager.GenerateTargetSizesSequence(isTraining);
+    }
+
+    private static IEnumerator<TargetsManager.TargetSizeVariant> ReGenerateTargetSizesSequence(IEnumerator<TargetsManager.TargetSizeVariant> prev, bool isTraining = false)
+    {
+        if (isTraining) return prev;
+        var newSequence = GenerateTargetSizesSequence(isTraining);
+        var prevList = new List<TargetsManager.TargetSizeVariant>
+        {
+            prev.Current
+        };
+        while (prev.MoveNext())
+        {
+            prevList.Add(prev.Current);
+        }
+        var newSequenceList = new List<TargetsManager.TargetSizeVariant>();
+        while (newSequence.MoveNext())
+        {
+            foreach (var prevItem in prevList)
+            {
+                if (prevItem == newSequence.Current)
+                {
+                    newSequenceList.Add(newSequence.Current);
+                    break;
+                }
+            }
+        }
+        UnityEngine.Debug.Log("ReGenerated target sizes sequence");
+        UnityEngine.Debug.Log($"Prev: {string.Join(", ", prevList.Select(ts => ts.ToString()))}");
+        UnityEngine.Debug.Log($"New: {string.Join(", ", newSequenceList.Select(ts => ts.ToString()))}");
+        return newSequenceList.GetEnumerator();
     }
 
     private static IEnumerator<int> GenerateTargetsIndexesSequence()
@@ -686,6 +713,21 @@ public partial class ExperimentManager : MonoBehaviour
         targetsManager.showCube();
     }
 
+    private void HandleInvalid()
+    {
+        _targetsSelected = _selectionsValidated;
+        targetSizesSequence = ReGenerateTargetSizesSequence(targetSizesSequence, _runConfig.isTraining);
+        targetSizesSequence.MoveNext();
+        targetsManager.TargetSize = targetSizesSequence.Current;
+        targetsManager.EnsureTargetsShown();
+        if (!_runConfig.isTraining)
+        {
+            highFrequencyLoggingIsOnFlag = false;
+            _selectionsLogger.ClearUnsavedData();
+            _highFrequencyLogger.ClearUnsavedData();
+        }
+    }
+
     private void HandleState(string eventName = "")
     {
         try
@@ -754,7 +796,7 @@ public partial class ExperimentManager : MonoBehaviour
                 selectorProjector.Selector = dominantHandIndexTip.transform;
                 selectorProjector.enabled = true;
 
-                targetSizesSequence = GenerateTargetSizesSequence(_runConfig.participantID, _runConfig.referenceFrame, _runConfig.context, _runConfig.isTraining);
+                targetSizesSequence = GenerateTargetSizesSequence(_runConfig.isTraining);
                 targetSizesSequence.MoveNext();
                 targetsManager.TargetSize = targetSizesSequence.Current;
                 targetsManager.EnsureTargetsShown();
@@ -892,13 +934,7 @@ public partial class ExperimentManager : MonoBehaviour
                 break;
             case nameof(OnSelectorExitedWrongSide):
                 ShowErrorToParticipant("Selector exited wrong side.");
-                _targetsSelected = _selectionsValidated;
-                if (!_runConfig.isTraining)
-                {
-                    highFrequencyLoggingIsOnFlag = false;
-                    _selectionsLogger.ClearUnsavedData();
-                    _highFrequencyLogger.ClearUnsavedData();
-                }
+                HandleInvalid();
                 Invoke(nameof(OnCountdownFinished), GenerateTimeToActivateFirstTarget());
                 break;
             case nameof(OnServerSaidFinishTraining):
@@ -956,15 +992,7 @@ public partial class ExperimentManager : MonoBehaviour
             case nameof(OnParticipantFinishedTrack):
                 ShowErrorToParticipant("Participant finished track early.");
                 targetsManager.EnsureNoActiveTargets();
-
-                _targetsSelected = _selectionsValidated;
-
-                if (!_runConfig.isTraining)
-                {
-                    highFrequencyLoggingIsOnFlag = false;
-                    _selectionsLogger.ClearUnsavedData();
-                    _highFrequencyLogger.ClearUnsavedData();
-                }
+                HandleInvalid();
 
                 CancelInvoke(nameof(OnCountdownFinished)); // curious situation, when participant has run the whole track before countdown finished
                 _state = State.AwaitingParticipantEnterTrack;
@@ -972,15 +1000,7 @@ public partial class ExperimentManager : MonoBehaviour
             case nameof(OnParticipantSlowedDown):
                 ShowErrorToParticipant("Participant slowed down.");
                 targetsManager.EnsureNoActiveTargets();
-
-                _targetsSelected = _selectionsValidated;
-
-                if (!_runConfig.isTraining)
-                {
-                    highFrequencyLoggingIsOnFlag = false;
-                    _selectionsLogger.ClearUnsavedData();
-                    _highFrequencyLogger.ClearUnsavedData();
-                }
+                HandleInvalid();
 
                 CancelInvoke(nameof(OnCountdownFinished)); // curious situation, when participant has run the whole track before countdown finished
                 _state = State.AwaitingParticipantEnterTrack;
@@ -989,15 +1009,7 @@ public partial class ExperimentManager : MonoBehaviour
                 // participant has to select all targets first. We assume this as an error 
                 ShowErrorToParticipant("Participant swerved off trackn.");
                 targetsManager.EnsureNoActiveTargets();
-
-                _targetsSelected = _selectionsValidated;
-
-                if (!_runConfig.isTraining)
-                {
-                    highFrequencyLoggingIsOnFlag = false;
-                    _selectionsLogger.ClearUnsavedData();
-                    _highFrequencyLogger.ClearUnsavedData();
-                }
+                HandleInvalid();
 
                 CancelInvoke(nameof(OnCountdownFinished)); // curious situation, when participant has run the whole track before countdown finished
                 _state = State.AwaitingParticipantEnterTrack;
@@ -1040,14 +1052,10 @@ public partial class ExperimentManager : MonoBehaviour
             case nameof(OnSelectorExitedWrongSide):
                 // participant has to select all targets first. We assume this as an error 
                 ShowErrorToParticipant("Selector exited wrong side.");
-                _targetsSelected = _selectionsValidated;
-                if (!_runConfig.isTraining)
-                {
-                    highFrequencyLoggingIsOnFlag = false;
-                    _selectionsLogger.ClearUnsavedData();
-                    _highFrequencyLogger.ClearUnsavedData();
-                }
-                Invoke(nameof(OnCountdownFinished), GenerateTimeToActivateFirstTarget());
+                targetsManager.EnsureNoActiveTargets();
+                HandleInvalid();
+                CancelInvoke(nameof(OnCountdownFinished));
+                _state = State.AwaitingParticipantEnterTrack;
                 break;
             case nameof(OnServerSaidFinishTraining):
                 if (!_runConfig.isTraining) throw new ArgumentException($"{nameof(HandleSelectingTargetsWalkingState)}: Cannot stop trials");
@@ -1117,15 +1125,8 @@ public partial class ExperimentManager : MonoBehaviour
             case nameof(OnServerInvalidatedTrial):
                 // server said no (as usual, because participant has walked without metronome)
                 // Let's clearUnsavedData in loggers (if this is not training) and rerun trial with this size once more
-                ShowErrorToParticipant("Server invalidated trial. Please, try again.");
-
-                _targetsSelected = _selectionsValidated;
-
-                if (!_runConfig.isTraining)
-                {
-                    _selectionsLogger.ClearUnsavedData();
-                    _highFrequencyLogger.ClearUnsavedData();
-                }
+                // ShowErrorToParticipant("Server invalidated trial. Please, try again.");
+                HandleInvalid();
 
                 if (_runConfig.context == Context.Standing)
                 {

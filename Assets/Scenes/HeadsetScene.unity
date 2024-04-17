@@ -3386,7 +3386,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3cfe64dbeafee4b23adb7f3d51ab3269, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  halfTrackLength: 1.114
+  halfTrackLength: 0.5
   halfTrackWidth: 0.35
   inner: {fileID: 2051434691}
   outer: {fileID: 2075331938}
@@ -5949,7 +5949,7 @@ MonoBehaviour:
   straightTrack: {fileID: 7670004145894168435}
   circleTrackObj: {fileID: 963417753}
   straightTrackObj: {fileID: 6668710488290276007}
-  _thresholdSpeed: 0.5
+  _thresholdSpeed: 0.2
   ParticipantEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -8074,7 +8074,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d1119c8648a444762b9f99bfd670214b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  halfTrackLength: 3.5
+  halfTrackLength: 1
   halfTrackWidth: 0.35
   _headset: {fileID: 349804815}
 --- !u!1 &6697347046765393752
