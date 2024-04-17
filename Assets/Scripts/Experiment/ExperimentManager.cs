@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using UnityEngine;
@@ -55,7 +56,7 @@ public partial class ExperimentManager : MonoBehaviour
     {
         if (doOnNextUpdate != null)
         {
-            Debug.Log("Calling doOnNextUpdate and make it null");
+            UnityEngine.Debug.Log("Calling doOnNextUpdate and make it null");
             doOnNextUpdate();
             doOnNextUpdate = null;
         }
@@ -224,9 +225,9 @@ public partial class ExperimentManager : MonoBehaviour
     private int _targetsSelected;
     private int _selectionsValidated; // used only for walking trials to reset _targetsSelected when server responded with invalidate result
     private int _measurementId;
-    private DateTime activateFirstTargetMoment;
-    private DateTime selectFirstTargetMoment;
-    private DateTime selectPreviousTargetMoment;
+    private Stopwatch activateFirstTargetMoment;
+    private Stopwatch selectFirstTargetMoment;
+    private Stopwatch selectPreviousTargetMoment;
     private IEnumerator<TargetsManager.TargetSizeVariant> targetSizesSequence;
     private IEnumerator<int> targetsIndexesSequence;
 
@@ -439,22 +440,20 @@ public partial class ExperimentManager : MonoBehaviour
     {
         bool isFirstWithSuchSize = _targetsSelected % TargetsManager.TargetsCount == 1;
 
-        var now = DateTime.Now;
-
         int systemClockMilliseconds, selectionDurationMilliseconds;
         if (isFirstWithSuchSize)
         {
-            selectFirstTargetMoment = now;
+            selectFirstTargetMoment = Stopwatch.StartNew();
             systemClockMilliseconds = 0;
             selectionDurationMilliseconds = 0;
+            selectPreviousTargetMoment = Stopwatch.StartNew();
         }
         else
         {
-            systemClockMilliseconds = (int)(now - selectFirstTargetMoment).TotalMilliseconds;
-            selectionDurationMilliseconds = (int)(now - selectPreviousTargetMoment).TotalMilliseconds;
+            systemClockMilliseconds = (int)selectFirstTargetMoment.Elapsed.TotalMilliseconds;
+            selectionDurationMilliseconds = (int)selectPreviousTargetMoment.Elapsed.TotalMilliseconds;
+            selectPreviousTargetMoment.Restart();
         }
-
-        selectPreviousTargetMoment = now;
 
         var row = _selectionsLogger.CurrentRow;
 
@@ -470,7 +469,7 @@ public partial class ExperimentManager : MonoBehaviour
         row.SetColumnValue("TargetSize", selection.targetSize);
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
 
-        var currentTime = DateTime.Now;
+        var currentTime = DateTime.UtcNow;
 
         // time
         row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString("dd-MM-yyyy HH:mm:ss.ffffff", CultureInfo.InvariantCulture));
@@ -510,9 +509,9 @@ public partial class ExperimentManager : MonoBehaviour
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
 
         // time
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         row.SetColumnValue("HumanReadableTimestampUTC", now.ToString("dd-MM-yyyy HH:mm:ss.ffffff", CultureInfo.InvariantCulture));
-        row.SetColumnValue("SystemClockTimestampMs", (int)(now - activateFirstTargetMoment).TotalMilliseconds);
+        row.SetColumnValue("SystemClockTimestampMs", (int)activateFirstTargetMoment.Elapsed.TotalMilliseconds);
 
 
         var trackTransform = _runConfig.context == Context.Walking ? straightTrack.transform : _runConfig.context == Context.Circle ? circleTrack.transform : sceneLight.transform;
@@ -667,7 +666,7 @@ public partial class ExperimentManager : MonoBehaviour
         bool isTrial = !_runConfig.isTraining;
         if (isTrial)
         {
-            activateFirstTargetMoment = DateTime.Now;
+            activateFirstTargetMoment = Stopwatch.StartNew();
             highFrequencyLoggingIsOnFlag = true;
         }
     }
@@ -721,8 +720,8 @@ public partial class ExperimentManager : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError(e.Message);
-            Debug.LogError(e.StackTrace);
+            UnityEngine.Debug.LogError(e.Message);
+            UnityEngine.Debug.LogError(e.StackTrace);
             unexpectedErrorOccured.Invoke(e.Message);
         }
     }
@@ -1028,7 +1027,13 @@ public partial class ExperimentManager : MonoBehaviour
                     targetsManager.EnsureTargetsHidden();
 
                     if (_runConfig.isTraining) Invoke(nameof(OnServerValidatedTrial), 2f); // imitating, always success for training
-                    else requestTrialValidation.Invoke();
+                    else
+                    {
+                        requestTrialValidation.Invoke();
+                        activateFirstTargetMoment.Stop();
+                        selectFirstTargetMoment.Stop();
+                        selectPreviousTargetMoment.Stop();
+                    }
                     _state = State.AwaitingServerValidationOfLastTrial;
                 }
                 break;
