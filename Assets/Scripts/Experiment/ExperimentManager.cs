@@ -745,6 +745,12 @@ public partial class ExperimentManager : MonoBehaviour
 
     private void HandleInvalid()
     {
+        if (_runConfig.isMetronomeTraining)
+        {
+            UpdateDirectionArrow();
+            directionArrow.SetActive(true);
+            return;
+        }
         _targetsSelected = _selectionsValidated;
         targetSizesSequence = ReGenerateTargetSizesSequence(targetSizesSequence, _runConfig.isTraining);
         targetSizesSequence.MoveNext();
