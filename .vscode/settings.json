@@ -8,7 +8,6 @@
         "**/*.asset": true,
         "**/*.booproj": true,
         "**/*.cubemap": true,
-        "**/*.csproj": true,
         "**/*.dll": true,
         "**/*.exe": true,
         "**/*.fbx": true,

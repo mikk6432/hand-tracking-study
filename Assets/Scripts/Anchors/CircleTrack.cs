@@ -29,6 +29,7 @@ public class CircleTrack : MonoBehaviour
         outer.lengthOfC = startPosLength / halfTrackLength * outerRadius;
         inner.Render();
         outer.Render();
+        directionArrow.transform.localPosition = new Vector3(0, 0, -halfTrackLength);
         /* startingPosition.localPosition = new Vector3(0, 0.0005f, -halfTrackLength);
         startingPosition.localScale = new Vector3(halfTrackWidth * 2, 0.01f, halfTrackWidth * 2);*/
     }
