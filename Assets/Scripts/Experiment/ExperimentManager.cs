@@ -817,6 +817,7 @@ public partial class ExperimentManager : MonoBehaviour
                     walkingStateTrigger.track = _runConfig.context;
                     walkingStateTrigger.enabled = true; // just show track, but not listening events yet
                     UpdateDirectionArrow();
+                    directionArrow.SetActive(true);
                     _state = State.Preparing;
                     targetsManager.hideCube();
                     HandlePreparingState(nameof(OnServerSaidPrepare));
@@ -851,6 +852,7 @@ public partial class ExperimentManager : MonoBehaviour
                     walkingStateTrigger.track = _runConfig.context;
                     walkingStateTrigger.enabled = true; // This is walking context. Just show track, but not listening events yet
                     UpdateDirectionArrow();
+                    directionArrow.SetActive(true);
                 }
                 else
                 {
