@@ -10,6 +10,7 @@ public class CircleTrack : MonoBehaviour
     [SerializeField] public float startPosLength = 1f;
     [SerializeField] private Ring inner;
     [SerializeField] private Ring outer;
+    [SerializeField] private GameObject directionArrow;
     [SerializeField] private Transform _headset;
 
     private float innerRadius;

@@ -139,6 +139,35 @@ public partial class ExperimentManager : MonoBehaviour
 
     [SerializeField] private GameObject walkingDirection; // walking context (relative to track)
     [SerializeField] private GameObject standingDirection; // standing context (relative to light)
+    [SerializeField] private GameObject directionArrow;
+
+    private static CircleDirections GetRandomcircleDirection()
+    {
+        var random = new System.Random();
+        var values = Enum.GetValues(typeof(CircleDirections));
+
+        // Select a random value from the enum
+        CircleDirections randomDirection = (CircleDirections)values.GetValue(random.Next(values.Length));
+        return randomDirection;
+    }
+
+    public enum CircleDirections
+    {
+        Clockwise,
+        CounterClockwise,
+    }
+
+    private void UpdateDirectionArrow()
+    {
+        var newCircleDirection = GetRandomcircleDirection();
+        if (newCircleDirection != currentCircleDirection)
+        {
+            // Flip arrow
+            var transform = directionArrow.transform;
+            transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y + 180, transform.eulerAngles.z);
+        }
+        currentCircleDirection = newCircleDirection;
+    }
 
     #endregion
 
@@ -256,6 +285,7 @@ public partial class ExperimentManager : MonoBehaviour
     private Stopwatch selectFirstTargetMoment;
     private Stopwatch selectPreviousTargetMoment;
     private IEnumerator<TargetsManager.TargetSizeVariant> targetSizesSequence;
+    private CircleDirections currentCircleDirection;
     private IEnumerator<int> targetsIndexesSequence;
 
     private float GenerateTimeToActivateFirstTarget()
@@ -276,7 +306,8 @@ public partial class ExperimentManager : MonoBehaviour
         "SelectionID",
         
         // conditions
-        "Context", // Standing, Walking, Jogging
+        "Context", // Standing, Walking, Circle
+        "CircleDirection", // Clockwise, CounterClockwise
         "ReferenceFrame", // 0 – palmReferenced, 1 – handReferenced, 2 – pathReferenced 
         "TargetSize", // 0.015 or 0.025 or 0.035
         "DominantHand", // Which hand index tip selects targets. 0 – means right, 1 – means left
@@ -303,7 +334,8 @@ public partial class ExperimentManager : MonoBehaviour
         "MeasurementID", // increments every measurement (90Hz). Starts with 0
         
         // conditions
-        "Context", // Standing, Walking, Jogging
+        "Context", // Standing, Walking, Circle
+        "CircleDirection", // Clockwise, CounterClockwise
         "ReferenceFrame", // 0 – palmReferenced, 1 – handReferenced, 2 – pathReferenced
         "TargetSize", // 0.015 or 0.025 or 0.035
         "DominantHand", // Which hand index tip selects targets. 0 – means right, 1 – means left
@@ -492,6 +524,7 @@ public partial class ExperimentManager : MonoBehaviour
 
         // conditions
         row.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
+        row.SetColumnValue("CircleDirection", Enum.GetName(typeof(CircleDirections), currentCircleDirection));
         row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
         row.SetColumnValue("TargetSize", selection.targetSize);
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
@@ -531,6 +564,7 @@ public partial class ExperimentManager : MonoBehaviour
 
         // conditions
         row.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
+        row.SetColumnValue("CircleDirection", Enum.GetName(typeof(CircleDirections), currentCircleDirection));
         row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
         row.SetColumnValue("TargetSize", targetsManager.GetTargetDiameter(targetSizesSequence.Current));
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
@@ -726,6 +760,8 @@ public partial class ExperimentManager : MonoBehaviour
             _selectionsLogger.ClearUnsavedData();
             _highFrequencyLogger.ClearUnsavedData();
         }
+        UpdateDirectionArrow();
+        directionArrow.SetActive(true);
     }
 
     private void HandleState(string eventName = "")
@@ -784,6 +820,7 @@ public partial class ExperimentManager : MonoBehaviour
 
                     walkingStateTrigger.track = _runConfig.context;
                     walkingStateTrigger.enabled = true; // just show track, but not listening events yet
+                    UpdateDirectionArrow();
                     _state = State.Preparing;
                     targetsManager.hideCube();
                     HandlePreparingState(nameof(OnServerSaidPrepare));
@@ -814,9 +851,9 @@ public partial class ExperimentManager : MonoBehaviour
 
                 if (IsMovingContext(_runConfig.context))
                 {
-
                     walkingStateTrigger.track = _runConfig.context;
                     walkingStateTrigger.enabled = true; // This is walking context. Just show track, but not listening events yet
+                    UpdateDirectionArrow();
                 }
                 else
                 {
@@ -871,12 +908,18 @@ public partial class ExperimentManager : MonoBehaviour
         }
     }
 
+    private void ShowDirectionArrow() { directionArrow.SetActive(true); }
+
     private void HandleWalkingWithMetronomeTrainingState(string eventName)
     {
         switch (eventName)
         {
             case nameof(OnParticipantEnteredTrack):
+                break; // this is ok. Good job, participant! Move on!
             case nameof(OnParticipantFinishedTrack):
+                directionArrow.SetActive(false);
+                UpdateDirectionArrow();
+                Invoke(nameof(ShowDirectionArrow), 1.5f);
                 break; // this is ok. Good job, participant! Move on!
             case nameof(OnParticipantSlowedDown):
                 ShowErrorToParticipant("Participant slowed down.");
@@ -1034,6 +1077,7 @@ public partial class ExperimentManager : MonoBehaviour
                     highFrequencyLoggingIsOnFlag = false;
                     listeningTrackEventsFlag = false;
                     selectorProjector.enabled = false;
+                    directionArrow.SetActive(false);
 
                     metronome.enabled = false;
                     targetsManager.EnsureTargetsHidden();
@@ -1097,6 +1141,8 @@ public partial class ExperimentManager : MonoBehaviour
                 else
                 {
                     targetsManager.TargetSize = targetSizesSequence.Current;
+                    UpdateDirectionArrow();
+                    directionArrow.SetActive(true);
 
                     var NextStandingTrial = new Action(() =>
                     {
