@@ -167,6 +167,7 @@ public partial class ExperimentManager : MonoBehaviour
             transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y + 180, transform.eulerAngles.z);
         }
         currentCircleDirection = newCircleDirection;
+        UnityEngine.Debug.Log($"current arrow is: {directionArrow.transform.rotation.eulerAngles.y}");
     }
 
     #endregion
@@ -1002,6 +1003,11 @@ public partial class ExperimentManager : MonoBehaviour
             case nameof(OnParticipantSwervedOffTrack):
                 break; // These events can happen but we ignore them. We are interested only in "OnParticipantEnteredTrack" event
             case nameof(OnParticipantEnteredTrack):
+                Vector3 relativePosition = circleTrack.transform.InverseTransformPoint(headset.transform.position);
+                if (relativePosition.z > 0)
+                {
+                    HandleInvalid();
+                }
                 if (_runConfig.isMetronomeTraining)
                 {
                     _state = State.WalkingWithMetronomeTraining;
