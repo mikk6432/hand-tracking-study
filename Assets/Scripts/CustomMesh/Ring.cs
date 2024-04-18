@@ -41,8 +41,9 @@ public class Ring : MonoBehaviour
         ringGameObject = new GameObject();
         ringGameObject.AddComponent<MeshFilter>().sharedMesh = result2.mesh;
         ringGameObject.AddComponent<MeshRenderer>().material = material;
-        ringGameObject.transform.parent = transform;
+        ringGameObject.transform.parent = transform.parent;
         ringGameObject.transform.localPosition = Vector3.zero;
+        ringGameObject.transform.localRotation = Quaternion.identity;
     }
 
     private void Start()

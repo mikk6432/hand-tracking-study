@@ -744,7 +744,7 @@ public partial class ExperimentManager : MonoBehaviour
         walkingStateTrigger.enabled = false; // also hides track borders
         targetsManager.EnsureTargetsHidden();
         selectorProjector.enabled = false;
-        targetsManager.showCube();
+        targetsManager.hideCube();
     }
 
     private void HandleInvalid()
@@ -829,6 +829,7 @@ public partial class ExperimentManager : MonoBehaviour
                 UpdatePathRefFrames();
                 ActualizeHands();
                 ActualizeReferenceFrames();
+                targetsManager.showCube();
                 targetsManager.Anchor = activeRefFrame;
                 selectorProjector.Selector = dominantHandIndexTip.transform;
                 selectorProjector.enabled = true;
@@ -930,7 +931,6 @@ public partial class ExperimentManager : MonoBehaviour
             case nameof(OnServerSaidFinishTraining):
                 listeningTrackEventsFlag = false;
                 metronome.enabled = false;
-                targetsManager.showCube();
                 walkingStateTrigger.enabled = false; // also hides track borders
                 _state = State.Idle;
                 break;
@@ -1134,6 +1134,7 @@ public partial class ExperimentManager : MonoBehaviour
                     walkingStateTrigger.enabled = false;
                     SaveLoggersDataAsync(() =>
                     {
+                        targetsManager.hideCube();
                         trialsFinished.Invoke();
                         _state = State.Idle;
                     });
@@ -1234,14 +1235,6 @@ public partial class ExperimentManager : MonoBehaviour
     public void OnServerInvalidatedTrial() => HandleState(nameof(OnServerInvalidatedTrial));
     public void OnToggleHeadsetAdjustmentText(bool shouldShow)
     {
-        if (shouldShow)
-        {
-            targetsManager.hideCube();
-        }
-        else
-        {
-            targetsManager.showCube();
-        }
         hmdAdjustmentText.gameObject.SetActive(shouldShow);
     }
     #endregion
