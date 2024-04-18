@@ -520,15 +520,13 @@ public partial class ExperimentManager : MonoBehaviour
 
         // conditions
         row.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
-        row.SetColumnValue("CircleDirection",  _runConfig.context == Context.Circle ? Enum.GetName(typeof(CircleDirections), currentCircleDirection) : "");
+        row.SetColumnValue("CircleDirection", _runConfig.context == Context.Circle ? Enum.GetName(typeof(CircleDirections), currentCircleDirection) : "");
         row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
         row.SetColumnValue("TargetSize", selection.targetSize);
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
 
-        var currentTime = DateTime.UtcNow;
-
         // time
-        row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString("dd-MM-yyyy HH:mm:ss.ffffff", CultureInfo.InvariantCulture));
+        row.SetColumnValue("HumanReadableTimestampUTC", DateTime.UtcNow.ToString("dd-MM-yyyy HH:mm:ss.ffffff"));
         row.SetColumnValue("SystemClockTimestampMs", systemClockMilliseconds);
 
         // selection
@@ -560,14 +558,13 @@ public partial class ExperimentManager : MonoBehaviour
 
         // conditions
         row.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
-        row.SetColumnValue("CircleDirection",  _runConfig.context == Context.Circle ? Enum.GetName(typeof(CircleDirections), currentCircleDirection) : "");
+        row.SetColumnValue("CircleDirection", _runConfig.context == Context.Circle ? Enum.GetName(typeof(CircleDirections), currentCircleDirection) : "");
         row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
         row.SetColumnValue("TargetSize", targetsManager.GetTargetDiameter(targetSizesSequence.Current));
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
 
         // time
-        var now = DateTime.UtcNow;
-        row.SetColumnValue("HumanReadableTimestampUTC", now.ToString("dd-MM-yyyy HH:mm:ss.ffffff", CultureInfo.InvariantCulture));
+        row.SetColumnValue("HumanReadableTimestampUTC", DateTime.UtcNow.ToString("dd-MM-yyyy HH:mm:ss.ffffff"));
         row.SetColumnValue("SystemClockTimestampMs", (int)activateFirstTargetMoment.Elapsed.TotalMilliseconds);
 
 
@@ -1063,7 +1060,7 @@ public partial class ExperimentManager : MonoBehaviour
                 break;
             case nameof(OnParticipantSwervedOffTrack):
                 // participant has to select all targets first. We assume this as an error 
-                ShowErrorToParticipant("Participant swerved off trackn.");
+                ShowErrorToParticipant("Participant swerved off track.");
                 targetsManager.EnsureNoActiveTargets();
                 HandleInvalid();
 

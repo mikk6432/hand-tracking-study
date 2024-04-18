@@ -20,7 +20,8 @@ public class HelmetMainProcess : ExperimentNetworkClient
     {
         Idle, // "prepare" command was not given by server yet. ExperimentManager is in Idle state, actually
         Preparing, // yellow flag. "prepare" was given. Track(and light) were positioned, targets were shown, but not selectable yet
-        Running // ExperimentManager is running training/trial. If training, then stop will be called by server command. Otherwise, when participant will finish selecting all targets
+        Running, // ExperimentManager is running training/trial. If training, then stop will be called by server command. Otherwise, when participant will finish selecting all targets
+        Validation
     }
 
     public static ExperimentManager.RunConfig[] GenerateRunConfigs(int participantId, bool leftHanded)
@@ -178,7 +179,8 @@ public class HelmetMainProcess : ExperimentNetworkClient
         });
         experimentManager.requestTrialValidation.AddListener(() =>
         {
-            Send(new MessageFromHelmet(MessageFromHelmet.Code.RequestTrialValidation));
+            currentRunStage = RunStage.Validation;
+            SendSummary();
         });
     }
 
@@ -223,7 +225,7 @@ public class HelmetMainProcess : ExperimentNetworkClient
                 }
                 break;
             case MessageToHelmet.Code.PrepareNextRun:
-                if (currentRunStage == RunStage.Running)
+                if (currentRunStage == RunStage.Running || currentRunStage == RunStage.Validation)
                 {
                     Send(new MessageFromHelmet.InvalidOperation(
                         "Cannot prepare when is running"));
@@ -291,10 +293,11 @@ public class HelmetMainProcess : ExperimentNetworkClient
                 break;
             case MessageToHelmet.Code.ValidateTrial:
             case MessageToHelmet.Code.InvalidateTrial:
-                if (currentRunStage == RunStage.Running &&
+                if (currentRunStage == RunStage.Validation &&
                     !_runConfigs[currentRunningStepIndex].isTraining
                     )
                 {
+                    currentRunStage = RunStage.Running;
                     if (message.code == MessageToHelmet.Code.ValidateTrial)
                         experimentManager.OnServerValidatedTrial();
                     else experimentManager.OnServerInvalidatedTrial();

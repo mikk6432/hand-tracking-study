@@ -124,8 +124,9 @@ public class DesktopMainProcess : ExperimentNetworkServer
             case MessageFromHelmet.Code.ExperimentSummary:
                 Debug.Log(message);
                 summaryIndex++;
-                summary = (message as MessageFromHelmet.Summary);
+                summary = message as MessageFromHelmet.Summary;
                 error = null;
+                awaitingValidation = summary.stage == (int)HelmetMainProcess.RunStage.Validation;
                 if (summaryIndex == 1)
                     pointer = summary.index;
                 Render();
@@ -142,10 +143,6 @@ public class DesktopMainProcess : ExperimentNetworkServer
                 break;
             case MessageFromHelmet.Code.UserError:
                 Debug.LogWarning(message);
-                break;
-            case MessageFromHelmet.Code.RequestTrialValidation:
-                awaitingValidation = true;
-                Render();
                 break;
             default:
                 throw new ArgumentException($"It seems you have implemented a new message from helmet but forget to handle in {nameof(Receive)} method");
