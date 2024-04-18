@@ -160,14 +160,9 @@ public partial class ExperimentManager : MonoBehaviour
     private void UpdateDirectionArrow()
     {
         var newCircleDirection = GetRandomcircleDirection();
-        if (newCircleDirection != currentCircleDirection)
-        {
-            // Flip arrow
-            var transform = directionArrow.transform;
-            transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y + 180, transform.eulerAngles.z);
-        }
+        if (newCircleDirection == CircleDirections.Clockwise) directionArrow.transform.localEulerAngles = new Vector3(-90, 0, 0);
+        else directionArrow.transform.localEulerAngles = new Vector3(-90, 180, 0);
         currentCircleDirection = newCircleDirection;
-        UnityEngine.Debug.Log($"current arrow is: {directionArrow.transform.rotation.eulerAngles.y}");
     }
 
     #endregion
@@ -1003,10 +998,14 @@ public partial class ExperimentManager : MonoBehaviour
             case nameof(OnParticipantSwervedOffTrack):
                 break; // These events can happen but we ignore them. We are interested only in "OnParticipantEnteredTrack" event
             case nameof(OnParticipantEnteredTrack):
-                Vector3 relativePosition = circleTrack.transform.InverseTransformPoint(headset.transform.position);
-                if (relativePosition.z > 0)
+                Vector3 relativePosition = directionArrow.transform.InverseTransformPoint(headset.transform.position);
+                if (relativePosition.x > 0 && _runConfig.context == Context.Circle)
                 {
+                    ShowErrorToParticipant("Participant entered track from the wrong side.");
+                    targetsManager.EnsureNoActiveTargets();
                     HandleInvalid();
+                    _state = State.AwaitingParticipantEnterTrack;
+                    break;
                 }
                 if (_runConfig.isMetronomeTraining)
                 {
