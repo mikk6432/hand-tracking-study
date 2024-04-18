@@ -520,7 +520,7 @@ public partial class ExperimentManager : MonoBehaviour
 
         // conditions
         row.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
-        row.SetColumnValue("CircleDirection", Enum.GetName(typeof(CircleDirections), currentCircleDirection));
+        row.SetColumnValue("CircleDirection",  _runConfig.context == Context.Circle ? Enum.GetName(typeof(CircleDirections), currentCircleDirection) : "");
         row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
         row.SetColumnValue("TargetSize", selection.targetSize);
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
@@ -560,7 +560,7 @@ public partial class ExperimentManager : MonoBehaviour
 
         // conditions
         row.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
-        row.SetColumnValue("CircleDirection", Enum.GetName(typeof(CircleDirections), currentCircleDirection));
+        row.SetColumnValue("CircleDirection",  _runConfig.context == Context.Circle ? Enum.GetName(typeof(CircleDirections), currentCircleDirection) : "");
         row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
         row.SetColumnValue("TargetSize", targetsManager.GetTargetDiameter(targetSizesSequence.Current));
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
