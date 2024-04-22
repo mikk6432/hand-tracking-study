@@ -18,6 +18,9 @@ public partial class ExperimentManager : MonoBehaviour
     private State _state;
     private RunConfig _runConfig;
 
+    private DateTime initialTime;
+    private Stopwatch trialStopwatch;
+
     #region MonoBehaviour methods
 
     private void Start()
@@ -526,7 +529,8 @@ public partial class ExperimentManager : MonoBehaviour
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
 
         // time
-        row.SetColumnValue("HumanReadableTimestampUTC", DateTime.UtcNow.ToString("dd-MM-yyyy HH:mm:ss.ffffff"));
+        var currentTime = initialTime.AddMilliseconds(trialStopwatch.ElapsedMilliseconds);
+        row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString("dd-MM-yyyy HH:mm:ss.ffffff"));
         row.SetColumnValue("SystemClockTimestampMs", systemClockMilliseconds);
 
         // selection
@@ -564,7 +568,8 @@ public partial class ExperimentManager : MonoBehaviour
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
 
         // time
-        row.SetColumnValue("HumanReadableTimestampUTC", DateTime.UtcNow.ToString("dd-MM-yyyy HH:mm:ss.ffffff"));
+        var currentTime = initialTime.AddMilliseconds(trialStopwatch.ElapsedMilliseconds);
+        row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString("dd-MM-yyyy HH:mm:ss.ffffff"));
         row.SetColumnValue("SystemClockTimestampMs", (int)activateFirstTargetMoment.Elapsed.TotalMilliseconds);
 
 
@@ -842,6 +847,9 @@ public partial class ExperimentManager : MonoBehaviour
                 _targetsSelected = 0;
                 _measurementId = 0;
                 _selectionsValidated = 0;
+
+                initialTime = DateTime.Now;
+                trialStopwatch.Restart();
 
                 bool isTrial = !_runConfig.isTraining;
                 if (isTrial)
