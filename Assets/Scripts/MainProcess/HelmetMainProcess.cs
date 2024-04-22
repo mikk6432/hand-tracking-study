@@ -30,9 +30,10 @@ public class HelmetMainProcess : ExperimentNetworkClient
             new Func<ExperimentManager.ExperimentReferenceFrame, ExperimentManager.Context, ExperimentManager.RunConfig>
                 ((rf, ctx) => new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ctx, rf, false));
 
+        var totalNumberOfTraining = 2;
         var numberOfRefs = Enum.GetNames(typeof(ExperimentManager.ExperimentReferenceFrame)).Length;
         var numberOfContexts = Enum.GetNames(typeof(ExperimentManager.Context)).Length;
-        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + 3); // times 2 for training/trial and plus 2 for training steps + 1 for break
+        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + totalNumberOfTraining + 1); // times 2 for training/trial and plus 2 for training steps + 1 for break
 
         var refFrames = Enum.GetValues(typeof(ExperimentManager.ExperimentReferenceFrame));
         var contexts = Enum.GetValues(typeof(ExperimentManager.Context));
@@ -90,8 +91,8 @@ public class HelmetMainProcess : ExperimentNetworkClient
             false
             ));
 
-        var breakIndex = numberOfContexts * 2 + 2;
-        result.Insert(secondWalkingIndex, new ExperimentManager.RunConfig(participantId, leftHanded,
+        var breakIndex = numberOfContexts * 2 + totalNumberOfTraining;
+        result.Insert(breakIndex, new ExperimentManager.RunConfig(participantId, leftHanded,
             false,
             false,
             ExperimentManager.Context.Circle,
@@ -191,6 +192,10 @@ public class HelmetMainProcess : ExperimentNetworkClient
         {
             currentRunStage = RunStage.Validation;
             SendSummary();
+        });
+        experimentManager.sendTargetSizeToServer.AddListener((targetSize) =>
+        {
+            Send(new MessageFromHelmet.TargetSize(targetSize));
         });
     }
 

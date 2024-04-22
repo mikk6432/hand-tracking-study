@@ -14,6 +14,7 @@ public partial class ExperimentManager : MonoBehaviour
     public readonly UnityEvent requestTrialValidation = new();
     public readonly UnityEvent<string> unexpectedErrorOccured = new();
     public readonly UnityEvent<string> userMistake = new();
+    public readonly UnityEvent<string> sendTargetSizeToServer = new();
 
     private State _state;
     private RunConfig _runConfig;
@@ -569,7 +570,6 @@ public partial class ExperimentManager : MonoBehaviour
         row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString());
         row.SetColumnValue("SystemClockTimestampMs", (int)(currentTime - activateFirstTargetMoment));
 
-
         var trackTransform = _runConfig.context == Context.Walking ? straightTrack.transform : _runConfig.context == Context.Circle ? circleTrack.transform : sceneLight.transform;
         LogObjectTransform("Track", trackTransform);
 
@@ -754,6 +754,8 @@ public partial class ExperimentManager : MonoBehaviour
         targetSizesSequence = ReGenerateTargetSizesSequence(targetSizesSequence, _runConfig.isTraining);
         targetSizesSequence.MoveNext();
         targetsManager.TargetSize = targetSizesSequence.Current;
+        sendTargetSizeToServer.Invoke(Enum.GetName(typeof(TargetsManager.TargetSizeVariant), targetSizesSequence.Current));
+
         targetsManager.EnsureTargetsShown();
         if (!_runConfig.isTraining)
         {
@@ -840,6 +842,7 @@ public partial class ExperimentManager : MonoBehaviour
                 targetSizesSequence.MoveNext();
                 targetsManager.TargetSize = targetSizesSequence.Current;
                 targetsManager.EnsureTargetsShown();
+                sendTargetSizeToServer.Invoke(Enum.GetName(typeof(TargetsManager.TargetSizeVariant), targetSizesSequence.Current));
 
                 _targetsSelected = 0;
                 _measurementId = 0;
@@ -1151,6 +1154,7 @@ public partial class ExperimentManager : MonoBehaviour
                 else
                 {
                     targetsManager.TargetSize = targetSizesSequence.Current;
+                    sendTargetSizeToServer.Invoke(Enum.GetName(typeof(TargetsManager.TargetSizeVariant), targetSizesSequence.Current));
                     UpdateDirectionArrow();
                     directionArrow.SetActive(true);
 
