@@ -265,7 +265,6 @@ public class AsyncHighFrequencyCSVLogger
 
             var random = new System.Random();
             int timeToSleep = random.Next(1000, 2000);
-            Debug.Log($"Imitating thread sleep {timeToSleep}ms inside logger");
             Thread.Sleep(timeToSleep);
 
             DataSavedToDiskCallback?.Invoke();

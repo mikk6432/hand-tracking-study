@@ -186,7 +186,6 @@ public class HelmetMainProcess : ExperimentNetworkClient
 
     protected override void Receive(MessageToHelmet message)
     {
-        Debug.Log(message.ToString());
         switch (message.code)
         {
             case MessageToHelmet.Code.RefreshExperimentSummary:

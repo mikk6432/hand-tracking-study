@@ -89,10 +89,6 @@ public class ReferenceFrame : MonoBehaviour
             (rotationReference.z ?? new GameObject()).transform.rotation.eulerAngles.z
         );
         offsetRotation = (Quaternion.Inverse(rotation) * newPosition.rotation).eulerAngles;
-        Debug.Log("Updated reference frame");
-        Debug.Log("X: " + offsetReference.xOffset);
-        Debug.Log("Y: " + offsetReference.yOffset);
-        Debug.Log("Z: " + offsetReference.zOffset);
     }
 
 }

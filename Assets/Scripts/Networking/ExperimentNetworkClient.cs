@@ -27,7 +27,6 @@ public abstract class ExperimentNetworkClient : ExperimentNetwork
         {
             if (broadcastFound) return;
             broadcastFound = true;
-            Debug.Log("Received a broadcast from the server");
             if (m_Connection.IsCreated)
             {
                 return;

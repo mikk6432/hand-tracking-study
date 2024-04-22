@@ -56,7 +56,6 @@ public partial class ExperimentManager : MonoBehaviour
     {
         if (doOnNextUpdate != null)
         {
-            UnityEngine.Debug.Log("Calling doOnNextUpdate and make it null");
             doOnNextUpdate();
             doOnNextUpdate = null;
         }
@@ -114,9 +113,6 @@ public partial class ExperimentManager : MonoBehaviour
                 }
             }
         }
-        UnityEngine.Debug.Log("ReGenerated target sizes sequence");
-        UnityEngine.Debug.Log($"Prev: {string.Join(", ", prevList.Select(ts => ts.ToString()))}");
-        UnityEngine.Debug.Log($"New: {string.Join(", ", newSequenceList.Select(ts => ts.ToString()))}");
         return newSequenceList.GetEnumerator();
     }
 
