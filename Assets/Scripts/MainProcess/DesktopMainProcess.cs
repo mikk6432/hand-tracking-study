@@ -35,6 +35,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
     [SerializeField] private Button validateButton;
     [SerializeField] private Button invalidateButton;
     [SerializeField] private Button placeLightAndTrack;
+    [SerializeField] private Button setPathRefHeight;
     [SerializeField] private Toggle showHeadsetAdjustmentText;
 
     private bool connected = false;
@@ -69,6 +70,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
         finishTrainingButton.onClick.AddListener(() => Send(new MessageToHelmet.FinishTrainingStep(pointer)));
 
         placeLightAndTrack.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.PlaceTrackAndLight)));
+        setPathRefHeight.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.SetPathRefHeight)));
 
         showHeadsetAdjustmentText.onValueChanged.AddListener((value) =>
         {
@@ -173,6 +175,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
             decrementPointerButton.gameObject.SetActive(false);
             saveButton.gameObject.SetActive(false);
             placeLightAndTrack.gameObject.SetActive(false);
+            setPathRefHeight.gameObject.SetActive(false);
             showHeadsetAdjustmentText.gameObject.SetActive(false);
 
             if (!connected)
@@ -282,6 +285,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
             prepareButton.gameObject.SetActive(!done && (pointer >= 0));
             doneButton.gameObject.SetActive(!done);
             undoneButton.gameObject.SetActive(done);
+            setPathRefHeight.gameObject.SetActive(false);
 
             startButton.gameObject.SetActive(false);
             finishTrainingButton.gameObject.SetActive(false);
@@ -297,6 +301,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
                 prepareButton.gameObject.SetActive(false);
                 startButton.gameObject.SetActive(false);
                 finishTrainingButton.gameObject.SetActive(false);
+                setPathRefHeight.gameObject.SetActive(true);
             }
             else
             {
@@ -304,6 +309,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
                 startButton.gameObject.SetActive(summary.stage == (int)HelmetMainProcess.RunStage.Preparing);
                 bool isCurrentTraining = runConfigs[summary.index].isTraining || runConfigs[summary.index].isMetronomeTraining;
                 finishTrainingButton.gameObject.SetActive(isCurrentTraining && summary.stage == (int)HelmetMainProcess.RunStage.Running);
+                setPathRefHeight.gameObject.SetActive(false);
             }
         }
 

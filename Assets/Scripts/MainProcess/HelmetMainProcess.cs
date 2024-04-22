@@ -337,6 +337,9 @@ public class HelmetMainProcess : ExperimentNetworkClient
                 participantPrefs.doneBitmap = bitmap;
                 SendSummary();
                 break;
+            case MessageToHelmet.Code.SetPathRefHeight:
+                experimentManager.OnServerSetPathRefHeight();
+                break;
             case MessageToHelmet.Code.PlaceTrackAndLight:
                 FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
                 break;

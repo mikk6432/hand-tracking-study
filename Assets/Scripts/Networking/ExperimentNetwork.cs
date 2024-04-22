@@ -116,6 +116,7 @@ public class ExperimentNetwork : MonoBehaviour
             ValidateTrial,
             InvalidateTrial,
             PlaceTrackAndLight,
+            SetPathRefHeight,
             showHeadsetAdjustmentText,
         }
 

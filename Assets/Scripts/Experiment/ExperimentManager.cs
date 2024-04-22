@@ -1233,6 +1233,7 @@ public partial class ExperimentManager : MonoBehaviour
     private void OnParticipantSlowedDown() { if (listeningTrackEventsFlag) HandleState(nameof(OnParticipantSlowedDown)); }
     public void OnServerSaidStart() => HandleState(nameof(OnServerSaidStart));
     public void OnServerSaidFinishTraining() => HandleState(nameof(OnServerSaidFinishTraining));
+    public void OnServerSetPathRefHeight() => UpdatePathRefFrames();
 
     public void OnServerSaidPrepare(RunConfig config)
     {
