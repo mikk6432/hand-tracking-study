@@ -32,7 +32,7 @@ public class HelmetMainProcess : ExperimentNetworkClient
 
         var numberOfRefs = Enum.GetNames(typeof(ExperimentManager.ExperimentReferenceFrame)).Length;
         var numberOfContexts = Enum.GetNames(typeof(ExperimentManager.Context)).Length;
-        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + 2); // times 2 for training/trial and plus 3 for training steps
+        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + 3); // times 2 for training/trial and plus 2 for training steps + 1 for break
 
         var refFrames = Enum.GetValues(typeof(ExperimentManager.ExperimentReferenceFrame));
         var contexts = Enum.GetValues(typeof(ExperimentManager.Context));
@@ -88,6 +88,16 @@ public class HelmetMainProcess : ExperimentNetworkClient
             ExperimentManager.Context.Circle,
             ExperimentManager.ExperimentReferenceFrame.PalmReferenced,
             false
+            ));
+
+        var breakIndex = numberOfContexts * 2 + 2;
+        result.Insert(secondWalkingIndex, new ExperimentManager.RunConfig(participantId, leftHanded,
+            false,
+            false,
+            ExperimentManager.Context.Circle,
+            ExperimentManager.ExperimentReferenceFrame.PalmReferenced,
+            false,
+            true // indicates this is training with metronome. The above arguments does not matter
             ));
 
         // var firstJoggingIndex = FirstIndexOfSpecificContext(ref result, ExperimentManager.Context.Jogging);

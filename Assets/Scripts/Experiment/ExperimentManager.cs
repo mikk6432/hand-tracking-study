@@ -1262,7 +1262,7 @@ partial class ExperimentManager
     public enum ExperimentReferenceFrame
     {
         PalmReferenced, // both rotation and position by hand
-        HandReferenced, // position only
+        PalmWORotation, // position only
         PathReferenced, // head
         // PathReferencedNeck, // neck
         // ChestReferenced // chest
@@ -1290,7 +1290,9 @@ partial class ExperimentManager
         // after "start" command, fixes that offsets and calls "trialsFinished" to make server to go to next step
         public readonly bool isInitialStandingTraining;
 
-        public RunConfig(int participantID, bool leftHanded, bool isMetronomeTraining, bool isTraining, Context context, ExperimentReferenceFrame referenceFrame, bool isInitialStandingTraining)
+        public readonly bool isBreak;
+
+        public RunConfig(int participantID, bool leftHanded, bool isMetronomeTraining, bool isTraining, Context context, ExperimentReferenceFrame referenceFrame, bool isInitialStandingTraining, bool isBreak = false)
         {
             this.participantID = participantID;
             this.leftHanded = leftHanded;
@@ -1299,6 +1301,7 @@ partial class ExperimentManager
             this.context = context;
             this.referenceFrame = referenceFrame;
             this.isInitialStandingTraining = isInitialStandingTraining;
+            this.isBreak = isBreak;
         }
     }
 

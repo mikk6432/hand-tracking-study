@@ -265,6 +265,11 @@ public class DesktopMainProcess : ExperimentNetworkServer
             if (i == pointer)
                 line = $"<b>{line}</b>";
 
+            if (runConfigs[i].isBreak)
+            {
+                line = $"Break - 5 minutes";
+            }
+
             text += "\n" + line;
         }
         experimentStepsTable.text = text;
