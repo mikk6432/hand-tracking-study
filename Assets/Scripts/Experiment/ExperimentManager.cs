@@ -34,6 +34,8 @@ public partial class ExperimentManager : MonoBehaviour
         targetsManager.hideCube();
         walkingStateTrigger.enabled = false;
 
+        trialStopwatch = Stopwatch.StartNew();
+
         walkingStateTrigger.ParticipantEntered.AddListener(OnParticipantEnteredTrack);
         walkingStateTrigger.ParticipantSwervedOff.AddListener(OnParticipantSwervedOffTrack);
         walkingStateTrigger.ParticipantSlowedDown.AddListener(OnParticipantSlowedDown);
