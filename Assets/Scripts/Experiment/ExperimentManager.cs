@@ -18,9 +18,6 @@ public partial class ExperimentManager : MonoBehaviour
     private State _state;
     private RunConfig _runConfig;
 
-    private DateTime initialTime;
-    private Stopwatch trialStopwatch;
-
     #region MonoBehaviour methods
 
     private void Start()
@@ -33,8 +30,6 @@ public partial class ExperimentManager : MonoBehaviour
         // Start app with track and cube invisible
         targetsManager.hideCube();
         walkingStateTrigger.enabled = false;
-
-        trialStopwatch = Stopwatch.StartNew();
 
         walkingStateTrigger.ParticipantEntered.AddListener(OnParticipantEnteredTrack);
         walkingStateTrigger.ParticipantSwervedOff.AddListener(OnParticipantSwervedOffTrack);
@@ -282,17 +277,15 @@ public partial class ExperimentManager : MonoBehaviour
     private int _targetsSelected;
     private int _selectionsValidated; // used only for walking trials to reset _targetsSelected when server responded with invalidate result
     private int _measurementId;
-    private Stopwatch activateFirstTargetMoment;
-    private Stopwatch selectFirstTargetMoment;
-    private Stopwatch selectPreviousTargetMoment;
+    private float activateFirstTargetMoment;
+    private float selectFirstTargetMoment;
+    private float selectPreviousTargetMoment;
     private IEnumerator<TargetsManager.TargetSizeVariant> targetSizesSequence;
     private CircleDirections currentCircleDirection;
     private IEnumerator<int> targetsIndexesSequence;
 
     private float GenerateTimeToActivateFirstTarget()
     {
-        initialTime = DateTime.Now;
-        trialStopwatch.Restart();
         if (_runConfig.context == Context.Standing)
             return 1f + UnityEngine.Random.Range(0f, 1f);
 
@@ -505,16 +498,16 @@ public partial class ExperimentManager : MonoBehaviour
         int systemClockMilliseconds, selectionDurationMilliseconds;
         if (isFirstWithSuchSize)
         {
-            selectFirstTargetMoment = Stopwatch.StartNew();
+            selectFirstTargetMoment = Time.realtimeSinceStartup;
             systemClockMilliseconds = 0;
             selectionDurationMilliseconds = 0;
-            selectPreviousTargetMoment = Stopwatch.StartNew();
+            selectPreviousTargetMoment = Time.realtimeSinceStartup;
         }
         else
         {
-            systemClockMilliseconds = (int)selectFirstTargetMoment.Elapsed.TotalMilliseconds;
-            selectionDurationMilliseconds = (int)selectPreviousTargetMoment.Elapsed.TotalMilliseconds;
-            selectPreviousTargetMoment.Restart();
+            systemClockMilliseconds = (int)((Time.realtimeSinceStartup - selectFirstTargetMoment) * 1000);
+            selectionDurationMilliseconds = (int)((Time.realtimeSinceStartup - selectPreviousTargetMoment) * 1000);
+            selectPreviousTargetMoment = Time.realtimeSinceStartup;
         }
 
         var row = _selectionsLogger.CurrentRow;
@@ -533,8 +526,8 @@ public partial class ExperimentManager : MonoBehaviour
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
 
         // time
-        var currentTime = initialTime.AddMilliseconds(trialStopwatch.ElapsedMilliseconds);
-        row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString("dd-MM-yyyy HH:mm:ss.ffffff"));
+        var currentTime = Time.realtimeSinceStartup;
+        row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString());
         row.SetColumnValue("SystemClockTimestampMs", systemClockMilliseconds);
 
         // selection
@@ -572,9 +565,9 @@ public partial class ExperimentManager : MonoBehaviour
         row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
 
         // time
-        var currentTime = initialTime.AddMilliseconds(trialStopwatch.ElapsedMilliseconds);
-        row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString("dd-MM-yyyy HH:mm:ss.ffffff"));
-        row.SetColumnValue("SystemClockTimestampMs", (int)activateFirstTargetMoment.Elapsed.TotalMilliseconds);
+        var currentTime = Time.realtimeSinceStartup;
+        row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString());
+        row.SetColumnValue("SystemClockTimestampMs", (int)(currentTime - activateFirstTargetMoment));
 
 
         var trackTransform = _runConfig.context == Context.Walking ? straightTrack.transform : _runConfig.context == Context.Circle ? circleTrack.transform : sceneLight.transform;
@@ -729,7 +722,7 @@ public partial class ExperimentManager : MonoBehaviour
         bool isTrial = !_runConfig.isTraining;
         if (isTrial)
         {
-            activateFirstTargetMoment = Stopwatch.StartNew();
+            activateFirstTargetMoment = Time.realtimeSinceStartup;
             highFrequencyLoggingIsOnFlag = true;
         }
     }
@@ -1105,9 +1098,6 @@ public partial class ExperimentManager : MonoBehaviour
                     else
                     {
                         requestTrialValidation.Invoke();
-                        activateFirstTargetMoment.Stop();
-                        selectFirstTargetMoment.Stop();
-                        selectPreviousTargetMoment.Stop();
                     }
                     _state = State.AwaitingServerValidationOfLastTrial;
                 }
