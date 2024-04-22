@@ -291,6 +291,8 @@ public partial class ExperimentManager : MonoBehaviour
 
     private float GenerateTimeToActivateFirstTarget()
     {
+        initialTime = DateTime.Now;
+        trialStopwatch.Restart();
         if (_runConfig.context == Context.Standing)
             return 1f + UnityEngine.Random.Range(0f, 1f);
 
@@ -849,9 +851,6 @@ public partial class ExperimentManager : MonoBehaviour
                 _targetsSelected = 0;
                 _measurementId = 0;
                 _selectionsValidated = 0;
-
-                initialTime = DateTime.Now;
-                trialStopwatch.Restart();
 
                 bool isTrial = !_runConfig.isTraining;
                 if (isTrial)
