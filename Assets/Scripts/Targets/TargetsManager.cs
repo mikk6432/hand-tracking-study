@@ -194,6 +194,7 @@ public class TargetsManager : MonoBehaviour
             GetComponent<SelectorAnimatedProjector>().Selector = LeftIndexFinger.transform;
             RightIndexFinger.SetActive(false);
             LeftIndexFinger.SetActive(true);
+            this.Hand = Handed.Left;
             foreach (var leftHand in LeftHands)
             {
                 leftHand.GetComponent<OVRMeshRenderer>().enabled = true;
@@ -210,6 +211,7 @@ public class TargetsManager : MonoBehaviour
             GetComponent<SelectorAnimatedProjector>().Selector = RightIndexFinger.transform;
             RightIndexFinger.SetActive(true);
             LeftIndexFinger.SetActive(false);
+            this.Hand = Handed.Right;
             foreach (var rightHand in RightHands)
             {
                 rightHand.GetComponent<OVRMeshRenderer>().enabled = true;
