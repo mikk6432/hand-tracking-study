@@ -132,7 +132,7 @@ public class FixedSizeAsyncLogger
     {
         lock (bufferLock)
         {
-            for (var i = 0; i < bufferSize; i++)
+            for (var i = 0; i < _currentRow + 1; i++)
             {
                 for (var j = 0; j < header.Length; j++)
                 {
@@ -150,7 +150,6 @@ public class FixedSizeAsyncLogger
     {
         new Thread(() =>
         {
-            Thread.CurrentThread.IsBackground = true;
             lock (fileLock)
             {
                 for (var i = 0; i < _currentRow; i++)

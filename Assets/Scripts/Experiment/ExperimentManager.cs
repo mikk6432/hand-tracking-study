@@ -578,6 +578,8 @@ public partial class ExperimentManager : MonoBehaviour
         _highFrequencyLogger.LogAndClear(); // no write to file yet, just enqueue. Maybe it will be deleted by calling "_selectionsLogger.ClearUnsavedData()"
     }
 
+    private Dictionary<string, string[]> logObjectCache = new();
+
     private void LogObjectTransform(string objectPrefix, Transform objectTransform)
     {
         var position = objectTransform.position;
@@ -585,19 +587,38 @@ public partial class ExperimentManager : MonoBehaviour
         var up = objectTransform.up;
         var quaternion = objectTransform.rotation;
 
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "PositionX", position.x);
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "PositionY", position.y);
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "PositionZ", position.z);
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "ForwardX", forward.x);
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "ForwardY", forward.y);
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "ForwardZ", forward.z);
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "UpX", up.x);
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "UpY", up.y);
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "UpZ", up.z);
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "QuaternionX", quaternion.x);
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "QuaternionY", quaternion.y);
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "QuaternionZ", quaternion.z);
-        _highFrequencyLogger.SetColumnValue(objectPrefix + "QuaternionW", quaternion.w);
+        if (!logObjectCache.ContainsKey(objectPrefix))
+        {
+            logObjectCache[objectPrefix] = new string[]
+            {
+            objectPrefix + "PositionX",
+            objectPrefix + "PositionY",
+            objectPrefix + "PositionZ",
+            objectPrefix + "ForwardX",
+            objectPrefix + "ForwardY",
+            objectPrefix + "ForwardZ",
+            objectPrefix + "UpX",
+            objectPrefix + "UpY",
+            objectPrefix + "UpZ",
+            objectPrefix + "QuaternionX",
+            objectPrefix + "QuaternionY",
+            objectPrefix + "QuaternionZ",
+            objectPrefix + "QuaternionW"
+            };
+        }
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][0], position.x);
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][1], position.y);
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][2], position.z);
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][3], forward.x);
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][4], forward.y);
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][5], forward.z);
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][6], up.x);
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][7], up.y);
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][8], up.z);
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][9], quaternion.x);
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][10], quaternion.y);
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][11], quaternion.z);
+        _highFrequencyLogger.SetColumnValue(logObjectCache[objectPrefix][12], quaternion.w);
     }
 
     private void EnsureSelectionsLoggerInitialized()
