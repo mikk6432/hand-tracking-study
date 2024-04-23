@@ -482,8 +482,8 @@ public partial class ExperimentManager : MonoBehaviour
     };
 
     private bool highFrequencyLoggingIsOnFlag;
-    private AsyncHighFrequencyCSVLogger _selectionsLogger;
-    private AsyncHighFrequencyCSVLogger _highFrequencyLogger;
+    private FixedSizeAsyncLogger _selectionsLogger;
+    private FixedSizeAsyncLogger _highFrequencyLogger;
     private string currentSelectionsLoggerFilename;
     private string currentHighFrequencyLoggerFilename;
 
@@ -506,38 +506,36 @@ public partial class ExperimentManager : MonoBehaviour
             selectPreviousTargetMoment = Time.realtimeSinceStartup;
         }
 
-        var row = _selectionsLogger.CurrentRow;
-
         // ids
-        row.SetColumnValue("ParticipantID", _runConfig.participantID);
-        row.SetColumnValue("SelectionID", _targetsSelected);
+        _selectionsLogger.SetColumnValue("ParticipantID", _runConfig.participantID);
+        _selectionsLogger.SetColumnValue("SelectionID", _targetsSelected);
 
         var selection = targetsManager.LastSelectionData;
 
         // conditions
-        row.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
-        row.SetColumnValue("CircleDirection", _runConfig.context == Context.Circle ? Enum.GetName(typeof(CircleDirections), currentCircleDirection) : "");
-        row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
-        row.SetColumnValue("TargetSize", selection.targetSize);
-        row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
+        _selectionsLogger.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
+        _selectionsLogger.SetColumnValue("CircleDirection", _runConfig.context == Context.Circle ? Enum.GetName(typeof(CircleDirections), currentCircleDirection) : "");
+        _selectionsLogger.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
+        _selectionsLogger.SetColumnValue("TargetSize", selection.targetSize);
+        _selectionsLogger.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
 
         // time
         var currentTime = Time.realtimeSinceStartup;
-        row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString());
-        row.SetColumnValue("SystemClockTimestampMs", systemClockMilliseconds);
+        _selectionsLogger.SetColumnValue("HumanReadableTimestampUTC", currentTime * 1000);
+        _selectionsLogger.SetColumnValue("SystemClockTimestampMs", systemClockMilliseconds);
 
         // selection
-        row.SetColumnValue("ActiveTargetIndex", selection.activeTargetIndex);
-        row.SetColumnValue("AbsoluteTargetPositionX", selection.targetAbsoluteCoordinates.x);
-        row.SetColumnValue("AbsoluteTargetPositionY", selection.targetAbsoluteCoordinates.y);
-        row.SetColumnValue("AbsoluteSelectionPositionX", selection.selectionAbsoluteCoordinates.x);
-        row.SetColumnValue("AbsoluteSelectionPositionY", selection.selectionAbsoluteCoordinates.y);
-        row.SetColumnValue("LocalSelectionPositionX", selection.selectionLocalCoordinates.x);
-        row.SetColumnValue("LocalSelectionPositionY", selection.selectionLocalCoordinates.y);
-        row.SetColumnValue("Success", selection.success ? 1 : 0);
-        row.SetColumnValue("SelectionDuration", selectionDurationMilliseconds);
+        _selectionsLogger.SetColumnValue("ActiveTargetIndex", selection.activeTargetIndex);
+        _selectionsLogger.SetColumnValue("AbsoluteTargetPositionX", selection.targetAbsoluteCoordinates.x);
+        _selectionsLogger.SetColumnValue("AbsoluteTargetPositionY", selection.targetAbsoluteCoordinates.y);
+        _selectionsLogger.SetColumnValue("AbsoluteSelectionPositionX", selection.selectionAbsoluteCoordinates.x);
+        _selectionsLogger.SetColumnValue("AbsoluteSelectionPositionY", selection.selectionAbsoluteCoordinates.y);
+        _selectionsLogger.SetColumnValue("LocalSelectionPositionX", selection.selectionLocalCoordinates.x);
+        _selectionsLogger.SetColumnValue("LocalSelectionPositionY", selection.selectionLocalCoordinates.y);
+        _selectionsLogger.SetColumnValue("Success", selection.success ? "1" : "0");
+        _selectionsLogger.SetColumnValue("SelectionDuration", selectionDurationMilliseconds);
 
-        row.LogAndClear(); // no write to file yet, just enqueue. Maybe it will be deleted by calling "_selectionsLogger.ClearUnsavedData()"
+        _selectionsLogger.LogAndClear(); // no write to file yet, just enqueue. Maybe it will be deleted by calling "_selectionsLogger.ClearUnsavedData()"
     }
 
     private bool IsMovingContext(Context context)
@@ -547,23 +545,21 @@ public partial class ExperimentManager : MonoBehaviour
 
     private void LogHighFrequencyRow()
     {
-        var row = _highFrequencyLogger.CurrentRow;
-
         // ids
-        row.SetColumnValue("ParticipantID", _runConfig.participantID);
-        row.SetColumnValue("MeasurementID", ++_measurementId);
+        _highFrequencyLogger.SetColumnValue("ParticipantID", _runConfig.participantID);
+        _highFrequencyLogger.SetColumnValue("MeasurementID", ++_measurementId);
 
         // conditions
-        row.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
-        row.SetColumnValue("CircleDirection", _runConfig.context == Context.Circle ? Enum.GetName(typeof(CircleDirections), currentCircleDirection) : "");
-        row.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
-        row.SetColumnValue("TargetSize", targetsManager.GetTargetDiameter(targetSizesSequence.Current));
-        row.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
+        _highFrequencyLogger.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
+        _highFrequencyLogger.SetColumnValue("CircleDirection", _runConfig.context == Context.Circle ? Enum.GetName(typeof(CircleDirections), currentCircleDirection) : "");
+        _highFrequencyLogger.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
+        _highFrequencyLogger.SetColumnValue("TargetSize", targetsManager.GetTargetDiameter(targetSizesSequence.Current));
+        _highFrequencyLogger.SetColumnValue("DominantHand", _runConfig.leftHanded ? "Left" : "Right");
 
         // time
         var currentTime = Time.realtimeSinceStartup;
-        row.SetColumnValue("HumanReadableTimestampUTC", currentTime.ToString());
-        row.SetColumnValue("SystemClockTimestampMs", (int)(currentTime - activateFirstTargetMoment));
+        _highFrequencyLogger.SetColumnValue("HumanReadableTimestampUTC", currentTime * 1000);
+        _highFrequencyLogger.SetColumnValue("SystemClockTimestampMs", (currentTime - activateFirstTargetMoment) * 1000);
 
 
         var trackTransform = _runConfig.context == Context.Walking ? straightTrack.transform : _runConfig.context == Context.Circle ? circleTrack.transform : sceneLight.transform;
@@ -586,44 +582,42 @@ public partial class ExperimentManager : MonoBehaviour
 
         var selectorPosition = dominantHandIndexTip.transform.position;
         var selectorProjection = Math.ProjectPointOntoOXYPlane(allTargets, selectorPosition);
-        row.SetColumnValue("SelectorProjectionOntoAllTargetsX", selectorProjection.local.x);
-        row.SetColumnValue("SelectorProjectionOntoAllTargetsY", selectorProjection.local.y);
+        _highFrequencyLogger.SetColumnValue("SelectorProjectionOntoAllTargetsX", selectorProjection.local.x);
+        _highFrequencyLogger.SetColumnValue("SelectorProjectionOntoAllTargetsY", selectorProjection.local.y);
         var isInside = targetsManager.IsSelectorInsideCollider;
-        row.SetColumnValue("IsSelectorInsideCollider", isInside ? 1 : 0);
+        _highFrequencyLogger.SetColumnValue("IsSelectorInsideCollider", isInside ? "1" : "0");
         var distance = (selectorPosition - selectorProjection.world).magnitude;
         var distanceToLog = isInside ? -distance : distance;
-        row.SetColumnValue("DistanceFromSelectorToAllTargetsOXYPlane", distanceToLog);
+        _highFrequencyLogger.SetColumnValue("DistanceFromSelectorToAllTargetsOXYPlane", distanceToLog);
 
-        row.SetColumnValue("ActiveTargetIndex", targetsManager.ActiveTarget.targetIndex);
+        _highFrequencyLogger.SetColumnValue("ActiveTargetIndex", targetsManager.ActiveTarget.targetIndex);
         var activeTargetProjection = Math.ProjectPointOntoOXYPlane(allTargets, activeTarget.position);
-        row.SetColumnValue("ActiveTargetInsideAllTargetsX", activeTargetProjection.local.x);
-        row.SetColumnValue("ActiveTargetInsideAllTargetsY", activeTargetProjection.local.y);
+        _highFrequencyLogger.SetColumnValue("ActiveTargetInsideAllTargetsX", activeTargetProjection.local.x);
+        _highFrequencyLogger.SetColumnValue("ActiveTargetInsideAllTargetsY", activeTargetProjection.local.y);
 
-        row.LogAndClear(); // no write to file yet, just enqueue. Maybe it will be deleted by calling "_selectionsLogger.ClearUnsavedData()"
+        _highFrequencyLogger.LogAndClear(); // no write to file yet, just enqueue. Maybe it will be deleted by calling "_selectionsLogger.ClearUnsavedData()"
     }
 
     private void LogObjectTransform(string objectPrefix, Transform objectTransform)
     {
-        var row = _highFrequencyLogger.CurrentRow;
-
         var position = objectTransform.position;
         var forward = objectTransform.forward;
         var up = objectTransform.up;
         var quaternion = objectTransform.rotation;
 
-        row.SetColumnValue(objectPrefix + "PositionX", position.x);
-        row.SetColumnValue(objectPrefix + "PositionY", position.y);
-        row.SetColumnValue(objectPrefix + "PositionZ", position.z);
-        row.SetColumnValue(objectPrefix + "ForwardX", forward.x);
-        row.SetColumnValue(objectPrefix + "ForwardY", forward.y);
-        row.SetColumnValue(objectPrefix + "ForwardZ", forward.z);
-        row.SetColumnValue(objectPrefix + "UpX", up.x);
-        row.SetColumnValue(objectPrefix + "UpY", up.y);
-        row.SetColumnValue(objectPrefix + "UpZ", up.z);
-        row.SetColumnValue(objectPrefix + "QuaternionX", quaternion.x);
-        row.SetColumnValue(objectPrefix + "QuaternionY", quaternion.y);
-        row.SetColumnValue(objectPrefix + "QuaternionZ", quaternion.z);
-        row.SetColumnValue(objectPrefix + "QuaternionW", quaternion.w);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "PositionX", position.x);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "PositionY", position.y);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "PositionZ", position.z);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "ForwardX", forward.x);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "ForwardY", forward.y);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "ForwardZ", forward.z);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "UpX", up.x);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "UpY", up.y);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "UpZ", up.z);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "QuaternionX", quaternion.x);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "QuaternionY", quaternion.y);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "QuaternionZ", quaternion.z);
+        _highFrequencyLogger.SetColumnValue(objectPrefix + "QuaternionW", quaternion.w);
     }
 
     private void EnsureSelectionsLoggerInitialized()
@@ -632,15 +626,7 @@ public partial class ExperimentManager : MonoBehaviour
         {
             var filename = $"{_runConfig.participantID}_selections.csv";
             if (currentSelectionsLoggerFilename == filename) return;
-
-            _selectionsLogger = new AsyncHighFrequencyCSVLogger(filename);
-
-            if (!_selectionsLogger.HasBeenInitialised())
-            {
-                _selectionsLogger.AddColumns(selectionLogColumns);
-                _selectionsLogger.Initialise();
-            }
-
+            _selectionsLogger = new FixedSizeAsyncLogger(selectionLogColumns, filename);
             currentSelectionsLoggerFilename = filename;
         }
         catch (Exception e)
@@ -655,14 +641,7 @@ public partial class ExperimentManager : MonoBehaviour
         {
             var filename = $"{_runConfig.participantID}_highFrequency.csv";
             if (currentHighFrequencyLoggerFilename == filename) return;
-            _highFrequencyLogger = new AsyncHighFrequencyCSVLogger(filename);
-
-            if (!_highFrequencyLogger.HasBeenInitialised())
-            {
-                _highFrequencyLogger.AddColumns(highFrequencyLogColumns);
-                _highFrequencyLogger.Initialise();
-            }
-
+            _highFrequencyLogger = new FixedSizeAsyncLogger(highFrequencyLogColumns, filename);
             currentHighFrequencyLoggerFilename = filename;
         }
         catch (Exception e)
@@ -693,8 +672,8 @@ public partial class ExperimentManager : MonoBehaviour
         _selectionsLogger.DataSavedToDiskCallback = callback;
         _highFrequencyLogger.DataSavedToDiskCallback = callback;
 
-        _selectionsLogger.SaveDataToDisk();
-        _highFrequencyLogger.SaveDataToDisk();
+        _selectionsLogger.WriteDataToFile();
+        _highFrequencyLogger.WriteDataToFile();
     }
     #endregion
 
@@ -754,8 +733,8 @@ public partial class ExperimentManager : MonoBehaviour
         if (!_runConfig.isTraining)
         {
             highFrequencyLoggingIsOnFlag = false;
-            _selectionsLogger.ClearUnsavedData();
-            _highFrequencyLogger.ClearUnsavedData();
+            _selectionsLogger.ClearBuffer();
+            _highFrequencyLogger.ClearBuffer();
         }
         UpdateDirectionArrow();
         directionArrow.SetActive(true);
