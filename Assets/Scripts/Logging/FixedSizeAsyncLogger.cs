@@ -148,28 +148,32 @@ public class FixedSizeAsyncLogger
     public Action DataSavedToDiskCallback;
     public void WriteDataToFile()
     {
-        lock (fileLock)
+        new Thread(() =>
         {
-            for (var i = 0; i < _currentRow; i++)
+            Thread.CurrentThread.IsBackground = true;
+            lock (fileLock)
             {
-                file.WriteLine(string.Join(",", buffer[i].Select(v =>
+                for (var i = 0; i < _currentRow; i++)
                 {
-                    if (v.intValue.HasValue)
-                        return v.intValue.Value.ToString();
-                    if (v.floatValue.HasValue)
-                        return v.floatValue.Value.ToString();
-                    return v.stringValue;
-                })));
+                    file.WriteLine(string.Join(",", buffer[i].Select(v =>
+                    {
+                        if (v.intValue.HasValue)
+                            return v.intValue.Value.ToString();
+                        if (v.floatValue.HasValue)
+                            return v.floatValue.Value.ToString();
+                        return v.stringValue;
+                    })));
+                }
+                file.Flush();
+                ClearBuffer();
+
+                var random = new System.Random();
+                int timeToSleep = random.Next(1000, 2000);
+                Thread.Sleep(timeToSleep);
+
+                DataSavedToDiskCallback?.Invoke();
             }
-            file.Flush();
-
-            var random = new System.Random();
-            int timeToSleep = random.Next(1000, 2000);
-            Thread.Sleep(timeToSleep);
-
-            DataSavedToDiskCallback?.Invoke();
-        }
-        ClearBuffer();
+        }).Start();
     }
 
     ~FixedSizeAsyncLogger()
