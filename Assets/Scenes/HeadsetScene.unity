@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.17511052, g: 0.21907169, b: 0.301371, a: 1}
+  m_IndirectSpecularColor: {r: 0.17501816, g: 0.21896845, b: 0.30123302, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -808,7 +808,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &158970571
 Transform:
   m_ObjectHideFlags: 0
@@ -3632,17 +3632,16 @@ MonoBehaviour:
   sceneLight: {fileID: 7670004145894168435}
   walkingStateTrigger: {fileID: 1932859677}
   walkingDirection: {fileID: 144727615}
-  standingDirection: {fileID: 144727615}
   directionArrow: {fileID: 1766969848}
   metronome: {fileID: 1131295527209713352}
   walkingTempo: 100
   errorIndicator: {fileID: 1675554207}
   headset: {fileID: 349804814}
-  neckBase: {fileID: 743015852}
   leftIndexTip: {fileID: 902508682}
   rightIndexTip: {fileID: 1902125966}
   leftPalmCenter: {fileID: 1917185028}
   rightPalmCenter: {fileID: 158970570}
+  controller: {fileID: 399231511}
   leftHandedReferenceFrames:
   - {fileID: 232752652}
   - {fileID: 1052293026}
@@ -5885,7 +5884,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1917185029
 Transform:
   m_ObjectHideFlags: 0

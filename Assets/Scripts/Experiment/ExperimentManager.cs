@@ -135,7 +135,6 @@ public partial class ExperimentManager : MonoBehaviour
     private bool listeningTrackEventsFlag;
 
     [SerializeField] private GameObject walkingDirection; // walking context (relative to track)
-    [SerializeField] private GameObject standingDirection; // standing context (relative to light)
     [SerializeField] private GameObject directionArrow;
 
     private static CircleDirections GetRandomcircleDirection()
@@ -186,7 +185,6 @@ public partial class ExperimentManager : MonoBehaviour
     #region Head stuff
     [Space]
     [SerializeField] private GameObject headset;
-    [SerializeField] private GameObject neckBase;
 
     private (Vector3 position, Quaternion rotation) HeadsetOXZProjection()
     {
@@ -208,7 +206,7 @@ public partial class ExperimentManager : MonoBehaviour
     [SerializeField] private GameObject leftPalmCenter;
     [SerializeField] private GameObject rightPalmCenter;
     private GameObject dominantHandIndexTip; // holds selector
-    private GameObject weakHandPalmCenter; // holds target
+    [SerializeField] private GameObject controller; // holds target
     private GameObject dominantHandPalmCenter; // just for logging
 
     private void ActualizeHands()
@@ -219,14 +217,12 @@ public partial class ExperimentManager : MonoBehaviour
 
             dominantHandPalmCenter = leftPalmCenter;
             dominantHandIndexTip = leftIndexTip;
-            weakHandPalmCenter = rightPalmCenter;
         }
         else
         {
             targetsManager.ChangeHandedness(TargetsManager.Handed.Right);
 
             dominantHandIndexTip = rightIndexTip;
-            weakHandPalmCenter = leftPalmCenter;
             dominantHandPalmCenter = rightPalmCenter;
         }
     }
@@ -299,14 +295,14 @@ public partial class ExperimentManager : MonoBehaviour
         "SelectionID",
         
         // conditions
-        "Context", // Standing, Walking, Circle
+        "Movement", // Standing, Walking, Circle
         "CircleDirection", // Clockwise, CounterClockwise
         "ReferenceFrame", // 0 – palmReferenced, 1 – handReferenced, 2 – pathReferenced 
         "TargetSize", // 0.015 or 0.025 or 0.035
         "DominantHand", // Which hand index tip selects targets. 0 – means right, 1 – means left
         
         // time
-        "HumanReadableTimestampUTC", // absolute time of the selection
+        "RealtimeSinceStartupMs", // absolute time of the selection
         "SystemClockTimestampMs", // time passed from selecting the first target. For the 1st selection equal to 0
         
         // selection
@@ -327,14 +323,14 @@ public partial class ExperimentManager : MonoBehaviour
         "MeasurementID", // increments every measurement (90Hz). Starts with 0
         
         // conditions
-        "Context", // Standing, Walking, Circle
+        "Movement", // Standing, Walking, Circle
         "CircleDirection", // Clockwise, CounterClockwise
         "ReferenceFrame", // 0 – palmReferenced, 1 – handReferenced, 2 – pathReferenced
         "TargetSize", // 0.015 or 0.025 or 0.035
         "DominantHand", // Which hand index tip selects targets. 0 – means right, 1 – means left
         
         // time
-        "HumanReadableTimestampUTC", // absolute time of the selection
+        "RealtimeSinceStartupMs", // absolute time of the selection
         "SystemClockTimestampMs", // time passed from start (activating the first target)
         
         // track transform
@@ -381,21 +377,6 @@ public partial class ExperimentManager : MonoBehaviour
         "HeadQuaternionY",
         "HeadQuaternionZ",
         "HeadQuaternionW",
-        
-        // neck model
-        "NeckBasePositionX",
-        "NeckBasePositionY",
-        "NeckBasePositionZ",
-        "NeckBaseForwardX",
-        "NeckBaseForwardY",
-        "NeckBaseForwardZ",
-        "NeckBaseUpX",
-        "NeckBaseUpY",
-        "NeckBaseUpZ",
-        "NeckBaseQuaternionX",
-        "NeckBaseQuaternionY",
-        "NeckBaseQuaternionZ",
-        "NeckBaseQuaternionW",
 
         // dominant hand palmCenterAnchor
         "DominantPalmCenterPositionX",
@@ -428,19 +409,19 @@ public partial class ExperimentManager : MonoBehaviour
         "DominantIndexTipQuaternionW",
         
         // weak hand palmCenterAnchor
-        "WeakPalmCenterPositionX",
-        "WeakPalmCenterPositionY",
-        "WeakPalmCenterPositionZ",
-        "WeakPalmCenterForwardX",
-        "WeakPalmCenterForwardY",
-        "WeakPalmCenterForwardZ",
-        "WeakPalmCenterUpX",
-        "WeakPalmCenterUpY",
-        "WeakPalmCenterUpZ",
-        "WeakPalmCenterQuaternionX",
-        "WeakPalmCenterQuaternionY",
-        "WeakPalmCenterQuaternionZ",
-        "WeakPalmCenterQuaternionW",
+        "ControllerPositionX",
+        "ControllerPositionY",
+        "ControllerPositionZ",
+        "ControllerForwardX",
+        "ControllerForwardY",
+        "ControllerForwardZ",
+        "ControllerUpX",
+        "ControllerUpY",
+        "ControllerUpZ",
+        "ControllerQuaternionX",
+        "ControllerQuaternionY",
+        "ControllerQuaternionZ",
+        "ControllerQuaternionW",
         
         // all targets (center of targets circle)
         "AllTargetsPositionX",
@@ -514,7 +495,7 @@ public partial class ExperimentManager : MonoBehaviour
         var selection = targetsManager.LastSelectionData;
 
         // conditions
-        _selectionsLogger.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
+        _selectionsLogger.SetColumnValue("Movement", Enum.GetName(typeof(Context), _runConfig.context));
         _selectionsLogger.SetColumnValue("CircleDirection", _runConfig.context == Context.Circle ? Enum.GetName(typeof(CircleDirections), currentCircleDirection) : "");
         _selectionsLogger.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
         _selectionsLogger.SetColumnValue("TargetSize", selection.targetSize);
@@ -522,7 +503,7 @@ public partial class ExperimentManager : MonoBehaviour
 
         // time
         var currentTime = Time.realtimeSinceStartup;
-        _selectionsLogger.SetColumnValue("HumanReadableTimestampUTC", currentTime * 1000);
+        _selectionsLogger.SetColumnValue("RealtimeSinceStartupMs", currentTime * 1000);
         _selectionsLogger.SetColumnValue("SystemClockTimestampMs", systemClockMilliseconds);
 
         // selection
@@ -551,7 +532,7 @@ public partial class ExperimentManager : MonoBehaviour
         _highFrequencyLogger.SetColumnValue("MeasurementID", ++_measurementId);
 
         // conditions
-        _highFrequencyLogger.SetColumnValue("Context", Enum.GetName(typeof(Context), _runConfig.context));
+        _highFrequencyLogger.SetColumnValue("Movement", Enum.GetName(typeof(Context), _runConfig.context));
         _highFrequencyLogger.SetColumnValue("CircleDirection", _runConfig.context == Context.Circle ? Enum.GetName(typeof(CircleDirections), currentCircleDirection) : "");
         _highFrequencyLogger.SetColumnValue("ReferenceFrame", Enum.GetName(typeof(ExperimentReferenceFrame), _runConfig.referenceFrame));
         _highFrequencyLogger.SetColumnValue("TargetSize", targetsManager.GetTargetDiameter(targetSizesSequence.Current));
@@ -559,21 +540,20 @@ public partial class ExperimentManager : MonoBehaviour
 
         // time
         var currentTime = Time.realtimeSinceStartup;
-        _highFrequencyLogger.SetColumnValue("HumanReadableTimestampUTC", currentTime * 1000);
+        _highFrequencyLogger.SetColumnValue("RealtimeSinceStartupMs", currentTime * 1000);
         _highFrequencyLogger.SetColumnValue("SystemClockTimestampMs", (currentTime - activateFirstTargetMoment) * 1000);
 
         var trackTransform = _runConfig.context == Context.Walking ? straightTrack.transform : _runConfig.context == Context.Circle ? circleTrack.transform : sceneLight.transform;
         LogObjectTransform("Track", trackTransform);
 
-        var walkingDirectionTransform = IsMovingContext(_runConfig.context) ? walkingDirection.transform : standingDirection.transform;
+        var walkingDirectionTransform = walkingDirection.transform;
         LogObjectTransform("WalkingDirection", walkingDirectionTransform);
 
         LogObjectTransform("Head", headset.transform); // center eye anchor
-        LogObjectTransform("NeckBase", neckBase.transform);
 
         LogObjectTransform("DominantPalmCenter", dominantHandPalmCenter.transform);
         LogObjectTransform("DominantIndexTip", dominantHandIndexTip.transform); // holds selector
-        LogObjectTransform("WeakPalmCenter", weakHandPalmCenter.transform); // holds targets
+        LogObjectTransform("Controller", controller.transform); // holds targets
 
         var allTargets = targetsManager.transform;
         var activeTarget = targetsManager.ActiveTarget.target.transform;
