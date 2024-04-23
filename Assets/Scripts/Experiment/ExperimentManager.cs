@@ -14,6 +14,7 @@ public partial class ExperimentManager : MonoBehaviour
     public readonly UnityEvent requestTrialValidation = new();
     public readonly UnityEvent<string> unexpectedErrorOccured = new();
     public readonly UnityEvent<string> userMistake = new();
+    public readonly UnityEvent<string> sendTargetSizeToServer = new();
 
     private State _state;
     private RunConfig _runConfig;
@@ -561,7 +562,6 @@ public partial class ExperimentManager : MonoBehaviour
         _highFrequencyLogger.SetColumnValue("HumanReadableTimestampUTC", currentTime * 1000);
         _highFrequencyLogger.SetColumnValue("SystemClockTimestampMs", (currentTime - activateFirstTargetMoment) * 1000);
 
-
         var trackTransform = _runConfig.context == Context.Walking ? straightTrack.transform : _runConfig.context == Context.Circle ? circleTrack.transform : sceneLight.transform;
         LogObjectTransform("Track", trackTransform);
 
@@ -729,6 +729,8 @@ public partial class ExperimentManager : MonoBehaviour
         targetSizesSequence = ReGenerateTargetSizesSequence(targetSizesSequence, _runConfig.isTraining);
         targetSizesSequence.MoveNext();
         targetsManager.TargetSize = targetSizesSequence.Current;
+        sendTargetSizeToServer.Invoke(Enum.GetName(typeof(TargetsManager.TargetSizeVariant), targetSizesSequence.Current));
+
         targetsManager.EnsureTargetsShown();
         if (!_runConfig.isTraining)
         {
@@ -815,6 +817,7 @@ public partial class ExperimentManager : MonoBehaviour
                 targetSizesSequence.MoveNext();
                 targetsManager.TargetSize = targetSizesSequence.Current;
                 targetsManager.EnsureTargetsShown();
+                sendTargetSizeToServer.Invoke(Enum.GetName(typeof(TargetsManager.TargetSizeVariant), targetSizesSequence.Current));
 
                 _targetsSelected = 0;
                 _measurementId = 0;
@@ -1126,6 +1129,7 @@ public partial class ExperimentManager : MonoBehaviour
                 else
                 {
                     targetsManager.TargetSize = targetSizesSequence.Current;
+                    sendTargetSizeToServer.Invoke(Enum.GetName(typeof(TargetsManager.TargetSizeVariant), targetSizesSequence.Current));
                     UpdateDirectionArrow();
                     directionArrow.SetActive(true);
 
@@ -1208,6 +1212,7 @@ public partial class ExperimentManager : MonoBehaviour
     private void OnParticipantSlowedDown() { if (listeningTrackEventsFlag) HandleState(nameof(OnParticipantSlowedDown)); }
     public void OnServerSaidStart() => HandleState(nameof(OnServerSaidStart));
     public void OnServerSaidFinishTraining() => HandleState(nameof(OnServerSaidFinishTraining));
+    public void OnServerSetPathRefHeight() => UpdatePathRefFrames();
 
     public void OnServerSaidPrepare(RunConfig config)
     {
@@ -1237,7 +1242,7 @@ partial class ExperimentManager
     public enum ExperimentReferenceFrame
     {
         PalmReferenced, // both rotation and position by hand
-        HandReferenced, // position only
+        PalmWORotation, // position only
         PathReferenced, // head
         // PathReferencedNeck, // neck
         // ChestReferenced // chest
@@ -1265,7 +1270,9 @@ partial class ExperimentManager
         // after "start" command, fixes that offsets and calls "trialsFinished" to make server to go to next step
         public readonly bool isInitialStandingTraining;
 
-        public RunConfig(int participantID, bool leftHanded, bool isMetronomeTraining, bool isTraining, Context context, ExperimentReferenceFrame referenceFrame, bool isInitialStandingTraining)
+        public readonly bool isBreak;
+
+        public RunConfig(int participantID, bool leftHanded, bool isMetronomeTraining, bool isTraining, Context context, ExperimentReferenceFrame referenceFrame, bool isInitialStandingTraining, bool isBreak = false)
         {
             this.participantID = participantID;
             this.leftHanded = leftHanded;
@@ -1274,6 +1281,7 @@ partial class ExperimentManager
             this.context = context;
             this.referenceFrame = referenceFrame;
             this.isInitialStandingTraining = isInitialStandingTraining;
+            this.isBreak = isBreak;
         }
     }
 

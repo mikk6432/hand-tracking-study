@@ -35,7 +35,9 @@ public class DesktopMainProcess : ExperimentNetworkServer
     [SerializeField] private Button validateButton;
     [SerializeField] private Button invalidateButton;
     [SerializeField] private Button placeLightAndTrack;
+    [SerializeField] private Button setPathRefHeight;
     [SerializeField] private Toggle showHeadsetAdjustmentText;
+    [SerializeField] private TextMeshProUGUI targetSizeIndicator;
 
     private bool connected = false;
 
@@ -45,7 +47,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
     private string error;
 
     private bool awaitingValidation;
-
+    private string currentTargetSize;
     private int listLength = 0;
 
     private int pointer; // points to step, to which send the command (shows bold in table)
@@ -69,6 +71,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
         finishTrainingButton.onClick.AddListener(() => Send(new MessageToHelmet.FinishTrainingStep(pointer)));
 
         placeLightAndTrack.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.PlaceTrackAndLight)));
+        setPathRefHeight.onClick.AddListener(() => Send(new MessageToHelmet(MessageToHelmet.Code.SetPathRefHeight)));
 
         showHeadsetAdjustmentText.onValueChanged.AddListener((value) =>
         {
@@ -121,6 +124,10 @@ public class DesktopMainProcess : ExperimentNetworkServer
     {
         switch (message.code)
         {
+            case MessageFromHelmet.Code.TargetSize:
+                currentTargetSize = (message as MessageFromHelmet.TargetSize).targetSize;
+                Render();
+                break;
             case MessageFromHelmet.Code.ExperimentSummary:
                 Debug.Log(message);
                 summaryIndex++;
@@ -173,7 +180,9 @@ public class DesktopMainProcess : ExperimentNetworkServer
             decrementPointerButton.gameObject.SetActive(false);
             saveButton.gameObject.SetActive(false);
             placeLightAndTrack.gameObject.SetActive(false);
+            setPathRefHeight.gameObject.SetActive(false);
             showHeadsetAdjustmentText.gameObject.SetActive(false);
+            targetSizeIndicator.gameObject.SetActive(false);
 
             if (!connected)
             {
@@ -242,6 +251,10 @@ public class DesktopMainProcess : ExperimentNetworkServer
             {
                 line = "Training to go with metronome";
             }
+            else if (runConfigs[i].isBreak)
+            {
+                line = $"Break - 5 minutes";
+            }
             else
             {
                 var type = runConfigs[i].isTraining ? "Training" : "Trial\t";
@@ -265,6 +278,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
             if (i == pointer)
                 line = $"<b>{line}</b>";
 
+
             text += "\n" + line;
         }
         experimentStepsTable.text = text;
@@ -277,8 +291,10 @@ public class DesktopMainProcess : ExperimentNetworkServer
             prepareButton.gameObject.SetActive(!done && (pointer >= 0));
             doneButton.gameObject.SetActive(!done);
             undoneButton.gameObject.SetActive(done);
+            setPathRefHeight.gameObject.SetActive(false);
 
             startButton.gameObject.SetActive(false);
+            targetSizeIndicator.gameObject.SetActive(false);
             finishTrainingButton.gameObject.SetActive(false);
         }
         else
@@ -299,6 +315,10 @@ public class DesktopMainProcess : ExperimentNetworkServer
                 startButton.gameObject.SetActive(summary.stage == (int)HelmetMainProcess.RunStage.Preparing);
                 bool isCurrentTraining = runConfigs[summary.index].isTraining || runConfigs[summary.index].isMetronomeTraining;
                 finishTrainingButton.gameObject.SetActive(isCurrentTraining && summary.stage == (int)HelmetMainProcess.RunStage.Running);
+                // var refFrame = Enum.GetName(typeof(ExperimentManager.ExperimentReferenceFrame), runConfigs[i].referenceFrame);
+                setPathRefHeight.gameObject.SetActive(runConfigs[summary.index].referenceFrame == ExperimentManager.ExperimentReferenceFrame.PathReferenced && summary.stage == (int)HelmetMainProcess.RunStage.Running);
+                targetSizeIndicator.gameObject.SetActive(summary.stage == (int)HelmetMainProcess.RunStage.Running);
+                targetSizeIndicator.text = $"Target size: {currentTargetSize}";
             }
         }
 

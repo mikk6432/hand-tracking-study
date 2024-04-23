@@ -30,9 +30,10 @@ public class HelmetMainProcess : ExperimentNetworkClient
             new Func<ExperimentManager.ExperimentReferenceFrame, ExperimentManager.Context, ExperimentManager.RunConfig>
                 ((rf, ctx) => new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ctx, rf, false));
 
+        var totalNumberOfTraining = 2;
         var numberOfRefs = Enum.GetNames(typeof(ExperimentManager.ExperimentReferenceFrame)).Length;
         var numberOfContexts = Enum.GetNames(typeof(ExperimentManager.Context)).Length;
-        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + 2); // times 2 for training/trial and plus 3 for training steps
+        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + totalNumberOfTraining + 1); // times 2 for training/trial and plus 2 for training steps + 1 for break
 
         var refFrames = Enum.GetValues(typeof(ExperimentManager.ExperimentReferenceFrame));
         var contexts = Enum.GetValues(typeof(ExperimentManager.Context));
@@ -88,6 +89,16 @@ public class HelmetMainProcess : ExperimentNetworkClient
             ExperimentManager.Context.Circle,
             ExperimentManager.ExperimentReferenceFrame.PalmReferenced,
             false
+            ));
+
+        var breakIndex = numberOfContexts * 2 + totalNumberOfTraining;
+        result.Insert(breakIndex, new ExperimentManager.RunConfig(participantId, leftHanded,
+            false,
+            false,
+            ExperimentManager.Context.Circle,
+            ExperimentManager.ExperimentReferenceFrame.PalmReferenced,
+            false,
+            true // indicates this is training with metronome. The above arguments does not matter
             ));
 
         // var firstJoggingIndex = FirstIndexOfSpecificContext(ref result, ExperimentManager.Context.Jogging);
@@ -181,6 +192,10 @@ public class HelmetMainProcess : ExperimentNetworkClient
         {
             currentRunStage = RunStage.Validation;
             SendSummary();
+        });
+        experimentManager.sendTargetSizeToServer.AddListener((targetSize) =>
+        {
+            Send(new MessageFromHelmet.TargetSize(targetSize));
         });
     }
 
@@ -325,6 +340,9 @@ public class HelmetMainProcess : ExperimentNetworkClient
 
                 participantPrefs.doneBitmap = bitmap;
                 SendSummary();
+                break;
+            case MessageToHelmet.Code.SetPathRefHeight:
+                experimentManager.OnServerSetPathRefHeight();
                 break;
             case MessageToHelmet.Code.PlaceTrackAndLight:
                 FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();

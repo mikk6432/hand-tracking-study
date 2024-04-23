@@ -16,6 +16,7 @@ public class ExperimentNetwork : MonoBehaviour
             InvalidOperation, // for example, server said to toggle leftHanded, while trial or training was running
             UnexpectedError, // to be deleted. HelmetProcess can surround dangerous code-blocks with rty catch and sent to server info about error which occured unexpectedly
             UserError,
+            TargetSize,
         }
 
         public readonly Code code;
@@ -94,6 +95,24 @@ public class ExperimentNetwork : MonoBehaviour
                 return base.ToString() + $", error: {errorMessage}";
             }
         }
+
+        [Serializable]
+        public class TargetSize : MessageFromHelmet
+        {
+            public string targetSize;
+
+            public TargetSize(string targetSize) : base(Code.TargetSize)
+            {
+                this.targetSize = targetSize;
+            }
+
+            public override string ToString()
+            {
+                return base.ToString() + $" targetSize={targetSize}";
+            }
+        }
+
+
     }
 
     [Serializable]
@@ -116,6 +135,7 @@ public class ExperimentNetwork : MonoBehaviour
             ValidateTrial,
             InvalidateTrial,
             PlaceTrackAndLight,
+            SetPathRefHeight,
             showHeadsetAdjustmentText,
         }
 

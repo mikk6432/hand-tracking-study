@@ -63,3 +63,11 @@ Notes:
 * If controllers are misalligned: Try to disable the boundary OR hold controllers correctly in hands.
 * During initial task explanation we should clearly explain the different target sizes: "To maintain a balance between speed and accuracy you (the participant) should probably slow down on smaller target sizes.
 * Whenever we put the headset back on the participant (e.g. after mandatory break), verify that the physical controllers correctly allign with the virtual ones.
+
+Pilot study notes
+* print on both sides.
+* Should show target size
+* Should be able to cancel trial 
+* Make sure to mantion the names of the reference frames during the conditions (for the final questionire)
+* Add break to runconfig UI thing on server
+* Change all names of hand reference to palm W/o rotation.
