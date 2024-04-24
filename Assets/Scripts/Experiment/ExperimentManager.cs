@@ -503,7 +503,7 @@ public partial class ExperimentManager : MonoBehaviour
 
         // time
         var currentTime = Time.realtimeSinceStartup;
-        _selectionsLogger.SetColumnValue("RealtimeSinceStartupMs", currentTime * 1000);
+        _selectionsLogger.SetColumnValue("RealtimeSinceStartupMs", (int)(currentTime * 1000));
         _selectionsLogger.SetColumnValue("SystemClockTimestampMs", systemClockMilliseconds);
 
         // selection
@@ -540,8 +540,8 @@ public partial class ExperimentManager : MonoBehaviour
 
         // time
         var currentTime = Time.realtimeSinceStartup;
-        _highFrequencyLogger.SetColumnValue("RealtimeSinceStartupMs", currentTime * 1000);
-        _highFrequencyLogger.SetColumnValue("SystemClockTimestampMs", (currentTime - activateFirstTargetMoment) * 1000);
+        _highFrequencyLogger.SetColumnValue("RealtimeSinceStartupMs", (int)(currentTime * 1000));
+        _highFrequencyLogger.SetColumnValue("SystemClockTimestampMs", (int)((currentTime - activateFirstTargetMoment) * 1000));
 
         var trackTransform = _runConfig.context == Context.Walking ? straightTrack.transform : _runConfig.context == Context.Circle ? circleTrack.transform : sceneLight.transform;
         LogObjectTransform("Track", trackTransform);
