@@ -68,17 +68,24 @@ if edges.shape != edges.drop_duplicates().shape:
 
 
 # Compute step frequency
-filtered_data = data[data['Movement'].isin(['Circle', 'Walking'])] # Remove Standing
-local_min_vals = filtered_data.loc[filtered_data['HeadPositionY'] == filtered_data['HeadPositionY'].rolling(5, center=True).min()] # 
-time_between_steps = local_min_vals['RealtimeSinceStartupMs'].diff()
 
-# Discard steps that were faster than 50ms and slower than 2sec.
-filtered_time_between_steps = list(filter(lambda x: 50 <= x <= 2000, time_between_steps.tolist()))
+# If RealtimeSinceStartupMs is in seconds and not ms, convert to milliseconds
+# data['RealtimeSinceStartupMs'] = data['RealtimeSinceStartupMs']*1000
+
+filtered_data = data[data['Movement'].isin(['Circle', 'Walking'])] # Remove Standing
+local_min_vals = filtered_data.loc[filtered_data['HeadPositionY'] == filtered_data['HeadPositionY'].rolling(10, center=True).min()] # 
+time_between_steps = local_min_vals['SystemClockTimestampMs'].diff().iloc[1:] # reason for iloc: remove first element as it is NaN
+
+# Discard negative time steps. This is to discard "steps" between condition, which are still here as e.g. a minus 4 second step
+filtered_time_between_steps = list(filter(lambda x: 0 <= x, time_between_steps.tolist()))
 mean_time_between_steps_in_seconds = np.mean(filtered_time_between_steps) * 0.001
 mean_step_frequency = 60 / mean_time_between_steps_in_seconds
 
+# print(data[['RealtimeSinceStartupMs', 'HeadPositionY']].head(50))
+# print(local_min_vals)
+# print(time_between_steps.head(20))
 # print(filtered_time_between_steps)
 print(mean_step_frequency)
 
-print(data.head(100))
+# print(data.head(100))
 
