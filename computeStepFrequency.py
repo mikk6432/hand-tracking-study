@@ -85,7 +85,43 @@ mean_step_frequency = 60 / mean_time_between_steps_in_seconds
 # print(local_min_vals)
 # print(time_between_steps.head(20))
 # print(filtered_time_between_steps)
+print('\nAverage step frequency:')
 print(mean_step_frequency)
 
 # print(data.head(100))
 
+# Compute distances and speeds
+data['conditionID'] = (data['SystemClockTimestampMs'].diff() <= 0).cumsum()
+grouped_conditions = data.groupby('conditionID')
+data['head_dx'] = data.groupby('conditionID')['HeadPositionX'].diff().fillna(0)
+data['head_dz'] = data.groupby('conditionID')['HeadPositionZ'].diff().fillna(0)
+data['head_distance'] = np.sqrt(data['head_dx']**2 + data['head_dz']**2)
+
+data['path_dx'] = data.groupby('conditionID')['WalkingDirectionPositionX'].diff().fillna(0)
+data['path_dz'] = data.groupby('conditionID')['WalkingDirectionPositionZ'].diff().fillna(0)
+data['path_distance'] = np.sqrt(data['path_dx']**2 + data['path_dz']**2)
+
+result = data.groupby('conditionID').agg(
+    movement=('Movement', 'first'),
+    TargetSize=('TargetSize', 'first'),
+    total_head_distance_m=('head_distance', 'sum'),
+    total_path_distance_m=('path_distance', 'sum'),
+    start_time=('RealtimeSinceStartupMs', 'min'),
+    end_time=('RealtimeSinceStartupMs', 'max')
+)
+
+result.insert(3, 'diff_distance', result['total_path_distance_m'] - result['total_head_distance_m'])
+result['total_time_sec'] = (result['end_time'] - result['start_time'])*0.001 # times 0.001 to get seconds
+result['head_speed_km/h'] = (result['total_head_distance_m'] / result['total_time_sec'])*3.6 # times 3.6 to get km/h
+result['path_speed_km/h'] = (result['total_path_distance_m'] / result['total_time_sec'])*3.6 # times 3.6 to get km/h
+
+result = result.drop(columns=['end_time', 'start_time']) # Don't need these anymore
+
+average_head_speed_by_movement = result.groupby('movement', observed=True)['head_speed_km/h'].mean() # observed=True to silence warning
+average_path_speed_by_movement = result.groupby('movement', observed=True)['path_speed_km/h'].mean() # observed=True to silence warning
+
+print(result.to_string())
+print('\nAverage head speed in Km/h:')
+print(average_head_speed_by_movement.to_string(header=False))
+print('Average path speed in Km/h:')
+print(average_path_speed_by_movement.to_string(header=False))
