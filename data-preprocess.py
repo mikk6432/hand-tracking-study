@@ -187,8 +187,10 @@ with (ro.default_converter + pandas2ri.converter).context():
 ro.r('''
     f <- function(data) {
         m <- art(TP ~ Movement*ReferenceFrame*TargetSize, data=data)
-        summary(m)
-        anova(m)
+        art.con(m, "Movement:ReferenceFrame")
+        m$aligned.ranks
+        # summary(m)
+        # anova(m)
     }
 ''')
 f = ro.globalenv['f']
