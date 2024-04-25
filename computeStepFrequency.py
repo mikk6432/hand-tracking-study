@@ -66,6 +66,7 @@ if edges.shape != edges.drop_duplicates().shape:
     print("ERR: There are duplicates, please check the data")
     sys.exit()
 
+targets_head_wp = data[['ParticipantID', 'Movement', 'ReferenceFrame', 'TargetSize', 'HeadPositionX', 'HeadPositionY', 'HeadPositionZ', 'AllTargetsPositionX', 'AllTargetsPositionY', 'AllTargetsPositionZ', 'WalkingDirectionForwardX', 'WalkingDirectionForwardY', 'WalkingDirectionForwardZ']].copy()
 
 # Compute step frequency
 
@@ -125,3 +126,11 @@ print('\nAverage head speed in Km/h:')
 print(average_head_speed_by_movement.to_string(header=False))
 print('Average path speed in Km/h:')
 print(average_path_speed_by_movement.to_string(header=False))
+
+targets_head_wp['DistanceVectorX'] = targets_head_wp['AllTargetsPositionX'] - targets_head_wp['HeadPositionX']
+targets_head_wp['DistanceVectorY'] = targets_head_wp['AllTargetsPositionY'] - targets_head_wp['HeadPositionY']
+targets_head_wp['DistanceVectorZ'] = targets_head_wp['AllTargetsPositionZ'] - targets_head_wp['HeadPositionZ']
+targets_head_wp['DotProduct'] = (data[['WalkingDirectionForwardX', 'WalkingDirectionForwardY', 'WalkingDirectionForwardZ']].values * targets_head_wp[['DistanceVectorX', 'DistanceVectorY', 'DistanceVectorZ']].values).sum(axis=1)
+grouped_dot = targets_head_wp.groupby(['ParticipantID', 'ReferenceFrame'], observed=True).agg({'DotProduct': 'mean', "AllTargetsPositionY": "mean"})
+grouped_dot = grouped_dot.rename(columns={'DotProduct': 'ZDistance', 'AllTargetsPositionY': 'FloorDistance'})
+print(grouped_dot)
