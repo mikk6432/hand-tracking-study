@@ -110,7 +110,7 @@ result = data.groupby('conditionID').agg(
     end_time=('RealtimeSinceStartupMs', 'max')
 )
 
-result.insert(3, 'diff_distance', result['total_path_distance_m'] - result['total_head_distance_m'])
+result.insert(4, 'diff_distance', result['total_path_distance_m'] - result['total_head_distance_m'])
 result['total_time_sec'] = (result['end_time'] - result['start_time'])*0.001 # times 0.001 to get seconds
 result['head_speed_km/h'] = (result['total_head_distance_m'] / result['total_time_sec'])*3.6 # times 3.6 to get km/h
 result['path_speed_km/h'] = (result['total_path_distance_m'] / result['total_time_sec'])*3.6 # times 3.6 to get km/h
