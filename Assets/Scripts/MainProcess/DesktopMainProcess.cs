@@ -247,7 +247,7 @@ public class DesktopMainProcess : ExperimentNetworkServer
                 var refFrame = Enum.GetName(typeof(ExperimentManager.ExperimentReferenceFrame), runConfigs[i].referenceFrame);
                 line = $"Initial target selection training ({refFrame})";
             }
-            if (runConfigs[i].isPlacingComfortYAndZ)
+            else if (runConfigs[i].isPlacingComfortYAndZ)
             {
                 line = "Placing UI where participant feel comfort";
             }
