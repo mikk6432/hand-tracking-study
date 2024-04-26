@@ -144,6 +144,8 @@ data['TP'] = data['IDe']/data['MT']
 
 # This is already done in the data
 data_art = data.copy()
+grouped_for_stats = data_art.groupby(['ParticipantID','ReferenceFrame']).agg({'Success': 'mean', 'MT': 'mean', 'dx': 'std', 'ae': 'mean', 'WeCM': 'mean', 'IDe': 'mean', 'TP': 'mean'})
+print(grouped_for_stats.to_string())
 
 #10. Convert data to wide format again but now with the following parameters: Identifier = ParticpantID, Index Vars = all conditions
 
