@@ -33,7 +33,7 @@ public class HelmetMainProcess : ExperimentNetworkClient
         var totalNumberOfTraining = 2;
         var numberOfRefs = Enum.GetNames(typeof(ExperimentManager.ExperimentReferenceFrame)).Length;
         var numberOfContexts = Enum.GetNames(typeof(ExperimentManager.Context)).Length;
-        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + totalNumberOfTraining + 1); // times 2 for training/trial and plus 2 for training steps + 1 for break
+        var result = new List<ExperimentManager.RunConfig>(numberOfRefs * numberOfContexts * 2 + totalNumberOfTraining + 2); // times 2 for training/trial and plus 2 for training steps + 1 for break
 
         var refFrames = Enum.GetValues(typeof(ExperimentManager.ExperimentReferenceFrame));
         var contexts = Enum.GetValues(typeof(ExperimentManager.Context));
@@ -115,6 +115,20 @@ public class HelmetMainProcess : ExperimentNetworkClient
         // This is the initial training for the user to get familiar with the selection task.
         if (allExperiments[0].context != ExperimentManager.Context.Standing)
             result.Insert(0, new ExperimentManager.RunConfig(participantId, leftHanded, false, true, ExperimentManager.Context.Standing, allExperiments[0].referenceFrame, true));
+
+
+        // Find index of first path reference frame
+        int index = 0;
+        foreach (var runConfig in result)
+        {
+            if (runConfig.referenceFrame is
+                ExperimentManager.ExperimentReferenceFrame.PathReferenced)
+                break;
+            index++;
+        }
+        // now insert run config, which consists of just one step for the participant – please, place UI where it will be comfortable for you
+        result.Insert(index, new ExperimentManager.RunConfig(participantId, leftHanded, false, false, ExperimentManager.Context.Standing, ExperimentManager.ExperimentReferenceFrame.PathReferenced, false, false, true));
+
 
         return result.ToArray();
     }

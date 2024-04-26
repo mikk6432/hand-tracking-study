@@ -236,6 +236,8 @@ public partial class ExperimentManager : MonoBehaviour
     // only walking for pathRefNeck
     [SerializeField] private GameObject[] leftHandedReferenceFrames;
     [SerializeField] private GameObject[] rightHandedReferenceFrames;
+    [SerializeField] private GameObject UIPlacerRefFrameLeftHand;
+    [SerializeField] private GameObject UIPlacerRefFrameRightHand;
     private GameObject activeRefFrame;
     private int activeRefFrameIndex;
     // as path referenced, but depends on hand (not head)
@@ -252,17 +254,48 @@ public partial class ExperimentManager : MonoBehaviour
 
     private void UpdatePathRefFrames()
     {
+        // Setting path position manually
+        var targetsPosition = targetsManager.transform.position;
+        var y = targetsPosition.y;
+
+        var fromHeadToTargets = headset.transform.position - targetsPosition;
+        fromHeadToTargets.y = 0;
+
+        // var fromNeckToTargets = neckBase.transform.position - targetsPosition;
+        // fromNeckToTargets.y = 0;
+
+        // pathRefFrames.ForEach(refFrame =>
+        // {
+        //     refFrame.offsetReference.yOffset = y;
+        //     refFrame.offsetReference.zOffset = fromHeadToTargets.magnitude;
+        // });
+
         foreach (var refFrame in leftHandedReferenceFrames.Concat(rightHandedReferenceFrames))
         {
-            // if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.ChestReferenced)
-            // {
-            //     refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerChest.transform);
-            // }
             if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.PathReferenced)
             {
-                refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerPath.transform);
+                refFrame.GetComponent<ReferenceFrame>().offsetReference.yOffset = y;
+                refFrame.GetComponent<ReferenceFrame>().offsetReference.zOffset = fromHeadToTargets.magnitude;
             }
         }
+        // pathNeckRefFrames.ForEach(refFrame =>
+        // {
+        //     refFrame.offsetReference.yOffset = y;
+        //     refFrame.offsetReference.zOffset = fromNeckToTargets.magnitude;
+        // });
+
+        // Setting path refframe at fixed position relative to headset
+        // foreach (var refFrame in leftHandedReferenceFrames.Concat(rightHandedReferenceFrames))
+        // {
+        //     // if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.ChestReferenced)
+        //     // {
+        //     //     refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerChest.transform);
+        //     // }
+        //     if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.PathReferenced)
+        //     {
+        //         refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerPath.transform);
+        //     }
+        // }
     }
     #endregion
 
@@ -794,6 +827,20 @@ public partial class ExperimentManager : MonoBehaviour
                     _state = State.Preparing;
                     break;
                 } */
+                if (_runConfig.isPlacingComfortYAndZ)
+                {
+                    ActualizeHands();
+                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
+                    var handRefFrame = _runConfig.leftHanded ? UIPlacerRefFrameRightHand : UIPlacerRefFrameLeftHand;
+                    handRefFrame.SetActive(true);
+                    targetsManager.Anchor = handRefFrame;
+                    targetsManager.TargetSize = TargetsManager.TargetSizeVariant.Big;
+                    targetsManager.showCube();
+                    selectorProjector.Selector = dominantHandIndexTip.transform;
+                    selectorProjector.enabled = true;
+                    _state = State.Preparing;
+                    break;
+                }
                 if (_runConfig.isMetronomeTraining)
                 {
 
@@ -806,7 +853,7 @@ public partial class ExperimentManager : MonoBehaviour
                     HandlePreparingState(nameof(OnServerSaidPrepare));
                     break;
                 }
-                UpdatePathRefFrames();
+                // UpdatePathRefFrames();
                 ActualizeHands();
                 ActualizeReferenceFrames();
                 targetsManager.showCube();
@@ -858,7 +905,12 @@ public partial class ExperimentManager : MonoBehaviour
         switch (eventName)
         {
             case nameof(OnServerSaidPrepare):
-                UpdatePathRefFrames();
+                if (_runConfig.isPlacingComfortYAndZ)
+                {
+                    FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
+                    break;
+                }
+                // UpdatePathRefFrames();
                 break;
             case nameof(OnServerSaidStart):
                 /* if (_runConfig.isInitialStandingTraining)
@@ -868,6 +920,17 @@ public partial class ExperimentManager : MonoBehaviour
                     trialsFinished.Invoke(); // and call "finished"
                     break;
                 } */
+                if (_runConfig.isPlacingComfortYAndZ)
+                {
+                    UpdatePathRefFrames(); // call method after "Start command"
+                    UIPlacerRefFrameRightHand.SetActive(false);
+                    UIPlacerRefFrameLeftHand.SetActive(false);
+                    targetsManager.hideCube();
+                    selectorProjector.enabled = false;
+                    _state = State.Idle;
+                    trialsFinished.Invoke(); // and call "finished"
+                    break;
+                }
                 if (_runConfig.isMetronomeTraining || IsMovingContext(_runConfig.context))
                 {
                     // We have to wait for the participant to enter the track (no matter if this is training with metronome or not)
@@ -1269,11 +1332,12 @@ partial class ExperimentManager
         // not fitting project architecture, but we are short of time
         // used for participant to place with his hand where he would comfortably set UI path-referenced (Z offset from headset and Y offset from floor)
         // after "start" command, fixes that offsets and calls "trialsFinished" to make server to go to next step
+        public readonly bool isPlacingComfortYAndZ;
         public readonly bool isInitialStandingTraining;
 
         public readonly bool isBreak;
 
-        public RunConfig(int participantID, bool leftHanded, bool isMetronomeTraining, bool isTraining, Context context, ExperimentReferenceFrame referenceFrame, bool isInitialStandingTraining, bool isBreak = false)
+        public RunConfig(int participantID, bool leftHanded, bool isMetronomeTraining, bool isTraining, Context context, ExperimentReferenceFrame referenceFrame, bool isInitialStandingTraining, bool isBreak = false, bool isPlacingComfortYAndZ = false)
         {
             this.participantID = participantID;
             this.leftHanded = leftHanded;
@@ -1283,6 +1347,7 @@ partial class ExperimentManager
             this.referenceFrame = referenceFrame;
             this.isInitialStandingTraining = isInitialStandingTraining;
             this.isBreak = isBreak;
+            this.isPlacingComfortYAndZ = isPlacingComfortYAndZ;
         }
     }
 
