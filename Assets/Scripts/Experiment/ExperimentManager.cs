@@ -236,13 +236,13 @@ public partial class ExperimentManager : MonoBehaviour
     // only walking for pathRefNeck
     [SerializeField] private GameObject[] leftHandedReferenceFrames;
     [SerializeField] private GameObject[] rightHandedReferenceFrames;
-    [SerializeField] private GameObject UIPlacerRefFrameLeftHand;
-    [SerializeField] private GameObject UIPlacerRefFrameRightHand;
+    [SerializeField] private GameObject UIPlacerPathLeft;
+    [SerializeField] private GameObject UIPlacerPathRight;
     private GameObject activeRefFrame;
     private int activeRefFrameIndex;
     // as path referenced, but depends on hand (not head)
-    [Space]
-    [SerializeField] private GameObject UIPlacerPath;
+    //[Space]
+    //[SerializeField] private GameObject UIPlacerPath;
     // [SerializeField] private GameObject UIPlacerChest;
 
     private void ActualizeReferenceFrames()
@@ -254,48 +254,28 @@ public partial class ExperimentManager : MonoBehaviour
 
     private void UpdatePathRefFrames()
     {
-        // Setting path position manually
-        var targetsPosition = targetsManager.transform.position;
-        var y = targetsPosition.y;
-
-        var fromHeadToTargets = headset.transform.position - targetsPosition;
-        fromHeadToTargets.y = 0;
-
-        // var fromNeckToTargets = neckBase.transform.position - targetsPosition;
-        // fromNeckToTargets.y = 0;
-
-        // pathRefFrames.ForEach(refFrame =>
-        // {
-        //     refFrame.offsetReference.yOffset = y;
-        //     refFrame.offsetReference.zOffset = fromHeadToTargets.magnitude;
-        // });
-
-        foreach (var refFrame in leftHandedReferenceFrames.Concat(rightHandedReferenceFrames))
+        foreach (var refFrame in leftHandedReferenceFrames)
         {
+            // if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.ChestReferenced)
+            // {
+            //     refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerChest.transform);
+            // }
             if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.PathReferenced)
             {
-                refFrame.GetComponent<ReferenceFrame>().offsetReference.yOffset = y;
-                refFrame.GetComponent<ReferenceFrame>().offsetReference.zOffset = fromHeadToTargets.magnitude;
+                refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerPathLeft.transform);
             }
         }
-        // pathNeckRefFrames.ForEach(refFrame =>
-        // {
-        //     refFrame.offsetReference.yOffset = y;
-        //     refFrame.offsetReference.zOffset = fromNeckToTargets.magnitude;
-        // });
-
-        // Setting path refframe at fixed position relative to headset
-        // foreach (var refFrame in leftHandedReferenceFrames.Concat(rightHandedReferenceFrames))
-        // {
-        //     // if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.ChestReferenced)
-        //     // {
-        //     //     refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerChest.transform);
-        //     // }
-        //     if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.PathReferenced)
-        //     {
-        //         refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerPath.transform);
-        //     }
-        // }
+        foreach (var refFrame in rightHandedReferenceFrames)
+        {
+            // if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.ChestReferenced)
+            // {
+            //     refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerChest.transform);
+            // }
+            if (refFrame.GetComponent<ReferenceFrame>().referenceFrameName == ExperimentReferenceFrame.PathReferenced)
+            {
+                refFrame.GetComponent<ReferenceFrame>().UpdateReferenceFrame(UIPlacerPathRight.transform);
+            }
+        }
     }
     #endregion
 
@@ -831,11 +811,12 @@ public partial class ExperimentManager : MonoBehaviour
                 {
                     ActualizeHands();
                     FindObjectOfType<PlaceTrack>().PlaceTrackAndLightsForwardFromHeadset();
-                    var handRefFrame = _runConfig.leftHanded ? UIPlacerRefFrameRightHand : UIPlacerRefFrameLeftHand;
+                    var handRefFrame = _runConfig.leftHanded ? UIPlacerPathLeft : UIPlacerPathRight;
                     handRefFrame.SetActive(true);
                     targetsManager.Anchor = handRefFrame;
                     targetsManager.TargetSize = TargetsManager.TargetSizeVariant.Big;
                     targetsManager.showCube();
+                    targetsManager.EnsureTargetsShown();
                     selectorProjector.Selector = dominantHandIndexTip.transform;
                     selectorProjector.enabled = true;
                     _state = State.Preparing;
@@ -923,9 +904,10 @@ public partial class ExperimentManager : MonoBehaviour
                 if (_runConfig.isPlacingComfortYAndZ)
                 {
                     UpdatePathRefFrames(); // call method after "Start command"
-                    UIPlacerRefFrameRightHand.SetActive(false);
-                    UIPlacerRefFrameLeftHand.SetActive(false);
+                    UIPlacerPathLeft.SetActive(false);
+                    UIPlacerPathRight.SetActive(false);
                     targetsManager.hideCube();
+                    targetsManager.EnsureTargetsHidden();
                     selectorProjector.enabled = false;
                     _state = State.Idle;
                     trialsFinished.Invoke(); // and call "finished"

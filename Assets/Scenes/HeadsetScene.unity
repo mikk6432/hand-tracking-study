@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.17511052, g: 0.21907169, b: 0.301371, a: 1}
+  m_IndirectSpecularColor: {r: 0.17501816, g: 0.21896845, b: 0.30123302, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -626,7 +626,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &115891162
 Transform:
   m_ObjectHideFlags: 0
@@ -3326,7 +3326,7 @@ GameObject:
   - component: {fileID: 903566294}
   - component: {fileID: 903566295}
   m_Layer: 0
-  m_Name: UIPlacerRefFrameLeftHand
+  m_Name: UIPlacerLeft
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3361,9 +3361,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   referenceFrameName: 1
-  locallyPositionedTo: {fileID: 0}
+  locallyPositionedTo: {fileID: 144727615}
   positionReference:
-    x: {fileID: 1497153429}
+    x: {fileID: 0}
     y: {fileID: 1497153429}
     z: {fileID: 1497153429}
   rotationReference:
@@ -3372,7 +3372,7 @@ MonoBehaviour:
     z: {fileID: 0}
   offsetReference:
     xReference: {fileID: 144727615}
-    xOffset: 0.2
+    xOffset: 0
     yReference: {fileID: 144727615}
     yOffset: 0
     zReference: {fileID: 144727615}
@@ -3713,9 +3713,8 @@ MonoBehaviour:
   - {fileID: 1894410977}
   - {fileID: 528180495}
   - {fileID: 300014859}
-  UIPlacerRefFrameLeftHand: {fileID: 903566293}
-  UIPlacerRefFrameRightHand: {fileID: 1761889765}
-  UIPlacerPath: {fileID: 115891161}
+  UIPlacerPathLeft: {fileID: 1761889765}
+  UIPlacerPathRight: {fileID: 903566293}
 --- !u!114 &1055041123
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5600,7 +5599,7 @@ GameObject:
   - component: {fileID: 1761889766}
   - component: {fileID: 1761889767}
   m_Layer: 0
-  m_Name: UIPlacerRefFrameRightHand
+  m_Name: UIPlacerRight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5635,9 +5634,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   referenceFrameName: 1
-  locallyPositionedTo: {fileID: 0}
+  locallyPositionedTo: {fileID: 144727615}
   positionReference:
-    x: {fileID: 1345980735}
+    x: {fileID: 0}
     y: {fileID: 1345980735}
     z: {fileID: 1345980735}
   rotationReference:
@@ -5646,7 +5645,7 @@ MonoBehaviour:
     z: {fileID: 0}
   offsetReference:
     xReference: {fileID: 144727615}
-    xOffset: -0.2
+    xOffset: 0
     yReference: {fileID: 144727615}
     yOffset: 0
     zReference: {fileID: 144727615}
