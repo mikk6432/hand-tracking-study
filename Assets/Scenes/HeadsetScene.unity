@@ -1216,21 +1216,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   referenceFrameName: 2
-  locallyPositionedTo: {fileID: 144727615}
+  locallyPositionedTo: {fileID: 1585482359}
   positionReference:
     x: {fileID: 0}
     y: {fileID: 0}
-    z: {fileID: 144727615}
+    z: {fileID: 1585482359}
   rotationReference:
     x: {fileID: 0}
-    y: {fileID: 144727615}
+    y: {fileID: 1585482359}
     z: {fileID: 0}
   offsetReference:
     xReference: {fileID: 0}
     xOffset: 0
-    yReference: {fileID: 144727615}
+    yReference: {fileID: 1585482359}
     yOffset: 1.35
-    zReference: {fileID: 144727615}
+    zReference: {fileID: 1585482359}
     zOffset: 0.35
   offsetRotation: {x: 40, y: 0, z: 0}
 --- !u!1001 &310063808
@@ -1401,6 +1401,7 @@ Transform:
   - {fileID: 1578331483}
   - {fileID: 1259474936}
   - {fileID: 361568928}
+  - {fileID: 1585482360}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &399231511
@@ -1808,7 +1809,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &473284504
 Transform:
   m_ObjectHideFlags: 0
@@ -1853,7 +1854,7 @@ MonoBehaviour:
     yReference: {fileID: 0}
     yOffset: 0
     zReference: {fileID: 144727615}
-    zOffset: 0.35
+    zOffset: 0.3
   offsetRotation: {x: 0, y: 0, z: 0}
 --- !u!1001 &481536409
 PrefabInstance:
@@ -2129,14 +2130,14 @@ MonoBehaviour:
     z: {fileID: 1497153429}
   rotationReference:
     x: {fileID: 0}
-    y: {fileID: 144727615}
+    y: {fileID: 1585482359}
     z: {fileID: 0}
   offsetReference:
-    xReference: {fileID: 144727615}
+    xReference: {fileID: 1585482359}
     xOffset: 0.2
-    yReference: {fileID: 144727615}
+    yReference: {fileID: 1585482359}
     yOffset: 0
-    zReference: {fileID: 144727615}
+    zReference: {fileID: 1585482359}
     zOffset: 0
   offsetRotation: {x: 40, y: 0, z: 0}
 --- !u!20 &544571578 stripped
@@ -3631,14 +3632,14 @@ MonoBehaviour:
     z: {fileID: 1345980735}
   rotationReference:
     x: {fileID: 0}
-    y: {fileID: 144727615}
+    y: {fileID: 1585482359}
     z: {fileID: 0}
   offsetReference:
-    xReference: {fileID: 144727615}
+    xReference: {fileID: 1585482359}
     xOffset: -0.2
-    yReference: {fileID: 144727615}
+    yReference: {fileID: 1585482359}
     yOffset: 0
-    zReference: {fileID: 144727615}
+    zReference: {fileID: 1585482359}
     zOffset: 0
   offsetRotation: {x: 40, y: 0, z: 0}
 --- !u!1 &1055041119
@@ -4952,7 +4953,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1578331483
 Transform:
   m_ObjectHideFlags: 0
@@ -4986,6 +4987,52 @@ MonoBehaviour:
   straightTrack: {fileID: 7670004145894168437}
   standing: {fileID: 2004042229}
   track: 0
+--- !u!1 &1585482359
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1585482360}
+  - component: {fileID: 1585482361}
+  m_Layer: 0
+  m_Name: BetweenHeadAndTarget
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1585482360
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1585482359}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 364828570}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1585482361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1585482359}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d17e42425aa245ddb3de28a6fc991c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Center: {fileID: 1578331483}
+  LookFrom: {fileID: 144727616}
 --- !u!1 &1599568369
 GameObject:
   m_ObjectHideFlags: 0
