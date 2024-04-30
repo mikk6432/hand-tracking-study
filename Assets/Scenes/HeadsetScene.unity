@@ -3362,21 +3362,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   referenceFrameName: 1
-  locallyPositionedTo: {fileID: 144727615}
+  locallyPositionedTo: {fileID: 1585482359}
   positionReference:
     x: {fileID: 0}
     y: {fileID: 1497153429}
     z: {fileID: 1497153429}
   rotationReference:
     x: {fileID: 0}
-    y: {fileID: 144727615}
+    y: {fileID: 1585482359}
     z: {fileID: 0}
   offsetReference:
-    xReference: {fileID: 144727615}
+    xReference: {fileID: 1585482359}
     xOffset: 0
-    yReference: {fileID: 144727615}
+    yReference: {fileID: 1585482359}
     yOffset: 0
-    zReference: {fileID: 144727615}
+    zReference: {fileID: 1585482359}
     zOffset: 0
   offsetRotation: {x: 40, y: 0, z: 0}
 --- !u!1001 &920524540
@@ -5681,21 +5681,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   referenceFrameName: 1
-  locallyPositionedTo: {fileID: 144727615}
+  locallyPositionedTo: {fileID: 1585482359}
   positionReference:
     x: {fileID: 0}
     y: {fileID: 1345980735}
     z: {fileID: 1345980735}
   rotationReference:
     x: {fileID: 0}
-    y: {fileID: 144727615}
+    y: {fileID: 1585482359}
     z: {fileID: 0}
   offsetReference:
-    xReference: {fileID: 144727615}
+    xReference: {fileID: 1585482359}
     xOffset: 0
-    yReference: {fileID: 144727615}
+    yReference: {fileID: 1585482359}
     yOffset: 0
-    zReference: {fileID: 144727615}
+    zReference: {fileID: 1585482359}
     zOffset: 0
   offsetRotation: {x: 40, y: 0, z: 0}
 --- !u!1001 &1766969847
