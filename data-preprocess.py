@@ -3,13 +3,33 @@ import sys
 import pandas as pd
 import numpy as np
 import math
+import glob
+import os
+
 data = pd.DataFrame()
-for arg in sys.argv:
-    if arg == sys.argv[0]:
-        continue
-    file_path = arg
-    new_data = pd.read_csv(file_path)   
-    data = pd.concat([data, new_data], ignore_index=True)
+
+# Old import method
+# for arg in sys.argv:
+#     if arg == sys.argv[0]:
+#         continue
+#     file_path = arg
+#     new_data = pd.read_csv(file_path)   
+#     data = pd.concat([data, new_data], ignore_index=True)
+
+# New import method
+# Download data from onedrive and set the directory containing the CSV files
+directory = '../Original Data'
+# Specify the range of participants to include
+participant_start = 5
+participant_end = 28
+for participant_id in range(participant_start - 1, participant_end + 1):
+    file_pattern = os.path.join(directory, f'{participant_id}_selections.csv')
+    files = glob.glob(file_pattern)
+    for file_path in files:
+        if os.path.basename(file_path) == f'{participant_id}_selections.csv':
+            new_data = pd.read_csv(file_path)
+            data = pd.concat([data, new_data], ignore_index=True)
+
 pd.set_option('display.max_colwidth', None)
 
 # typecast TargetSize
@@ -55,6 +75,18 @@ if grouped_by_target_size.filter(lambda x: len(x) % 63 != 0).shape[0] > 0:
     print('There are missing / more values (TargetSize)')
     missing_values()
     sys.exit(1)
+
+# 0.5 Compute distances from target to selection point
+def calculate_distance(x1, y1, x2, y2):
+    distance = math.sqrt(math.pow(x1 - x2, 2) + math.pow(y1 - y2, 2))
+    return distance
+
+# Apply the function to each row
+data['DistanceCM'] = data.apply(
+    lambda row: 100*calculate_distance(row['AbsoluteSelectionPositionX'], row['AbsoluteSelectionPositionY'], row['AbsoluteTargetPositionX'], row['AbsoluteTargetPositionY']),
+    # lambda row: calculate_distance(row['LocalSelectionPositionX'], row['LocalSelectionPositionY'], row['AbsoluteTargetPositionX'], row['AbsoluteTargetPositionY']),
+    axis=1
+)
 
 #1. Apply the equations for the per-row calculation of dx & ae from the 'First_2_Pilots.xlsx' file to the data you have
 
@@ -112,7 +144,7 @@ data = data[data['SelectionDuration'] != 0]
 
 #5. Delete all unnecessary columns, i.e. all except for ParticipantID, conditions, ActiveTargetIndex, Success, SelectionDuration -> MT, dx, and ae
 
-data = data[['ParticipantID', 'Movement', 'CircleDirection', 'ReferenceFrame', 'TargetSize', 'ActiveTargetIndex', 'Success', 'SelectionDuration', 'dx', 'ae']]
+data = data[['ParticipantID', 'Movement', 'CircleDirection', 'ReferenceFrame', 'TargetSize', 'DistanceCM', 'ActiveTargetIndex', 'Success', 'SelectionDuration', 'dx', 'ae']]
 data = data.rename(columns={'SelectionDuration': 'MT'})
 
 #6. Convert data using SPSS' Data -> Restructure from the long to wide format (Identifier = ParticpantID + all conditions, Index Vars = ActiveTargetIndex). Don't forget to sort data here or at the step 9
@@ -121,7 +153,7 @@ data = data.rename(columns={'SelectionDuration': 'MT'})
 
 #7. Calculate average SuccessRate, MT / 1000 to convert from ms to s, and Ae, and standard deviation of dx (SDx) and delete all the 'smth.1-7' columns
 
-data = data.groupby(['ParticipantID', 'Movement', 'CircleDirection', 'ReferenceFrame', 'TargetSize'], dropna=False).agg({'Success': 'mean', 'MT': 'mean', 'dx': 'std', 'ae': 'mean'}).reset_index()
+data = data.groupby(['ParticipantID', 'Movement', 'CircleDirection', 'ReferenceFrame', 'TargetSize'], dropna=False).agg({'Success': 'mean', 'MT': 'mean', 'dx': 'std', 'ae': 'mean', 'DistanceCM': 'mean'}).reset_index()
 data['MT'] = data['MT'] / 1000
 
 #8. Calculate IDe, TP and WeCM = We * 100 (because it's in meters) as described here (https://www.yorku.ca/mack/hhci2018.html, Figure 17.7)
@@ -154,7 +186,7 @@ data = data.pivot_table(index=['ParticipantID'], columns=['Movement', 'Reference
 
 # write to file
 def export_csv(data, name):
-    data.to_csv(file_path + "_" + name, index=False) 
+    data.to_csv(str(participant_start) + "-" + str(participant_end) + "_" + name, index=False) 
 
 
 data.columns = ['_'.join(col).strip() for col in data.columns.values]
@@ -162,6 +194,13 @@ data.rename(columns={'ParticipantID___': 'ParticipantID'}, inplace=True)
 export_csv(data, "preprocessed.csv")
 export_csv(data_art, "preprocessed_art.csv")
 
+
+# Count the occurrences of "Clockwise" and "CounterClockwise" in the "CircleDirection" column
+clockwise_count = (data_art['CircleDirection'] == 'Clockwise').sum()
+counterclockwise_count = (data_art['CircleDirection'] == 'CounterClockwise').sum()
+
+print(f"Number of 'Clockwise' rows: {clockwise_count}")
+print(f"Number of 'CounterClockwise' rows: {counterclockwise_count}")
 
 #----------
 #For aligned ranks transformation (ART):
