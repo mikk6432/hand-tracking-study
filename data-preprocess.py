@@ -88,10 +88,6 @@ data['a'] = np.sqrt((change("AbsoluteTargetPositionX","AbsoluteTargetPositionX")
 data['c'] = np.sqrt((change("AbsoluteTargetPositionX","AbsoluteSelectionPositionX"))**2 + (change("AbsoluteTargetPositionY","AbsoluteSelectionPositionY"))**2)
 data['dx'] = (data['c'] * data['c'] - data['b'] * data['b'] - data['a'] * data['a']) / (2.0 * data['a'])
 data['ae'] = data['a'] + data['dx']
-print(data.head())
-print(data.shape)
-data["b-bigger-dx"] = 0 > data["dx"]
-print(data["b-bigger-dx"].value_counts())
 # print(data.to_string())
 
 #2. Correct Walking and TargetSize so SPSS would work later: Walking 0 -> Standing, 1 -> Walking; TargetSizeCM = TargetSize * 100
