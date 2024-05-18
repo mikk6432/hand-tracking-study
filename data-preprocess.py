@@ -6,6 +6,12 @@ import math
 import glob
 import os
 
+# write to file
+def export_csv(data, name):
+    data.to_csv(str(participant_start) + "-" + str(participant_end) + "_" + name, index=False) 
+
+
+
 data = pd.DataFrame()
 
 # Old import method
@@ -88,6 +94,10 @@ data['a'] = np.sqrt((change("AbsoluteTargetPositionX","AbsoluteTargetPositionX")
 data['c'] = np.sqrt((change("AbsoluteTargetPositionX","AbsoluteSelectionPositionX"))**2 + (change("AbsoluteTargetPositionY","AbsoluteSelectionPositionY"))**2)
 data['dx'] = (data['c'] * data['c'] - data['b'] * data['b'] - data['a'] * data['a']) / (2.0 * data['a'])
 data['ae'] = data['a'] + data['dx']
+print(data.head())
+print(data.shape)
+data["b-bigger-dx"] = data["dx"] > np.abs(data["dx"])
+print(data["b-bigger-dx"].value_counts())
 # print(data.to_string())
 
 #2. Correct Walking and TargetSize so SPSS would work later: Walking 0 -> Standing, 1 -> Walking; TargetSizeCM = TargetSize * 100
@@ -112,7 +122,7 @@ data = data.rename(columns={'SelectionDuration': 'MT'})
 #data = data.pivot_table(index=['ParticipantID', 'Movement', 'ReferenceFrame', 'TargetSize'], columns='ActiveTargetIndex').reset_index()
 
 #7. Calculate average SuccessRate, MT / 1000 to convert from ms to s, and Ae, and standard deviation of dx (SDx) and delete all the 'smth.1-7' columns
-
+export_csv(data, "preprocessed_each.csv")
 data = data.groupby(['ParticipantID', 'Movement', 'CircleDirection', 'ReferenceFrame', 'TargetSize'], dropna=False).agg({'Success': 'mean', 'MT': 'mean', 'dx': 'std', 'ae': 'mean', 'b': 'mean'}).reset_index()
 data['MT'] = data['MT'] / 1000
 data['SDx'] = data['dx']
@@ -146,11 +156,6 @@ print(grouped_for_stats.to_string())
 
 data = data.drop(["CircleDirection"], axis=1)
 data = data.pivot_table(index=['ParticipantID'], columns=['Movement', 'ReferenceFrame', 'TargetSize']).reset_index()
-
-# write to file
-def export_csv(data, name):
-    data.to_csv(str(participant_start) + "-" + str(participant_end) + "_" + name, index=False) 
-
 
 data.columns = ['_'.join(col).strip() for col in data.columns.values]
 data.rename(columns={'ParticipantID___': 'ParticipantID'}, inplace=True)
