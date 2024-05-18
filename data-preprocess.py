@@ -18,7 +18,7 @@ data = pd.DataFrame()
 
 # New import method
 # Download data from onedrive and set the directory containing the CSV files
-directory = '../Original Data'
+directory = sys.argv[1]
 # Specify the range of participants to include
 participant_start = 5
 participant_end = 28
@@ -76,58 +76,22 @@ if grouped_by_target_size.filter(lambda x: len(x) % 63 != 0).shape[0] > 0:
     missing_values()
     sys.exit(1)
 
-# 0.5 Compute distances from target to selection point
-def calculate_distance(x1, y1, x2, y2):
-    distance = math.sqrt(math.pow(x1 - x2, 2) + math.pow(y1 - y2, 2))
-    return distance
-
 # Apply the function to each row
-data['DistanceCM'] = data.apply(
-    lambda row: 100*calculate_distance(row['AbsoluteSelectionPositionX'], row['AbsoluteSelectionPositionY'], row['AbsoluteTargetPositionX'], row['AbsoluteTargetPositionY']),
-    # lambda row: calculate_distance(row['LocalSelectionPositionX'], row['LocalSelectionPositionY'], row['AbsoluteTargetPositionX'], row['AbsoluteTargetPositionY']),
-    axis=1
-)
+data['b'] = np.sqrt((data['AbsoluteTargetPositionX'] - data['AbsoluteSelectionPositionX'])**2 + (data['AbsoluteTargetPositionY'] - data['AbsoluteSelectionPositionY'])**2)
 
 #1. Apply the equations for the per-row calculation of dx & ae from the 'First_2_Pilots.xlsx' file to the data you have
 
-def dx(current_row, previous_row):
-    if previous_row is None:  # This checks for the first row, where there is no previous row
-        return 0
-    else:
-        # Compute a: Distance from previous target to current target =KVROD(POTENS(I2-I3;2)+POTENS(J2-J3;2))
-        targetXSquaredDifference = math.pow(previous_row['AbsoluteTargetPositionX'] - current_row['AbsoluteTargetPositionX'],2)
-        targetYSquaredDifference = math.pow(previous_row['AbsoluteTargetPositionY'] - current_row['AbsoluteTargetPositionY'],2)
-        a = math.sqrt(targetXSquaredDifference + targetYSquaredDifference)
+def change(row_name_prev, row_name_curr):
+    return data[row_name_curr] - data[row_name_prev].shift(1, fill_value=data[row_name_curr][0])
 
-        # Compute b: Distance from current target center to current selection point (Accuracy) =KVROD(POTENS(K3-I3;2)+POTENS(L3-J3;2))   
-        selectionXSquaredDifference = math.pow(current_row['AbsoluteSelectionPositionX'] - current_row['AbsoluteTargetPositionX'],2)
-        selectionYSquaredDifference = math.pow(current_row['AbsoluteSelectionPositionY'] - current_row['AbsoluteTargetPositionY'],2)
-        b = math.sqrt(selectionXSquaredDifference + selectionYSquaredDifference)
-
-        # Compute c: Distance from previous target center to current selection point =KVROD(POTENS(I2-K3;2)+POTENS(J2-L3;2))
-        selectionXSquaredDifference = math.pow(previous_row['AbsoluteTargetPositionX'] - current_row['AbsoluteSelectionPositionX'],2)
-        selectionYSquaredDifference = math.pow(previous_row['AbsoluteTargetPositionY'] - current_row['AbsoluteSelectionPositionY'],2)
-        c = math.sqrt(selectionXSquaredDifference + selectionYSquaredDifference)
-
-        # compute dx =(S3 * S3 - R3 * R3 - Q3 * Q3) / (2 * Q3)
-        temp = math.pow(c,2) - math.pow(b,2) - math.pow(a,2)
-        dx = temp / (2*a)
-        return dx
-
-def ae(current_row, previous_row):
-    if previous_row is None:  # This checks for the first row, where there is no previous row
-        return 0
-    else:
-        # Compute a: Distance from previous target to current target =KVROD(POTENS(I2-I3;2)+POTENS(J2-J3;2))
-        targetXSquaredDifference = math.pow(previous_row['AbsoluteTargetPositionX'] - current_row['AbsoluteTargetPositionX'],2)
-        targetYSquaredDifference = math.pow(previous_row['AbsoluteTargetPositionY'] - current_row['AbsoluteTargetPositionY'],2)
-        a = math.sqrt(targetXSquaredDifference + targetYSquaredDifference)
-        return a + current_row['dx']
-
-
-# # Applying the function to each row
-data['dx'] = data.apply(lambda row: dx(row, data.loc[row.name - 1] if row.name > 0 else None), axis=1)
-data['ae'] = data.apply(lambda row: ae(row, data.loc[row.name - 1] if row.name > 0 else None), axis=1)
+data['a'] = np.sqrt((change("AbsoluteTargetPositionX","AbsoluteTargetPositionX"))**2 + (change("AbsoluteTargetPositionY","AbsoluteTargetPositionY"))**2)
+data['c'] = np.sqrt((change("AbsoluteTargetPositionX","AbsoluteSelectionPositionX"))**2 + (change("AbsoluteTargetPositionY","AbsoluteSelectionPositionY"))**2)
+data['dx'] = (data['c'] * data['c'] - data['b'] * data['b'] - data['a'] * data['a']) / (2.0 * data['a'])
+data['ae'] = data['a'] + data['dx']
+print(data.head())
+print(data.shape)
+data["b-bigger-dx"] = 0 > data["dx"]
+print(data["b-bigger-dx"].value_counts())
 # print(data.to_string())
 
 #2. Correct Walking and TargetSize so SPSS would work later: Walking 0 -> Standing, 1 -> Walking; TargetSizeCM = TargetSize * 100
@@ -144,7 +108,7 @@ data = data[data['SelectionDuration'] != 0]
 
 #5. Delete all unnecessary columns, i.e. all except for ParticipantID, conditions, ActiveTargetIndex, Success, SelectionDuration -> MT, dx, and ae
 
-data = data[['ParticipantID', 'Movement', 'CircleDirection', 'ReferenceFrame', 'TargetSize', 'DistanceCM', 'ActiveTargetIndex', 'Success', 'SelectionDuration', 'dx', 'ae']]
+data = data[['ParticipantID', 'Movement', 'CircleDirection', 'ReferenceFrame', 'TargetSize', 'ActiveTargetIndex', 'Success', 'SelectionDuration', 'b', 'dx', 'ae']]
 data = data.rename(columns={'SelectionDuration': 'MT'})
 
 #6. Convert data using SPSS' Data -> Restructure from the long to wide format (Identifier = ParticpantID + all conditions, Index Vars = ActiveTargetIndex). Don't forget to sort data here or at the step 9
@@ -153,14 +117,17 @@ data = data.rename(columns={'SelectionDuration': 'MT'})
 
 #7. Calculate average SuccessRate, MT / 1000 to convert from ms to s, and Ae, and standard deviation of dx (SDx) and delete all the 'smth.1-7' columns
 
-data = data.groupby(['ParticipantID', 'Movement', 'CircleDirection', 'ReferenceFrame', 'TargetSize'], dropna=False).agg({'Success': 'mean', 'MT': 'mean', 'dx': 'std', 'ae': 'mean', 'DistanceCM': 'mean'}).reset_index()
+data = data.groupby(['ParticipantID', 'Movement', 'CircleDirection', 'ReferenceFrame', 'TargetSize'], dropna=False).agg({'Success': 'mean', 'MT': 'mean', 'dx': 'std', 'ae': 'mean', 'b': 'mean'}).reset_index()
 data['MT'] = data['MT'] / 1000
+data['SDx'] = data['dx']
 
 #8. Calculate IDe, TP and WeCM = We * 100 (because it's in meters) as described here (https://www.yorku.ca/mack/hhci2018.html, Figure 17.7)
 
 data['WeCM']  = data['dx']*4.133*100
 data['IDe'] = np.log2(data['ae']*100/data['WeCM'] + 1)
 data['TP'] = data['IDe']/data['MT']
+data["DistanceCM"] = data["b"] * 100
+data = data.drop(['b',"dx"], axis=1)
 
 # import matplotlib.pyplot as plt
 # Scatter plot of IDe vs MT
@@ -176,7 +143,7 @@ data['TP'] = data['IDe']/data['MT']
 
 # This is already done in the data
 data_art = data.copy()
-grouped_for_stats = data_art.groupby(['ParticipantID','ReferenceFrame']).agg({'Success': 'mean', 'MT': 'mean', 'dx': 'std', 'ae': 'mean', 'WeCM': 'mean', 'IDe': 'mean', 'TP': 'mean'})
+grouped_for_stats = data_art.groupby(['ParticipantID','ReferenceFrame']).agg({'Success': 'mean', 'MT': 'mean', 'DistanceCM': 'mean', 'SDx': 'std', 'ae': 'mean', 'WeCM': 'mean', 'IDe': 'mean', 'TP': 'mean'})
 print(grouped_for_stats.to_string())
 
 #10. Convert data to wide format again but now with the following parameters: Identifier = ParticpantID, Index Vars = all conditions
@@ -228,10 +195,10 @@ with (ro.default_converter + pandas2ri.converter).context():
 ro.r('''
     f <- function(data) {
         m <- art(TP ~ Movement*ReferenceFrame*TargetSize, data=data)
-        art.con(m, "Movement:ReferenceFrame")
-        m$aligned.ranks
+        # art.con(m, "Movement:ReferenceFrame")
+        # m$aligned.ranks
         # summary(m)
-        # anova(m)
+        anova(m)
     }
 ''')
 f = ro.globalenv['f']
