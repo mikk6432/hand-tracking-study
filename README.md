@@ -1,6 +1,7 @@
 ## Master's Thesis
 
-by Mikkel Roos and Tamás Csizmadia
+**by Mikkel Roos and Tamás Csizmadia**
+
 Aarhus University, Department of Computer Science
 
 ### About
