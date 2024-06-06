@@ -149,7 +149,13 @@ data['RelativeTargetYaw'] = data.apply(calculate_relative_yaw, axis=1)
 filtered_data = data[data['Movement'].isin(['Circle', 'Walking'])] # Remove Standing
 print(filtered_data.iloc[49000:49040])
 
-result = filtered_data.groupby(['ParticipantID', 'ReferenceFrame']).agg(
+mean_path_referenced_data = data[data['ReferenceFrame'] == 'PathReferenced']
+mean_decline_depth_path = mean_path_referenced_data.groupby('ParticipantID').agg({
+    'Decline': 'mean',
+    'Depth': 'mean'
+}).reset_index()
+
+result = data.groupby(['ParticipantID', 'ReferenceFrame', 'Movement', 'TargetSize']).agg(
     ParticipantID=('ParticipantID', 'first'),
     ReferenceFrame=('ReferenceFrame', 'first'),
     Movement=('Movement', 'first'),
@@ -166,15 +172,14 @@ result = filtered_data.groupby(['ParticipantID', 'ReferenceFrame']).agg(
 
 result = result.reset_index(drop=True)
 
-path_ref = result[result['ReferenceFrame'] == 'PathReferenced'].copy()
-path_ref = path_ref.rename(columns={'Decline': 'Path_Decline', 'Depth': 'Path_Depth'})
-path_ref = path_ref[['ParticipantID', 'Path_Decline', 'Path_Depth']]
-result = result.merge(path_ref, on='ParticipantID', how='left')
-result['DeclineDiff'] = result['Decline'] - result['Path_Decline']
-result['DepthDiff'] = result['Depth'] - result['Path_Depth']
+mean_decline_depth_path = mean_decline_depth_path.rename(columns={'Decline': 'Path_mean_decline', 'Depth': 'Path_mean_depth'})
+result = result.merge(mean_decline_depth_path, on='ParticipantID', how='left')
+result['DeclineDiff'] = result['Decline'] - result['Path_mean_decline']
+result['DepthDiff'] = result['Depth'] - result['Path_mean_depth']
+result.to_csv(str(participant_start) + "-" + str(participant_end) + "_" + "additional_dependent_variables.csv", index=False) 
 
 # Drop the reference columns if they are no longer needed
-result = result.drop(columns=['Path_Decline', 'Path_Depth'])
+result = result.drop(columns=['Path_mean_decline', 'Path_mean_depth'])
 
 refs = result.groupby(['ReferenceFrame']).agg(
     ParticipantHeight=('ParticipantHeight', 'mean'),
