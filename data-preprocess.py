@@ -180,6 +180,13 @@ data = data.pivot_table(index=['ParticipantID'], columns=['Movement', 'Reference
 
 data.columns = ['_'.join(col).strip() for col in data.columns.values]
 data.rename(columns={'ParticipantID___': 'ParticipantID'}, inplace=True)
+
+#----------
+# Append the extra dependent variables
+new_data = pd.read_csv('5-28_additional_dependent_variables.csv')
+new_data['TargetSize'] = new_data['TargetSize'].astype(str)
+# Merge additional dependent variables into data_art
+data_art = pd.merge(data_art, new_data, on=['ParticipantID', 'Movement', 'ReferenceFrame', 'TargetSize'], how='left')
 export_csv(data, "preprocessed.csv")
 export_csv(data_art, "preprocessed_art.csv")
 
