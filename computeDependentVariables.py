@@ -150,10 +150,10 @@ filtered_data = data[data['Movement'].isin(['Circle', 'Walking'])] # Remove Stan
 print(filtered_data.iloc[49000:49040])
 
 result = filtered_data.groupby(['ParticipantID', 'ReferenceFrame']).agg(
-    # ParticipantID=('ParticipantID', 'first'),
-    # ReferenceFrame=('ReferenceFrame', 'first'),
-    # movement=('Movement', 'first'),
-    # TargetSize=('TargetSize', 'first'),
+    ParticipantID=('ParticipantID', 'first'),
+    ReferenceFrame=('ReferenceFrame', 'first'),
+    Movement=('Movement', 'first'),
+    TargetSize=('TargetSize', 'first'),
     ParticipantHeight=('ParticipantHeight', 'mean'),
     Decline=('Decline', 'mean'),
     Depth=('Depth', 'mean'),
@@ -164,4 +164,29 @@ result = filtered_data.groupby(['ParticipantID', 'ReferenceFrame']).agg(
     RelativeTargetYaw=('RelativeTargetYaw', 'mean'),
 )
 
-print(result.to_string())
+result = result.reset_index(drop=True)
+
+path_ref = result[result['ReferenceFrame'] == 'PathReferenced'].copy()
+path_ref = path_ref.rename(columns={'Decline': 'Path_Decline', 'Depth': 'Path_Depth'})
+path_ref = path_ref[['ParticipantID', 'Path_Decline', 'Path_Depth']]
+result = result.merge(path_ref, on='ParticipantID', how='left')
+result['DeclineDiff'] = result['Decline'] - result['Path_Decline']
+result['DepthDiff'] = result['Depth'] - result['Path_Depth']
+
+# Drop the reference columns if they are no longer needed
+result = result.drop(columns=['Path_Decline', 'Path_Depth'])
+
+refs = result.groupby(['ReferenceFrame']).agg(
+    ParticipantHeight=('ParticipantHeight', 'mean'),
+    Decline=('Decline', 'mean'),
+    Depth=('Depth', 'mean'),
+    LateralShift=('LateralShift', 'mean'),
+    DeclineAngle=('DeclineAngle', 'mean'),
+    LateralShiftAngle=('LateralShiftAngle', 'mean'),
+    RelativeTargetPitch=('RelativeTargetPitch', 'mean'),
+    RelativeTargetYaw=('RelativeTargetYaw', 'mean'),
+    DeclineDiff=('DeclineDiff', 'mean'),
+    DepthDiff=('DepthDiff', 'mean')
+)
+
+print(refs.to_string())
