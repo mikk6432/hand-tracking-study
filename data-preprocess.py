@@ -2,9 +2,13 @@
 import sys
 import pandas as pd
 import numpy as np
+import scipy.stats as st
 import math
 import glob
 import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+from statannot import add_stat_annotation
 
 # write to file
 def export_csv(data, name):
@@ -28,11 +32,12 @@ directory = sys.argv[1]
 # Specify the range of participants to include
 participant_start = 5
 participant_end = 28
-for participant_id in range(participant_start - 1, participant_end + 1):
+for participant_id in range(participant_start, participant_end + 1):
     file_pattern = os.path.join(directory, f'{participant_id}_selections.csv')
     files = glob.glob(file_pattern)
     for file_path in files:
         if os.path.basename(file_path) == f'{participant_id}_selections.csv':
+            print(f'Processing participant {participant_id}')
             new_data = pd.read_csv(file_path)
             data = pd.concat([data, new_data], ignore_index=True)
 
@@ -43,7 +48,7 @@ data['TargetSize'] = data['TargetSize'].astype(str)
 
 #0.1 Check the data types
 
-print(data.dtypes.to_string())
+#print(data.dtypes.to_string())
 
 #0.2 Check whether there are any missing values
 
@@ -94,10 +99,10 @@ data['a'] = np.sqrt((change("AbsoluteTargetPositionX","AbsoluteTargetPositionX")
 data['c'] = np.sqrt((change("AbsoluteTargetPositionX","AbsoluteSelectionPositionX"))**2 + (change("AbsoluteTargetPositionY","AbsoluteSelectionPositionY"))**2)
 data['dx'] = (data['c'] * data['c'] - data['b'] * data['b'] - data['a'] * data['a']) / (2.0 * data['a'])
 data['ae'] = data['a'] + data['dx']
-print(data.head())
-print(data.shape)
+#print(data.head())
+#print(data.shape)
 data["b-bigger-dx"] = data["dx"] > np.abs(data["dx"])
-print(data["b-bigger-dx"].value_counts())
+#print(data["b-bigger-dx"].value_counts())
 # print(data.to_string())
 
 #2. Correct Walking and TargetSize so SPSS would work later: Walking 0 -> Standing, 1 -> Walking; TargetSizeCM = TargetSize * 100
@@ -111,6 +116,15 @@ print(data["b-bigger-dx"].value_counts())
 #4. Filter using the 'Data' tab in Excel and delete the rows where the 'SelectionDuration' value equals 0 (that is the first selection and as a result an idle selection)
 
 data = data[data['SelectionDuration'] != 0]
+#data = data[data['ReferenceFrame'] != 'PalmWORotation']
+print((data['b'] > 0.1).value_counts())
+print((data['b'] > 0.09).value_counts())
+print((data['b'] > 0.08).value_counts())
+print((data['b'] > (data['b'].mean() + 2* data['b'].std())).value_counts())
+print(data['b'].mean())
+print(data['b'].std())
+data = data[data['b'] < (data['b'].mean() + 2* data['b'].std())]
+
 
 #5. Delete all unnecessary columns, i.e. all except for ParticipantID, conditions, ActiveTargetIndex, Success, SelectionDuration -> MT, dx, and ae
 
@@ -149,8 +163,15 @@ data = data.drop(['b',"dx"], axis=1)
 
 # This is already done in the data
 data_art = data.copy()
-grouped_for_stats = data_art.groupby(['ParticipantID','ReferenceFrame']).agg({'Success': 'mean', 'MT': 'mean', 'DistanceCM': 'mean', 'SDx': 'std', 'ae': 'mean', 'WeCM': 'mean', 'IDe': 'mean', 'TP': 'mean'})
-print(grouped_for_stats.to_string())
+grouped_for_stats = data_art.groupby(['ReferenceFrame', "Movement"]).agg({'Success': 'mean', 'MT': 'mean', 'DistanceCM': 'mean', 'SDx': 'std', 'ae': 'mean', 'WeCM': 'mean', 'IDe': 'mean', 'TP': 'mean'})
+#print(grouped_for_stats.to_string())
+grouped_for_stats = data_art
+grouped_for_stats['Success_STD'] = grouped_for_stats['Success']
+grouped_for_stats['MT_STD'] = grouped_for_stats['MT']
+grouped_for_stats['WeCM_STD'] = grouped_for_stats['WeCM']
+grouped_for_stats['IDe_STD'] = grouped_for_stats['IDe']
+grouped_for_stats['TP_STD'] = grouped_for_stats['TP']
+original_size = len(grouped_for_stats)
 
 #10. Convert data to wide format again but now with the following parameters: Identifier = ParticpantID, Index Vars = all conditions
 
@@ -162,13 +183,18 @@ data.rename(columns={'ParticipantID___': 'ParticipantID'}, inplace=True)
 export_csv(data, "preprocessed.csv")
 export_csv(data_art, "preprocessed_art.csv")
 
+from scipy.stats import shapiro
+shapiro_test = data_art.groupby(['Movement', 'ReferenceFrame', 'TargetSize']).agg({'Success': lambda x: shapiro(x)[1], 'MT': lambda x: shapiro(x)[1], 'DistanceCM': lambda x: shapiro(x)[1], 'SDx': lambda x: shapiro(x)[1], 'ae': lambda x: shapiro(x)[1], 'WeCM': lambda x: shapiro(x)[1], 'IDe': lambda x: shapiro(x)[1], 'TP': lambda x: shapiro(x)[1]})
+shapiro_count = shapiro_test.applymap(lambda x: x < 0.05).sum()
+print(shapiro_count)
+
 
 # Count the occurrences of "Clockwise" and "CounterClockwise" in the "CircleDirection" column
 clockwise_count = (data_art['CircleDirection'] == 'Clockwise').sum()
 counterclockwise_count = (data_art['CircleDirection'] == 'CounterClockwise').sum()
 
-print(f"Number of 'Clockwise' rows: {clockwise_count}")
-print(f"Number of 'CounterClockwise' rows: {counterclockwise_count}")
+#print(f"Number of 'Clockwise' rows: {clockwise_count}")
+#print(f"Number of 'CounterClockwise' rows: {counterclockwise_count}")
 
 #----------
 #For aligned ranks transformation (ART):
@@ -177,11 +203,40 @@ print(f"Number of 'CounterClockwise' rows: {counterclockwise_count}")
 # data_art
 
 #2. Create a bunch of files for each dependent variable (the first column is ID followed by the columns that represent conditions, the last column in each file should contain values of one dependent variable)
+factors = ['Movement','ReferenceFrame']
+dependent_variable = 'TP'
+measurement = 'cm'
+dependent_names = {
+    'Success': 'Success',
+    'MT': 'Movement Time',
+    'WeCM': 'Effective Width',
+    'IDe': 'Effective ID',
+    'TP': 'Throughput',
+    'SDx': 'Accuracy'
+}
+dependent_measurements = {
+    'Success': 'fraction',
+    'MT': 'sec',
+    'WeCM': 'cm',
+    'IDe': 'bits',
+    'TP': 'bits/sec',
+    'SDx': 'm'
+}
+refFrameOrder = ['PalmReferenced','PalmWORotation','PathReferenced']
+refFrameTicks = ['Palm','PalmWOR','Path']
+movementOrder = ['Standing','Walking','Circle']
+movementTicks = ['Standing','Linear','Circular']
+targetSizeOrder = ['0.02','0.03','0.04','0.05']
+targetSizeTicks = ['2cm','3cm','4cm','5cm']
+order = refFrameOrder if factors[0] == 'ReferenceFrame' else movementOrder if factors[0] == 'Movement' else targetSizeOrder
+ticks = refFrameTicks if factors[0] == 'ReferenceFrame' else movementTicks if factors[0] == 'Movement' else targetSizeTicks
 
-tp_dependent = data_art[['ParticipantID', 'Movement', 'ReferenceFrame', 'TargetSize', 'TP']].copy()
+tp_dependent = data_art[['ParticipantID', 'Movement', 'ReferenceFrame', 'TargetSize', dependent_variable]].copy()
 tp_dependent["Movement"] = tp_dependent["Movement"].astype('category')
 tp_dependent["ReferenceFrame"] = tp_dependent["ReferenceFrame"].astype('category')
 tp_dependent["TargetSize"] = tp_dependent["TargetSize"].astype('category')
+tp_dependent["ParticipantID"] = tp_dependent["ParticipantID"].apply(str)
+tp_dependent["ParticipantID"] = tp_dependent["ParticipantID"].astype('category')
 
 import rpy2.robjects.packages as rpackages
 import rpy2.robjects as ro
@@ -192,18 +247,94 @@ with (ro.default_converter + pandas2ri.converter).context():
     r_from_pd_df = ro.conversion.get_conversion().py2rpy(tp_dependent)
 
 #3. Use ARTool to transform data taking one file by one (https://depts.washington.edu/acelab/proj/art/). Don't forget to tick 'Want contrasts' option to conduct post-hoc tests later on. This means that you'll need to 'Align and Rank' that many times as many contrast you want, e.g. 3 for 2 independent variables, 7 for 3, etc.
-
+#print(":".join(factors))
 ro.r('''
     f <- function(data) {
-        m <- art(TP ~ Movement*ReferenceFrame*TargetSize, data=data)
-        # art.con(m, "Movement:ReferenceFrame")
+        m <- art(''' + dependent_variable + ''' ~ Movement*ReferenceFrame*TargetSize +  Error(ParticipantID), data=data)
+        con <- art.con(m, "'''+":".join(factors)+'''", adjust="bonferroni")
         # m$aligned.ranks
         # summary(m)
-        anova(m)
+        result <- anova(m)
+        print(result)
+        # print(con)
+        as.data.frame(summary(con))[c('contrast','p.value')]
     }
 ''')
 f = ro.globalenv['f']
-print(f(r_from_pd_df))
+ro_con= f(r_from_pd_df)
+with (ro.default_converter + pandas2ri.converter).context():
+    df_con = ro.conversion.rpy2py(ro_con)
+
+df_con = df_con[df_con["p.value"] < 0.05]
+df_con["contrast"] = df_con["contrast"].str.replace("TargetSize", "")
+df_con["contrast"] = df_con["contrast"].str.split("-", n=1, expand=False)
+if len(factors) == 1:
+    df_con["contrast"] = df_con["contrast"].apply(lambda x: (x[0].strip(), x[1].strip()))
+else:
+    df_con["contrast"] = df_con["contrast"].apply(lambda x: (tuple(x[0].strip().split(",")), tuple(x[1].strip().split(","))))
+#print(df_con["contrast"].to_list())
+grouped_for_stats = grouped_for_stats.groupby(factors).agg({'Success': 'mean', 'Success_STD': 'std', 'MT': 'mean', 'MT_STD': 'std', 'WeCM': 'mean', 'WeCM_STD': 'std', 'IDe': 'mean', 'IDe_STD': 'std', 'TP': 'mean', 'TP_STD': 'std'})
+new_size = len(grouped_for_stats)
+#print(grouped_for_stats.to_string())
+
+sns.set_theme(style="whitegrid")
+ax = sns.boxplot(
+    data=data_art, 
+    x=factors[0], 
+    y=dependent_variable,
+    order=order,
+    hue=factors[1] if len(factors) == 2 else None,
+    whis=(0, 100),
+    showmeans=True,
+    meanprops=dict(marker='x', markerfacecolor='black', markeredgecolor='black')
+)
+ax.set_xticklabels(ticks)
+ax.set_ylabel(dependent_names[dependent_variable] + ' ('+dependent_measurements[dependent_variable]+')')
+if len(factors) == 2:
+    ax.legend(bbox_to_anchor=(0.1, 1))
+    #plt.legend(loc='upper left')
+def pairs(x):
+    return [(a, b) for idx, a in enumerate(x) for b in x[idx + 1:]]
+
+box_pairs1 = pairs(data_art[factors[0]].unique())
+if len(factors) == 1:
+    box_pairs = box_pairs1
+else:
+    box_pairs = []
+    for x1 in data_art[factors[0]].unique():
+        for x2 in data_art[factors[1]].unique():
+            box_pairs.append((x1, x2))
+    box_pairs = pairs(box_pairs)
+
+#print(box_pairs)
+
+add_stat_annotation(
+    ax,
+    data=data_art,
+    x=factors[0],
+    y=dependent_variable,
+    hue=factors[1] if len(factors) == 2 else None,
+    box_pairs = df_con["contrast"],
+    order=order,
+    text_format='star', 
+    loc='inside',
+    perform_stat_test=False, 
+    pvalues=df_con["p.value"],
+    verbose=0,
+    test=None,
+    line_offset_to_box=0.001 if len(factors) == 2 else None, 
+    line_offset=0.0001 if len(factors) == 2 else None, 
+    line_height=0.005 if len(factors) == 2 else 0.02, 
+    text_offset=-7 if len(factors) == 2 else 1
+)
+fig = plt.gcf()
+if len(factors) == 1:
+    fig.set_size_inches(3, 3.5)
+else:
+    fig.set_size_inches(6, 4)
+plt.subplots_adjust(left=0.25, right=0.9, top=0.95, bottom=0.15)
+fig.savefig(dependent_variable + '_'+factors[0] +'_'+(factors[1] if len(factors) == 2 else "")+'.png', dpi=100)
+plt.show()
 
 #4. Rename columns as such: ART(Effort) for Movement -> Effort_M, ART(Effort) for Movement*ReferenceFrame-> Effort_MxR, ART-C(Effort) for Movement -> Effort-C_M, etc.
 #5. Combine all output files (only relevant columns) incl. contrasts into one file in long format
