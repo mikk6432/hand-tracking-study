@@ -117,13 +117,23 @@ data["b-bigger-dx"] = data["dx"] > np.abs(data["dx"])
 
 data = data[data['SelectionDuration'] != 0]
 #data = data[data['ReferenceFrame'] != 'PalmWORotation']
-print((data['b'] > 0.1).value_counts())
-print((data['b'] > 0.09).value_counts())
+
+plt.scatter(data['b'], data['SelectionDuration'], c=data['b'] < 0.08 )
+ax = plt.gca()
+ax.set_xlabel('Distance (m)')
+ax.set_ylabel('Movement Time (ms)')
+fig = plt.gcf()
+plt.subplots_adjust(left=0.25, right=0.9, top=0.95, bottom=0.15)
+fig.set_size_inches(3, 3.5)
+fig.savefig('outliers.png', dpi=100)
+plt.close()
+
+#print((data['b'] > 0.1).value_counts())
+#print((data['b'] > 0.09).value_counts())
 print((data['b'] > 0.08).value_counts())
-print((data['b'] > (data['b'].mean() + 2* data['b'].std())).value_counts())
-print(data['b'].mean())
-print(data['b'].std())
-data = data[data['b'] < (data['b'].mean() + 2* data['b'].std())]
+#print((data['b'] > (data['b'].mean() + 2* data['b'].std())).value_counts())
+data = data[data['b'] < 0.08]
+#print(len(data))
 
 
 #5. Delete all unnecessary columns, i.e. all except for ParticipantID, conditions, ActiveTargetIndex, Success, SelectionDuration -> MT, dx, and ae
@@ -192,7 +202,7 @@ export_csv(data_art, "preprocessed_art.csv")
 
 from scipy.stats import shapiro
 shapiro_test = data_art.groupby(['Movement', 'ReferenceFrame', 'TargetSize']).agg({'Success': lambda x: shapiro(x)[1], 'MT': lambda x: shapiro(x)[1], 'DistanceCM': lambda x: shapiro(x)[1], 'SDx': lambda x: shapiro(x)[1], 'ae': lambda x: shapiro(x)[1], 'WeCM': lambda x: shapiro(x)[1], 'IDe': lambda x: shapiro(x)[1], 'TP': lambda x: shapiro(x)[1]})
-shapiro_count = shapiro_test.applymap(lambda x: x < 0.05).sum()
+shapiro_count = shapiro_test.map(lambda x: x < 0.05).sum()
 print(shapiro_count)
 
 
@@ -210,16 +220,21 @@ counterclockwise_count = (data_art['CircleDirection'] == 'CounterClockwise').sum
 # data_art
 
 #2. Create a bunch of files for each dependent variable (the first column is ID followed by the columns that represent conditions, the last column in each file should contain values of one dependent variable)
-factors = ['Movement','ReferenceFrame']
-dependent_variable = 'TP'
-measurement = 'cm'
+factors = [
+    'Movement',
+    'ReferenceFrame',
+    #'TargetSize',
+]
+dependent_variable = 'DeclineDiff'
 dependent_names = {
     'Success': 'Success',
     'MT': 'Movement Time',
     'WeCM': 'Effective Width',
     'IDe': 'Effective ID',
     'TP': 'Throughput',
-    'SDx': 'Accuracy'
+    'SDx': 'Accuracy',
+    'DeclineDiff': 'Decline',
+    'RelativeTargetYaw': 'Relative Target Yaw',
 }
 dependent_measurements = {
     'Success': 'fraction',
@@ -227,7 +242,9 @@ dependent_measurements = {
     'WeCM': 'cm',
     'IDe': 'bits',
     'TP': 'bits/sec',
-    'SDx': 'm'
+    'SDx': 'm',
+    'DeclineDiff': 'm',
+    'RelativeTargetYaw': 'degrees',
 }
 refFrameOrder = ['PalmReferenced','PalmWORotation','PathReferenced']
 refFrameTicks = ['Palm','PalmWOR','Path']
@@ -244,6 +261,20 @@ tp_dependent["ReferenceFrame"] = tp_dependent["ReferenceFrame"].astype('category
 tp_dependent["TargetSize"] = tp_dependent["TargetSize"].astype('category')
 tp_dependent["ParticipantID"] = tp_dependent["ParticipantID"].apply(str)
 tp_dependent["ParticipantID"] = tp_dependent["ParticipantID"].astype('category')
+
+import pingouin as pg
+spher, _, chisq, dof, pval = pg.sphericity(tp_dependent, dv=dependent_variable,
+                                           subject='ParticipantID',
+                                           within=['TargetSize'])
+print("Sphericity test TargetSize: ", spher)
+spher, _, chisq, dof, pval = pg.sphericity(tp_dependent, dv=dependent_variable,
+                                             subject='ParticipantID',
+                                             within=['Movement'])
+print("Sphericity test Movement: ", spher)
+spher, _, chisq, dof, pval = pg.sphericity(tp_dependent, dv=dependent_variable,
+                                                subject='ParticipantID',
+                                                within=['ReferenceFrame'])
+print("Sphericity test ReferenceFrame: ", spher)
 
 import rpy2.robjects.packages as rpackages
 import rpy2.robjects as ro
@@ -262,8 +293,11 @@ ro.r('''
         # m$aligned.ranks
         # summary(m)
         result <- anova(m)
+        #print(names(m))
+        #print(slotNames(m))
+        #print(m$aligned.ranks)
         print(result)
-        # print(con)
+        print(con)
         as.data.frame(summary(con))[c('contrast','p.value')]
     }
 ''')
@@ -272,17 +306,28 @@ ro_con= f(r_from_pd_df)
 with (ro.default_converter + pandas2ri.converter).context():
     df_con = ro.conversion.rpy2py(ro_con)
 
-df_con = df_con[df_con["p.value"] < 0.05]
 df_con["contrast"] = df_con["contrast"].str.replace("TargetSize", "")
 df_con["contrast"] = df_con["contrast"].str.split("-", n=1, expand=False)
 if len(factors) == 1:
     df_con["contrast"] = df_con["contrast"].apply(lambda x: (x[0].strip(), x[1].strip()))
 else:
     df_con["contrast"] = df_con["contrast"].apply(lambda x: (tuple(x[0].strip().split(",")), tuple(x[1].strip().split(","))))
+
+df_table = df_con.copy()
+df_con = df_con[df_con["p.value"] < 0.05]
+df_table[["contrast 1", "contrast 2"]] = pd.DataFrame(df_table['contrast'].to_list(), index=df_table.index)
+df_table = df_table.drop(['contrast'], axis=1)
+df_table[["contrast1 factor1", "contrast1 factor2"]] = pd.DataFrame(df_table['contrast 1'].to_list(), index=df_table.index)
+df_table[["contrast2 factor1", "contrast2 factor2"]] = pd.DataFrame(df_table['contrast 2'].to_list(), index=df_table.index)
+df_table = df_table.drop(['contrast 1', 'contrast 2'], axis=1)
+df_table = df_table[['contrast1 factor1', 'contrast1 factor2', 'contrast2 factor1', 'contrast2 factor2', 'p.value']]
+df_table = df_table.rename(columns={'p.value': 'p-value', 'contrast1 factor1': 'Factor-pair 1 (1)', 'contrast1 factor2': 'Factor-pair 1 (2)', 'contrast2 factor1': 'Factor-pair 2 (1)', 'contrast2 factor2': 'Factor-pair 2 (2)'})
+df_table['p-value'] = df_table['p-value'].apply(lambda x: str(x)[:5] if x >= 0.05 else str(x)[:5] + " \cellcolor[HTML]{C0C0C0}" if x >= 0.001 else "<0.001 \cellcolor[HTML]{C0C0C0}" )
+print(df_table.to_latex(index=False))
 #print(df_con["contrast"].to_list())
 grouped_for_stats = grouped_for_stats.groupby(factors).agg({'Success': 'mean', 'Success_STD': 'std', 'MT': 'mean', 'MT_STD': 'std', 'WeCM': 'mean', 'WeCM_STD': 'std', 'IDe': 'mean', 'IDe_STD': 'std', 'TP': 'mean', 'TP_STD': 'std'})
 new_size = len(grouped_for_stats)
-#print(grouped_for_stats.to_string())
+print(grouped_for_stats.to_string())
 
 sns.set_theme(style="whitegrid")
 ax = sns.boxplot(
@@ -291,6 +336,7 @@ ax = sns.boxplot(
     y=dependent_variable,
     order=order,
     hue=factors[1] if len(factors) == 2 else None,
+    hue_order=None if len(factors) == 1 else refFrameOrder if factors[1] == 'ReferenceFrame' else movementOrder if factors[1] == 'Movement' else targetSizeOrder,
     whis=(0, 100),
     showmeans=True,
     meanprops=dict(marker='x', markerfacecolor='black', markeredgecolor='black')
@@ -298,8 +344,10 @@ ax = sns.boxplot(
 ax.set_xticklabels(ticks)
 ax.set_ylabel(dependent_names[dependent_variable] + ' ('+dependent_measurements[dependent_variable]+')')
 if len(factors) == 2:
+    ticks = refFrameTicks if factors[1] == 'ReferenceFrame' else movementTicks if factors[1] == 'Movement' else targetSizeTicks
+    for t in ticks:
+        ax.legend_.texts[ticks.index(t)].set_text(t)
     ax.legend(bbox_to_anchor=(0.1, 1))
-    #plt.legend(loc='upper left')
 def pairs(x):
     return [(a, b) for idx, a in enumerate(x) for b in x[idx + 1:]]
 
@@ -315,12 +363,13 @@ else:
 
 #print(box_pairs)
 
-add_stat_annotation(
+""" add_stat_annotation(
     ax,
     data=data_art,
     x=factors[0],
     y=dependent_variable,
     hue=factors[1] if len(factors) == 2 else None,
+    hue_order=None if len(factors) == 1 else refFrameOrder if factors[1] == 'ReferenceFrame' else movementOrder if factors[1] == 'Movement' else targetSizeOrder,
     box_pairs = df_con["contrast"],
     order=order,
     text_format='star', 
@@ -333,7 +382,7 @@ add_stat_annotation(
     line_offset=0.0001 if len(factors) == 2 else None, 
     line_height=0.005 if len(factors) == 2 else 0.02, 
     text_offset=-7 if len(factors) == 2 else 1
-)
+) """
 fig = plt.gcf()
 if len(factors) == 1:
     fig.set_size_inches(3, 3.5)
