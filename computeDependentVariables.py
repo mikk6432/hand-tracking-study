@@ -54,6 +54,32 @@ data['ParticipantHeight'] = data['HeadPositionY'] - data['TrackPositionY']
 ### Decline
 data['Decline'] = data['ParticipantHeight'] - data['AllTargetsPositionY']
 
+data['InFrontOfHeadPathX'] = data['WalkingDirectionPositionX'] + data['WalkingDirectionForwardX'] * 0.3
+data['InFrontOfHeadPathZ'] = data['WalkingDirectionPositionZ'] + data['WalkingDirectionForwardZ'] * 0.3
+norm_of_track_wd = np.linalg.norm(np.array([data['InFrontOfHeadPathX'],data['InFrontOfHeadPathZ']]) - np.array([data['TrackPositionX'], data['TrackPositionZ']]), axis=0)
+data['PathWalkingDirectionX'] = np.where(
+    data['Movement'] == 'Circle', 
+    1.33 / norm_of_track_wd * (data['InFrontOfHeadPathX'] - data['TrackPositionX']), 
+    data['InFrontOfHeadPathX']
+)
+data['PathWalkingDirectionZ'] = np.where(
+    data['Movement'] == 'Circle',
+    1.33 / norm_of_track_wd * (data['InFrontOfHeadPathZ'] - data['TrackPositionZ']),
+    data['InFrontOfHeadPathZ']
+)
+data['PathForwardX'] = data['PathWalkingDirectionX'] - data['WalkingDirectionPositionX']
+data['PathForwardZ'] = data['PathWalkingDirectionZ'] - data['WalkingDirectionPositionZ']
+data['PathForwardX'] = data['PathForwardX'] / np.linalg.norm(data[['PathForwardX', 'PathForwardZ']], axis=1)
+data['PathForwardZ'] = data['PathForwardZ'] / np.linalg.norm(data[['PathForwardX', 'PathForwardZ']], axis=1)
+
+data = data.drop(columns=['InFrontOfHeadPathX', 'InFrontOfHeadPathZ', 'PathWalkingDirectionX', 'PathWalkingDirectionZ'])
+data['DepthFromWD'] = np.linalg.norm(np.array([data['AllTargetsPositionX'] - data['WalkingDirectionPositionX'], data['AllTargetsPositionZ'] - data['WalkingDirectionPositionZ']], dtype=np.float64), axis=0)
+data['HeightFromWD'] = data['AllTargetsPositionY'] - data['WalkingDirectionPositionY']
+print(data.groupby(['Movement', 'ReferenceFrame', 'ParticipantID']).agg({'DepthFromWD': 'std', 'HeightFromWD': 'std'}).to_string())
+print(data[data['Movement'] == 'Circle'].head())
+
+exit()
+
 ### Depth
 def get_projection(row):
     head_position = np.array([row['HeadPositionX'], row['HeadPositionZ']])
