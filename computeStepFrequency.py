@@ -34,13 +34,20 @@ import sys
 import pandas as pd
 import numpy as np
 import math
+import os
+import glob
 data = pd.DataFrame()
-for arg in sys.argv:
-    if arg == sys.argv[0]:
-        continue
-    file_path = arg
-    new_data = pd.read_csv(file_path)   
-    data = pd.concat([data, new_data], ignore_index=True)
+directory = sys.argv[1]
+# Specify the range of participants to include
+participant_start = 5
+participant_end = 28
+for participant_id in range(participant_start - 1, participant_end + 1):
+    file_pattern = os.path.join(directory, f'{participant_id}_highFrequency.csv')
+    files = glob.glob(file_pattern)
+    for file_path in files:
+        if os.path.basename(file_path) == f'{participant_id}_highFrequency.csv':
+            new_data = pd.read_csv(file_path)
+            data = pd.concat([data, new_data], ignore_index=True)
 pd.set_option('display.max_colwidth', None)
 data['TargetSize'] = data['TargetSize'].astype('category')
 data['ReferenceFrame'] = data['ReferenceFrame'].astype('category')
@@ -102,7 +109,7 @@ data['path_dx'] = data.groupby('conditionID')['WalkingDirectionPositionX'].diff(
 data['path_dz'] = data.groupby('conditionID')['WalkingDirectionPositionZ'].diff().fillna(0)
 data['path_distance'] = np.sqrt(data['path_dx']**2 + data['path_dz']**2)
 
-result = data.groupby('conditionID').agg(
+result = data.groupby(['conditionID', 'ParticipantID']).agg(
     movement=('Movement', 'first'),
     TargetSize=('TargetSize', 'first'),
     total_head_distance_m=('head_distance', 'sum'),
@@ -118,14 +125,17 @@ result['path_speed_km/h'] = (result['total_path_distance_m'] / result['total_tim
 
 result = result.drop(columns=['end_time', 'start_time']) # Don't need these anymore
 
-average_head_speed_by_movement = result.groupby('movement', observed=True)['head_speed_km/h'].mean() # observed=True to silence warning
+average_head_speed_by_movement = result.groupby('movement', observed=True)['head_speed_km/h'].mean()
+average_head_speed_by_movement_std = result.groupby('movement', observed=True)['head_speed_km/h'].std() # observed=True to silence warning
 average_path_speed_by_movement = result.groupby('movement', observed=True)['path_speed_km/h'].mean() # observed=True to silence warning
-
+average_path_speed_by_movement_std = result.groupby('movement', observed=True)['path_speed_km/h'].std()
 print(result.to_string())
 print('\nAverage head speed in Km/h:')
 print(average_head_speed_by_movement.to_string(header=False))
+print(average_head_speed_by_movement_std.to_string(header=False))
 print('Average path speed in Km/h:')
 print(average_path_speed_by_movement.to_string(header=False))
+print(average_path_speed_by_movement_std.to_string(header=False))
 
 targets_head_wp['DistanceVectorX'] = targets_head_wp['AllTargetsPositionX'] - targets_head_wp['HeadPositionX']
 targets_head_wp['DistanceVectorY'] = targets_head_wp['AllTargetsPositionY'] - targets_head_wp['HeadPositionY']
@@ -133,4 +143,7 @@ targets_head_wp['DistanceVectorZ'] = targets_head_wp['AllTargetsPositionZ'] - ta
 targets_head_wp['DotProduct'] = (data[['WalkingDirectionForwardX', 'WalkingDirectionForwardY', 'WalkingDirectionForwardZ']].values * targets_head_wp[['DistanceVectorX', 'DistanceVectorY', 'DistanceVectorZ']].values).sum(axis=1)
 grouped_dot = targets_head_wp.groupby(['ParticipantID', 'ReferenceFrame'], observed=True).agg({'DotProduct': 'mean', "AllTargetsPositionY": "mean"})
 grouped_dot = grouped_dot.rename(columns={'DotProduct': 'ZDistance', 'AllTargetsPositionY': 'FloorDistance'})
+grouped_dot['ZdistStd'] = grouped_dot['ZDistance']
+grouped_dot['FloorDistStd'] = grouped_dot['FloorDistance']
+grouped_dot = grouped_dot.groupby('ReferenceFrame').agg({'ZdistStd': 'std', 'FloorDistStd': 'std', 'ZDistance': 'mean', 'FloorDistance': 'mean'})
 print(grouped_dot)

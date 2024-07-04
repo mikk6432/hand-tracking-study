@@ -8,7 +8,7 @@ import math
 data = pd.DataFrame()
 
 # Download data from onedrive and set the directory containing the CSV files
-directory = '../Original Data'
+directory = sys.argv[1]
 # Specify the range of participants to include
 participant_start = 5
 participant_end = 28

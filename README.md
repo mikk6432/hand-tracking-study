@@ -12,7 +12,7 @@ Aarhus University, Department of Computer Science
 - Logging the selections
 - Three movement types: Standing, Walking, Circle
 - Three reference frames: Palm, PalmWithoutRotation, Path
-- Thesis will be included here once submitted.
+- Thesis and results: [Link](thesis.pdf)
 
 ### Source Code
 
