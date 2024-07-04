@@ -172,8 +172,32 @@ def calculate_relative_yaw(row):
 
 data['RelativeTargetYaw'] = data.apply(calculate_relative_yaw, axis=1)
 
-filtered_data = data[data['Movement'].isin(['Circle', 'Walking'])] # Remove Standing
-print(filtered_data.iloc[49000:49040])
+### Relative Roll
+def calculate_relative_roll(row):
+    up_vector = np.array([0, 1, 0])
+    target_to_head_vector = np.array([row['HeadPositionX'] - row['AllTargetsPositionX'], row['HeadPositionY'] - row['AllTargetsPositionY'], row['HeadPositionZ'] - row['AllTargetsPositionZ']])
+    target_to_head_vector /= np.linalg.norm(target_to_head_vector)
+    temp_plane_normal_vector = np.cross(target_to_head_vector, up_vector)
+    temp_plane_normal_vector /= np.linalg.norm(temp_plane_normal_vector)
+    plane_up_normal_vector = np.cross(temp_plane_normal_vector, target_to_head_vector)
+    plane_up_normal_vector /= np.linalg.norm(plane_up_normal_vector)
+    targets_vector = np.array([row['AllTargetsUpX'], row['AllTargetsUpY'], row['AllTargetsUpZ']])
+    targets_vector /= np.linalg.norm(targets_vector)
+    # Projection of targets_vector onto plane defined by tarte_to_head_vector
+    target_projection_on_plane = targets_vector - (np.dot(targets_vector, target_to_head_vector) * target_to_head_vector)
+    target_projection_on_plane /= np.linalg.norm(target_projection_on_plane)
+    roll = np.rad2deg(np.arccos(np.dot(plane_up_normal_vector, target_projection_on_plane)))
+    # If targets are rolled right, the target_projection_on_plane points right, and the direction is negative.
+    direction = np.dot(target_projection_on_plane, temp_plane_normal_vector)
+    if direction < 0:
+        return roll
+    else:
+        return -roll
+
+data['RelativeTargetRoll'] = data.apply(calculate_relative_roll, axis=1)
+
+data = data[data['Movement'].isin(['Circle', 'Walking'])] # Remove Standing
+# print(data.iloc[49000:49040])
 
 mean_path_referenced_data = data[data['ReferenceFrame'] == 'PathReferenced']
 mean_decline_depth_path = mean_path_referenced_data.groupby('ParticipantID').agg({
@@ -181,10 +205,22 @@ mean_decline_depth_path = mean_path_referenced_data.groupby('ParticipantID').agg
     'Depth': 'mean'
 }).reset_index()
 
+# Invert horizontal values for left handed people.
+def invert_for_left_hand(row):
+    if row['DominantHand'] == 'Left':
+        row['LateralShift'] *= -1
+        row['LateralShiftAngle'] *= -1
+        row['RelativeTargetYaw'] *= -1
+    return row
+
+data = data.apply(invert_for_left_hand, axis=1)
+
 result = data.groupby(['ParticipantID', 'ReferenceFrame', 'Movement', 'TargetSize']).agg(
     ParticipantID=('ParticipantID', 'first'),
     ReferenceFrame=('ReferenceFrame', 'first'),
+    CircleDirection=('CircleDirection', 'first'),
     Movement=('Movement', 'first'),
+    DominantHand=('DominantHand', 'first'),
     TargetSize=('TargetSize', 'first'),
     ParticipantHeight=('ParticipantHeight', 'mean'),
     Decline=('Decline', 'mean'),
@@ -194,6 +230,7 @@ result = data.groupby(['ParticipantID', 'ReferenceFrame', 'Movement', 'TargetSiz
     LateralShiftAngle=('LateralShiftAngle', 'mean'),
     RelativeTargetPitch=('RelativeTargetPitch', 'mean'),
     RelativeTargetYaw=('RelativeTargetYaw', 'mean'),
+    RelativeTargetRoll=('RelativeTargetRoll', 'mean'),
 )
 
 result = result.reset_index(drop=True)
@@ -202,7 +239,7 @@ mean_decline_depth_path = mean_decline_depth_path.rename(columns={'Decline': 'Pa
 result = result.merge(mean_decline_depth_path, on='ParticipantID', how='left')
 result['DeclineDiff'] = result['Decline'] - result['Path_mean_decline']
 result['DepthDiff'] = result['Depth'] - result['Path_mean_depth']
-result.to_csv(str(participant_start) + "-" + str(participant_end) + "_" + "additional_dependent_variables.csv", index=False) 
+result.to_csv(str(participant_start) + "-" + str(participant_end) + "_" + "additional_dependent_variables2.csv", index=False) 
 
 # Drop the reference columns if they are no longer needed
 result = result.drop(columns=['Path_mean_decline', 'Path_mean_depth'])
