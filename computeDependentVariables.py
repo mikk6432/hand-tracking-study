@@ -9,6 +9,10 @@ data = pd.DataFrame()
 
 # Download data from onedrive and set the directory containing the CSV files
 directory = sys.argv[1]
+shouldUseStoredValues = False
+if len(sys.argv) > 2:
+    shouldUseStoredValues = sys.argv[2]
+
 # Specify the range of participants to include
 participant_start = 5
 participant_end = 28
@@ -20,6 +24,8 @@ for participant_id in range(participant_start - 1, participant_end + 1):
             new_data = pd.read_csv(file_path)
             data = pd.concat([data, new_data], ignore_index=True)
 
+storedDataFileName = 'allData.csv'
+existing_data = pd.read_csv(storedDataFileName) if shouldUseStoredValues else pd.DataFrame()
 
 pd.set_option('display.max_colwidth', None)
 data['TargetSize'] = data['TargetSize'].astype('category')
@@ -50,6 +56,56 @@ data['conditionID'] = (data['SystemClockTimestampMs'].diff() <= 0).cumsum()
 
 ### Participants Height
 data['ParticipantHeight'] = data['HeadPositionY'] - data['TrackPositionY']
+
+def sliding_window_dispersion(df, column_name):
+    window_length_ms = 1200 # 100 bpm means 0.6 sec per step => 1.2 for two steps.
+    half_window_length_ms = window_length_ms / 2
+    step_size = 10
+
+    df[f'{column_name}_std'] = np.nan
+    df[f'{column_name}_range'] = np.nan
+
+    result_list = []
+
+    # Process each condition separately
+    for condition_id in df['conditionID'].unique():
+        condition_df = df[df['conditionID'] == condition_id].copy().reset_index(drop=True)
+
+        # Precompute window bounds
+        timestamps = condition_df['SystemClockTimestampMs'].values
+
+        # Iterate over the rows with a sliding window
+        for start_idx in range(0, len(condition_df), step_size):
+            
+            # The below approach means that the first row will only use the values of the following participant step, and likewese with the last row.
+            # We just get all the rows with timestamps within the timeframe of 1.2 seconds
+            start_time = timestamps[start_idx] - half_window_length_ms
+            end_time = timestamps[start_idx] + half_window_length_ms
+
+            window_mask = (timestamps >= start_time) & (timestamps < end_time)
+            window_df = condition_df[window_mask]
+            
+            std_val = window_df[column_name].std()
+            range_val = window_df[column_name].max() - window_df[column_name].min()
+            
+            # Update the stats for each row within the window
+            condition_df.loc[window_mask, f'{column_name}_std'] = std_val
+            condition_df.loc[window_mask, f'{column_name}_range'] = range_val
+        
+        df.update(condition_df.set_index(['conditionID', 'MeasurementID'])[[f'{column_name}_std', f'{column_name}_range']].reset_index())
+
+        result_list.append(condition_df)
+
+    # Concatenate results and merge with the original dataframe
+    result_df = pd.concat(result_list)
+    df = df.drop(columns=[f'{column_name}_std', f'{column_name}_range'])
+    df = df.merge(result_df[['conditionID', 'MeasurementID', f'{column_name}_std', f'{column_name}_range']], on=['conditionID', 'MeasurementID'], how='left')
+
+
+    return df
+
+# Example usage
+data = sliding_window_dispersion(data, column_name='ParticipantHeight')
 
 ### Decline
 data['Decline'] = data['ParticipantHeight'] - data['AllTargetsPositionY']
@@ -96,7 +152,10 @@ def calculate_distance_to_projection(row):
     distance_to_projection = np.linalg.norm(parallel_line_vector - head_position)
     return distance_to_projection
 
-data['Depth'] = data.apply(calculate_distance_to_projection, axis=1)
+if not shouldUseStoredValues or 'Depth' not in existing_data.columns:
+    data['Depth'] = data.apply(calculate_distance_to_projection, axis=1)
+else:
+    data = pd.concat([data,existing_data['Depth']], axis = 1)
 
 ### Lateral Shift
 def calculate_lateral_shift(row):
@@ -115,7 +174,10 @@ def calculate_lateral_shift(row):
 
     return distance
 
-data['LateralShift'] = data.apply(calculate_lateral_shift, axis=1)
+if not shouldUseStoredValues or 'LateralShift' not in existing_data.columns:
+    data['LateralShift'] = data.apply(calculate_lateral_shift, axis=1)
+else:
+    data = pd.concat([data,existing_data['LateralShift']], axis = 1)
 
 ### Decline angle  
 data['DeclineAngle'] = np.rad2deg(np.arctan(data['Decline']/data['Depth']))
@@ -148,7 +210,11 @@ def calculate_relative_pitch(row):
     else:
         return -relativePitch, -absolutePitch
 
-data[['RelativeTargetPitch', 'AbsoluteTargetPitch']] = data.apply(calculate_relative_pitch, axis=1, result_type='expand')
+if not shouldUseStoredValues or 'RelativeTargetPitch' not in existing_data.columns or 'AbsoluteTargetPitch' not in existing_data.columns:
+    data[['RelativeTargetPitch', 'AbsoluteTargetPitch']] = data.apply(calculate_relative_pitch, axis=1, result_type='expand')
+else:
+    data = pd.concat([data,existing_data['RelativeTargetPitch']], axis = 1)
+    data = pd.concat([data,existing_data['AbsoluteTargetPitch']], axis = 1)
 
 ### Relative Yaw
 def calculate_relative_yaw(row):
@@ -177,7 +243,11 @@ def calculate_relative_yaw(row):
         return -relativeYaw, -absoluteYaw
 
 
-data[['RelativeTargetYaw', 'AbsoluteTargetYaw']] = data.apply(calculate_relative_yaw, axis=1, result_type='expand')
+if not shouldUseStoredValues or 'RelativeTargetYaw' not in existing_data.columns or 'AbsoluteTargetYaw' not in existing_data.columns:
+    data[['RelativeTargetYaw', 'AbsoluteTargetYaw']] = data.apply(calculate_relative_yaw, axis=1, result_type='expand')
+else:
+    data = pd.concat([data,existing_data['RelativeTargetYaw']], axis = 1)
+    data = pd.concat([data,existing_data['AbsoluteTargetYaw']], axis = 1)
 
 ### Relative Roll
 def calculate_relative_roll(row):
@@ -201,7 +271,10 @@ def calculate_relative_roll(row):
     else:
         return -roll
 
-data['RelativeTargetRoll'] = data.apply(calculate_relative_roll, axis=1)
+if not shouldUseStoredValues or 'RelativeTargetRoll' not in existing_data.columns:
+    data['RelativeTargetRoll'] = data.apply(calculate_relative_roll, axis=1)
+else:
+    data = pd.concat([data,existing_data['RelativeTargetRoll']], axis = 1)
 
 data = data[data['Movement'].isin(['Circle', 'Walking'])] # Remove Standing
 # print(data.iloc[49000:49040])
@@ -222,6 +295,9 @@ def invert_for_left_hand(row):
 
 data = data.apply(invert_for_left_hand, axis=1)
 
+if not shouldUseStoredValues:
+    data.to_csv(storedDataFileName, index=False) 
+
 result = data.groupby(['ParticipantID', 'ReferenceFrame', 'Movement', 'TargetSize']).agg(
     ParticipantID=('ParticipantID', 'first'),
     ReferenceFrame=('ReferenceFrame', 'first'),
@@ -230,6 +306,8 @@ result = data.groupby(['ParticipantID', 'ReferenceFrame', 'Movement', 'TargetSiz
     DominantHand=('DominantHand', 'first'),
     TargetSize=('TargetSize', 'first'),
     ParticipantHeight=('ParticipantHeight', 'mean'),
+    ParticipantHeight_std=('ParticipantHeight_std', 'mean'),
+    ParticipantHeight_range=('ParticipantHeight_range', 'mean'),
     Decline=('Decline', 'mean'),
     Depth=('Depth', 'mean'),
     LateralShift=('LateralShift', 'mean'),
