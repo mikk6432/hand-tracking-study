@@ -4,6 +4,8 @@ import numpy as np
 import glob
 import os
 import math
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 data = pd.DataFrame()
 
@@ -115,26 +117,40 @@ data['InFrontOfHeadPathZ'] = data['WalkingDirectionPositionZ'] + data['WalkingDi
 norm_of_track_wd = np.linalg.norm(np.array([data['InFrontOfHeadPathX'],data['InFrontOfHeadPathZ']]) - np.array([data['TrackPositionX'], data['TrackPositionZ']]), axis=0)
 data['PathWalkingDirectionX'] = np.where(
     data['Movement'] == 'Circle', 
-    1.33 / norm_of_track_wd * (data['InFrontOfHeadPathX'] - data['TrackPositionX']), 
+    1.33 / norm_of_track_wd * (data['InFrontOfHeadPathX'] - data['TrackPositionX']) + data['TrackPositionX'], 
     data['InFrontOfHeadPathX']
 )
 data['PathWalkingDirectionZ'] = np.where(
     data['Movement'] == 'Circle',
-    1.33 / norm_of_track_wd * (data['InFrontOfHeadPathZ'] - data['TrackPositionZ']),
+    1.33 / norm_of_track_wd * (data['InFrontOfHeadPathZ'] - data['TrackPositionZ']) + data['TrackPositionZ'],
     data['InFrontOfHeadPathZ']
 )
 data['PathForwardX'] = data['PathWalkingDirectionX'] - data['WalkingDirectionPositionX']
 data['PathForwardZ'] = data['PathWalkingDirectionZ'] - data['WalkingDirectionPositionZ']
-data['PathForwardX'] = data['PathForwardX'] / np.linalg.norm(data[['PathForwardX', 'PathForwardZ']], axis=1)
-data['PathForwardZ'] = data['PathForwardZ'] / np.linalg.norm(data[['PathForwardX', 'PathForwardZ']], axis=1)
+normed_p_f= np.linalg.norm(data[['PathForwardX', 'PathForwardZ']], axis=1)
+data['PathForwardX'] = data['PathForwardX'] / normed_p_f
+data['PathForwardZ'] = data['PathForwardZ'] / normed_p_f
 
 data = data.drop(columns=['InFrontOfHeadPathX', 'InFrontOfHeadPathZ', 'PathWalkingDirectionX', 'PathWalkingDirectionZ'])
 data['DepthFromWD'] = np.linalg.norm(np.array([data['AllTargetsPositionX'] - data['WalkingDirectionPositionX'], data['AllTargetsPositionZ'] - data['WalkingDirectionPositionZ']], dtype=np.float64), axis=0)
 data['HeightFromWD'] = data['AllTargetsPositionY'] - data['WalkingDirectionPositionY']
-print(data.groupby(['Movement', 'ReferenceFrame', 'ParticipantID']).agg({'DepthFromWD': 'std', 'HeightFromWD': 'std'}).to_string())
-print(data[data['Movement'] == 'Circle'].head())
+depths = data.groupby(['Movement', 'ReferenceFrame', 'ParticipantID']).agg({'DepthFromWD': 'mean', 'HeightFromWD': 'mean'}).reset_index()
+depths = depths[(depths["ReferenceFrame"] == "PathReferenced") & (depths["Movement"] == "Walking")]
+depths = depths.drop(columns=['Movement', 'ReferenceFrame'])
+depths = depths.set_index('ParticipantID')
+data['PathPositionX'] = data['WalkingDirectionPositionX'] + data['PathForwardX'] * depths['DepthFromWD'][data['ParticipantID']].reset_index(drop=True)
+data['PathPositionZ'] = data['WalkingDirectionPositionZ'] + data['PathForwardZ'] * depths['DepthFromWD'][data['ParticipantID']].reset_index(drop=True)
+data['PathPositionY'] = data['WalkingDirectionPositionY'] + depths['HeightFromWD'][data['ParticipantID']].reset_index(drop=True)
+data['DiffFromPathX'] = data['AllTargetsPositionX'] - data['PathPositionX']
+data['DiffFromPathZ'] = data['AllTargetsPositionZ'] - data['PathPositionZ']
+data['DiffFromPathY'] = data['AllTargetsPositionY'] - data['PathPositionY']
+data['DiffFromPath'] = np.linalg.norm(data[['DiffFromPathX', 'DiffFromPathZ', 'DiffFromPathY']], axis=1)
+groupDiff = data.groupby(['ReferenceFrame','Movement']).agg({'DiffFromPath': 'std', 'DiffFromPathX': 'std', 'DiffFromPathZ': 'std', 'DiffFromPathY': 'std'}).reset_index()
+print(groupDiff.to_string())
 
-# exit()
+data = data[data['Movement'] != 'Standing']
+sns.boxplot(data, x='Movement', y='DiffFromPath', hue='ReferenceFrame', whis=(0,100))
+plt.show()
 
 ### Depth
 def get_projection(row):
