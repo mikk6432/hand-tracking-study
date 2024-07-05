@@ -95,7 +95,6 @@ print(groupDiff.to_string())
 data = data[data['Movement'] != 'Standing']
 sns.boxplot(data, x='Movement', y='DiffFromPath', hue='ReferenceFrame', whis=(0,100))
 plt.show()
-exit()
 
 ### Depth
 def get_projection(row):
@@ -155,14 +154,17 @@ def calculate_relative_pitch(row):
     plane_projection /= np.linalg.norm(plane_projection)
     target_to_head_vector /= np.linalg.norm(target_to_head_vector)
 
-    pitch = np.rad2deg(np.arccos(np.dot(target_to_head_vector, plane_projection)))
+    relativePitch = np.rad2deg(np.arccos(np.dot(target_to_head_vector, plane_projection)))
+    horizontal_projection = np.array([target_to_head_vector[0], 0, target_to_head_vector[2]])
+    horizontal_projection /= np.linalg.norm(horizontal_projection)
+    absolutePitch = np.rad2deg(np.arccos(np.dot(horizontal_projection, plane_projection)))
     # If targets points higher than targets_to_head: return positive pitch, else negative
     if plane_projection[1] > target_to_head_vector[1]:
-        return pitch
+        return relativePitch, absolutePitch
     else:
-        return -pitch
+        return -relativePitch, -absolutePitch
 
-data['RelativeTargetPitch'] = data.apply(calculate_relative_pitch, axis=1)
+data[['RelativeTargetPitch', 'AbsoluteTargetPitch']] = data.apply(calculate_relative_pitch, axis=1, result_type='expand')
 
 ### Relative Yaw
 def calculate_relative_yaw(row):
@@ -178,16 +180,20 @@ def calculate_relative_yaw(row):
     # Projection of targets_vector onto vertical plane containing targets_to_head_vector.
     target_projection_on_plane = targets_vector - (np.dot(targets_vector, plane_normal_vector) * plane_normal_vector)
     target_projection_on_plane /= np.linalg.norm(target_projection_on_plane)
-    yaw = np.rad2deg(np.arccos(np.dot(target_to_head_vector, target_projection_on_plane)))
+    backwards_walking_direction = -np.array([row['WalkingDirectionForwardX'], row['WalkingDirectionForwardY'], row['WalkingDirectionForwardZ']])
+    backwards_walking_direction_projection_on_plane = backwards_walking_direction - (np.dot(backwards_walking_direction, plane_normal_vector) * plane_normal_vector)
+    backwards_walking_direction_projection_on_plane /= np.linalg.norm(backwards_walking_direction_projection_on_plane)
+    relativeYaw = np.rad2deg(np.arccos(np.dot(target_to_head_vector, target_projection_on_plane)))
+    absoluteYaw = np.rad2deg(np.arccos(np.dot(backwards_walking_direction_projection_on_plane, target_projection_on_plane)))
     # If targets points higher than targets_to_head: return positive pitch, else negative
     direction = np.dot(target_projection_on_plane, temp_plane_normal_vector)
     if direction > 0:
-        return yaw
+        return relativeYaw, absoluteYaw
     else:
-        return -yaw
+        return -relativeYaw, -absoluteYaw
 
 
-data['RelativeTargetYaw'] = data.apply(calculate_relative_yaw, axis=1)
+data[['RelativeTargetYaw', 'AbsoluteTargetYaw']] = data.apply(calculate_relative_yaw, axis=1, result_type='expand')
 
 ### Relative Roll
 def calculate_relative_roll(row):
@@ -246,7 +252,9 @@ result = data.groupby(['ParticipantID', 'ReferenceFrame', 'Movement', 'TargetSiz
     DeclineAngle=('DeclineAngle', 'mean'),
     LateralShiftAngle=('LateralShiftAngle', 'mean'),
     RelativeTargetPitch=('RelativeTargetPitch', 'mean'),
+    AbsoluteTargetPitch=('AbsoluteTargetPitch', 'mean'),
     RelativeTargetYaw=('RelativeTargetYaw', 'mean'),
+    AbsoluteTargetYaw=('AbsoluteTargetYaw', 'mean'),
     RelativeTargetRoll=('RelativeTargetRoll', 'mean'),
 )
 
