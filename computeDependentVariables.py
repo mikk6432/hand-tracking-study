@@ -61,56 +61,35 @@ data['ParticipantHeight'] = data['HeadPositionY'] - data['TrackPositionY']
 
 def sliding_window_dispersion(df, column_name):
     window_length_ms = 1200 # 100 bpm means 0.6 sec per step => 1.2 for two steps.
-    half_window_length_ms = window_length_ms / 2
-    step_size = 10
-
-    df[f'{column_name}_std'] = np.nan
-    df[f'{column_name}_range'] = np.nan
-
-    result_list = []
-
-    # Process each condition separately
-    for condition_id in df['conditionID'].unique():
-        condition_df = df[df['conditionID'] == condition_id].copy().reset_index(drop=True)
-
-        # Precompute window bounds
-        timestamps = condition_df['SystemClockTimestampMs'].values
-
-        # Iterate over the rows with a sliding window
-        for start_idx in range(0, len(condition_df), step_size):
-            
-            # The below approach means that the first row will only use the values of the following participant step, and likewese with the last row.
-            # We just get all the rows with timestamps within the timeframe of 1.2 seconds
-            start_time = timestamps[start_idx] - half_window_length_ms
-            end_time = timestamps[start_idx] + half_window_length_ms
-
-            window_mask = (timestamps >= start_time) & (timestamps < end_time)
-            window_df = condition_df[window_mask]
-            
-            std_val = window_df[column_name].std()
-            range_val = window_df[column_name].max() - window_df[column_name].min()
-            
-            # Update the stats for each row within the window
-            condition_df.loc[window_mask, f'{column_name}_std'] = std_val
-            condition_df.loc[window_mask, f'{column_name}_range'] = range_val
-        
-        df.update(condition_df.set_index(['conditionID', 'MeasurementID'])[[f'{column_name}_std', f'{column_name}_range']].reset_index())
-
-        result_list.append(condition_df)
-
-    # Concatenate results and merge with the original dataframe
-    result_df = pd.concat(result_list)
-    df = df.drop(columns=[f'{column_name}_std', f'{column_name}_range'])
-    df = df.merge(result_df[['conditionID', 'MeasurementID', f'{column_name}_std', f'{column_name}_range']], on=['conditionID', 'MeasurementID'], how='left')
-
-
-    return df
+    df['index1'] = df.index
+    df = df.set_index(['ParticipantID', 'ReferenceFrame', 'Movement', 'TargetSize', 'SystemClockTimestampMs'])
+    df_tmp = df.sort_index()
+    rolling_matrix = df.apply(lambda x: 
+        df_tmp.loc[(x.name[0], x.name[1], x.name[2], x.name[3], 
+                slice(x.name[4] - window_length_ms, x.name[4] + window_length_ms)), column_name], 
+                axis=1)
+    return rolling_matrix.values
 
 # Example usage
 data = sliding_window_dispersion(data, column_name='ParticipantHeight')
 
 ### Decline
 data['Decline'] = data['ParticipantHeight'] - data['AllTargetsPositionY']
+
+data['HandHeightAboveGround'] = data['ControllerPositionY'] - data['TrackPositionY']
+
+data['HandRotationMeanX'] = np.mean(sliding_window_dispersion(data, column_name='ControllerForwardX'), axis=1)
+data['HandRotationMeanY'] = np.mean(sliding_window_dispersion(data, column_name='ControllerForwardY'), axis=1)
+data['HandRotationMeanZ'] = np.mean(sliding_window_dispersion(data, column_name='ControllerForwardZ'), axis=1)
+data['AngleOFHandRotationFromMean'] = np.arccos(
+    np.dot(
+        np.array([data['ControllerForwardX'], data['ControllerForwardY'], data['ControllerForwardZ']]).T,
+        np.array([data['HandRotationMeanX'], data['HandRotationMeanY'], data['HandRotationMeanZ']]).T
+    ) /
+    (np.linalg.norm(np.array([data['ControllerForwardX'], data['ControllerForwardY'], data['ControllerForwardZ']], dtype=np.float64), axis=0) * np.linalg.norm(np.array([data['HandRotationMeanX'], data['HandRotationMeanY'], data['HandRotationMeanZ']], dtype=np.float64), axis=0))
+)
+print(data.head())
+exit()
 
 data['InFrontOfHeadPathX'] = data['WalkingDirectionPositionX'] + data['WalkingDirectionForwardX'] * 0.3
 data['InFrontOfHeadPathZ'] = data['WalkingDirectionPositionZ'] + data['WalkingDirectionForwardZ'] * 0.3
