@@ -59,37 +59,69 @@ data['conditionID'] = (data['SystemClockTimestampMs'].diff() <= 0).cumsum()
 ### Participants Height
 data['ParticipantHeight'] = data['HeadPositionY'] - data['TrackPositionY']
 
-def sliding_window_dispersion(df, column_name):
+def sliding_window_dispersion(df, column_name, func):
     window_length_ms = 1200 # 100 bpm means 0.6 sec per step => 1.2 for two steps.
     df['index1'] = df.index
     df = df.set_index(['ParticipantID', 'ReferenceFrame', 'Movement', 'TargetSize', 'SystemClockTimestampMs'])
     df_tmp = df.sort_index()
     rolling_matrix = df.apply(lambda x: 
-        df_tmp.loc[(x.name[0], x.name[1], x.name[2], x.name[3], 
-                slice(x.name[4] - window_length_ms, x.name[4] + window_length_ms)), column_name], 
+        func(df_tmp.loc[(x.name[0], x.name[1], x.name[2], x.name[3], 
+                slice(x.name[4] - window_length_ms, x.name[4] + window_length_ms)), column_name].values), 
                 axis=1)
     return rolling_matrix.values
-
-# Example usage
-data = sliding_window_dispersion(data, column_name='ParticipantHeight')
 
 ### Decline
 data['Decline'] = data['ParticipantHeight'] - data['AllTargetsPositionY']
 
-data['HandHeightAboveGround'] = data['ControllerPositionY'] - data['TrackPositionY']
+data['HandHeightAboveGround'] = np.where(data['ReferenceFrame'] == 'PathReferenced', data['AllTargetsPositionY'] - data['TrackPositionY'], data['ControllerPositionY'] - data['TrackPositionY'])
 
-data['HandRotationMeanX'] = np.mean(sliding_window_dispersion(data, column_name='ControllerForwardX'), axis=1)
-data['HandRotationMeanY'] = np.mean(sliding_window_dispersion(data, column_name='ControllerForwardY'), axis=1)
-data['HandRotationMeanZ'] = np.mean(sliding_window_dispersion(data, column_name='ControllerForwardZ'), axis=1)
-data['AngleOFHandRotationFromMean'] = np.arccos(
-    np.dot(
-        np.array([data['ControllerForwardX'], data['ControllerForwardY'], data['ControllerForwardZ']]).T,
-        np.array([data['HandRotationMeanX'], data['HandRotationMeanY'], data['HandRotationMeanZ']]).T
-    ) /
-    (np.linalg.norm(np.array([data['ControllerForwardX'], data['ControllerForwardY'], data['ControllerForwardZ']], dtype=np.float64), axis=0) * np.linalg.norm(np.array([data['HandRotationMeanX'], data['HandRotationMeanY'], data['HandRotationMeanZ']], dtype=np.float64), axis=0))
-)
-print(data.head())
-exit()
+walking_direction_right = np.cross(data[['WalkingDirectionForwardX', 'WalkingDirectionForwardY', 'WalkingDirectionForwardZ']], np.array([0, 1, 0]))
+data['WalkingDirectionRightX'] = walking_direction_right[:,0]
+data['WalkingDirectionRightY'] = walking_direction_right[:,1]
+data['WalkingDirectionRightZ'] = walking_direction_right[:,2]
+
+def to_path_axes(x,y,z):
+    data[x+'Relative'] = np.sum(np.array([data[x], data[y], data[z]], dtype=np.float64) * np.array([data['WalkingDirectionRightX'], data['WalkingDirectionRightY'], data['WalkingDirectionRightZ']], dtype=np.float64), axis=0)
+    data[y+'Relative'] = np.sum(np.array([data[x], data[y], data[z]], dtype=np.float64) * np.array([data['WalkingDirectionUpX'], data['WalkingDirectionUpY'], data['WalkingDirectionUpZ']], dtype=np.float64), axis=0)
+    data[z+'Relative'] = np.sum(np.array([data[x], data[y], data[z]], dtype=np.float64) * np.array([data['WalkingDirectionForwardX'], data['WalkingDirectionForwardY'], data['WalkingDirectionForwardZ'],], dtype=np.float64), axis=0)
+
+to_path_axes('ControllerForwardX', 'ControllerForwardY', 'ControllerForwardZ')
+to_path_axes('AllTargetsForwardX', 'AllTargetsForwardY', 'AllTargetsForwardZ')
+data['HandRotationMeanX'] = sliding_window_dispersion(data, column_name='ControllerForwardXRelative', func=np.mean)
+data['HandRotationMeanY'] = sliding_window_dispersion(data, column_name='ControllerForwardYRelative', func=np.mean)
+data['HandRotationMeanZ'] = sliding_window_dispersion(data, column_name='ControllerForwardZRelative', func=np.mean)
+data['AllTargetsRotationMeanX'] = sliding_window_dispersion(data, column_name='AllTargetsForwardXRelative', func=np.mean)
+data['AllTargetsRotationMeanY'] = sliding_window_dispersion(data, column_name='AllTargetsForwardYRelative', func=np.mean)
+data['AllTargetsRotationMeanZ'] = sliding_window_dispersion(data, column_name='AllTargetsForwardZRelative', func=np.mean)
+data['AngleOFHandRotationFromMean'] = np.nan_to_num(np.where(data['ReferenceFrame'] != 'PathReferenced', np.arccos(
+    data['ControllerForwardXRelative'] * data['HandRotationMeanX'] +
+    data['ControllerForwardYRelative'] * data['HandRotationMeanY'] +
+    data['ControllerForwardZRelative'] * data['HandRotationMeanZ']
+) * (180 / np.pi), np.arccos(
+    data['AllTargetsForwardXRelative'] * data['AllTargetsRotationMeanX'] +
+    data['AllTargetsForwardYRelative'] * data['AllTargetsRotationMeanY'] +
+    data['AllTargetsForwardZRelative'] * data['AllTargetsRotationMeanZ']
+) * (180 / np.pi)))
+
+data['ControllerPositionXDiff'] = data['ControllerPositionX'] - data['WalkingDirectionPositionX']
+data['ControllerPositionYDiff'] = data['ControllerPositionY'] - data['WalkingDirectionPositionY']
+data['ControllerPositionZDiff'] = data['ControllerPositionZ'] - data['WalkingDirectionPositionZ']
+data['AllTargetsPositionXDiff'] = data['AllTargetsPositionX'] - data['WalkingDirectionPositionX']
+data['AllTargetsPositionYDiff'] = data['AllTargetsPositionY'] - data['WalkingDirectionPositionY']
+data['AllTargetsPositionZDiff'] = data['AllTargetsPositionZ'] - data['WalkingDirectionPositionZ']
+to_path_axes('ControllerPositionXDiff', 'ControllerPositionYDiff', 'ControllerPositionZDiff')
+to_path_axes('AllTargetsPositionXDiff', 'AllTargetsPositionYDiff', 'AllTargetsPositionZDiff')
+data['HandPositionMeanX'] = sliding_window_dispersion(data, column_name='ControllerPositionXDiffRelative', func=np.mean)
+data['HandPositionMeanY'] = sliding_window_dispersion(data, column_name='ControllerPositionYDiffRelative', func=np.mean)
+data['HandPositionMeanZ'] = sliding_window_dispersion(data, column_name='ControllerPositionZDiffRelative', func=np.mean)
+data['AllTargetsPositionMeanX'] = sliding_window_dispersion(data, column_name='AllTargetsPositionXDiffRelative', func=np.mean)
+data['AllTargetsPositionMeanY'] = sliding_window_dispersion(data, column_name='AllTargetsPositionYDiffRelative', func=np.mean)
+data['AllTargetsPositionMeanZ'] = sliding_window_dispersion(data, column_name='AllTargetsPositionZDiffRelative', func=np.mean)
+data['HandPositionFromMean'] = np.where(data['ReferenceFrame'] != 'PathReferenced', 
+        np.linalg.norm(np.array([data['ControllerPositionXDiffRelative'] - data['HandPositionMeanX'], data['ControllerPositionYDiffRelative'] - data['HandPositionMeanY'], data['ControllerPositionZDiffRelative'] - data['HandPositionMeanZ']], dtype=np.float64), axis=0), 
+        np.linalg.norm(np.array([data['AllTargetsPositionXDiffRelative'] - data['AllTargetsPositionMeanX'], data['AllTargetsPositionYDiffRelative'] - data['AllTargetsPositionMeanY'], data['AllTargetsPositionZDiffRelative'] - data['AllTargetsPositionMeanZ']], dtype=np.float64), axis=0)
+    )
+print("Three extra variables done.")
 
 data['InFrontOfHeadPathX'] = data['WalkingDirectionPositionX'] + data['WalkingDirectionForwardX'] * 0.3
 data['InFrontOfHeadPathZ'] = data['WalkingDirectionPositionZ'] + data['WalkingDirectionForwardZ'] * 0.3
@@ -125,16 +157,12 @@ data['DiffFromPathZ'] = data['AllTargetsPositionZ'] - data['PathPositionZ']
 data['DiffFromPathY'] = data['AllTargetsPositionY'] - data['PathPositionY']
 data['DiffFromPath'] = np.linalg.norm(data[['DiffFromPathX', 'DiffFromPathZ', 'DiffFromPathY']], axis=1)
 groupDiff = data.groupby(['ReferenceFrame','Movement']).agg({'DiffFromPath': 'std', 'DiffFromPathX': 'std', 'DiffFromPathZ': 'std', 'DiffFromPathY': 'std'}).reset_index()
-print(groupDiff.to_string())
-
-data = data[data['Movement'] != 'Standing']
-sns.boxplot(data, x='Movement', y='DiffFromPath', hue='ReferenceFrame', whis=(0,100))
-plt.show()
+#print(groupDiff.to_string())
 
 ### Depth
 def get_projection(row):
     head_position = np.array([row['HeadPositionX'], row['HeadPositionZ']])
-    walking_forward = np.array([row['WalkingDirectionForwardX'], row['WalkingDirectionForwardZ']])
+    walking_forward = np.array([row['PathForwardX'], row['PathForwardZ']])
     head_to_target_vector = np.array([row['AllTargetsPositionX'] - row['HeadPositionX'], row['AllTargetsPositionZ'] - row['HeadPositionZ']])
     projection = (np.dot(head_to_target_vector, walking_forward) / np.linalg.norm(walking_forward)**2) * walking_forward
     return head_position, projection, walking_forward, head_to_target_vector
@@ -274,12 +302,6 @@ else:
 data = data[data['Movement'].isin(['Circle', 'Walking'])] # Remove Standing
 # print(data.iloc[49000:49040])
 
-mean_path_referenced_data = data[data['ReferenceFrame'] == 'PathReferenced']
-mean_decline_depth_path = mean_path_referenced_data.groupby('ParticipantID').agg({
-    'Decline': 'mean',
-    'Depth': 'mean'
-}).reset_index()
-
 # Invert horizontal values for left handed people.
 def invert_for_left_hand(row):
     if row['DominantHand'] == 'Left':
@@ -293,50 +315,95 @@ data = data.apply(invert_for_left_hand, axis=1)
 if not shouldUseStoredValues:
     data.to_csv(storedDataFileName, index=False) 
 
-result = data.groupby(['ParticipantID', 'ReferenceFrame', 'Movement', 'TargetSize']).agg(
-    ParticipantID=('ParticipantID', 'first'),
-    ReferenceFrame=('ReferenceFrame', 'first'),
-    CircleDirection=('CircleDirection', 'first'),
-    Movement=('Movement', 'first'),
-    DominantHand=('DominantHand', 'first'),
-    TargetSize=('TargetSize', 'first'),
-    ParticipantHeight=('ParticipantHeight', 'mean'),
-    ParticipantHeight_std=('ParticipantHeight_std', 'mean'),
-    ParticipantHeight_range=('ParticipantHeight_range', 'mean'),
-    Decline=('Decline', 'mean'),
-    Depth=('Depth', 'mean'),
-    LateralShift=('LateralShift', 'mean'),
-    DeclineAngle=('DeclineAngle', 'mean'),
-    LateralShiftAngle=('LateralShiftAngle', 'mean'),
-    RelativeTargetPitch=('RelativeTargetPitch', 'mean'),
-    AbsoluteTargetPitch=('AbsoluteTargetPitch', 'mean'),
-    RelativeTargetYaw=('RelativeTargetYaw', 'mean'),
-    AbsoluteTargetYaw=('AbsoluteTargetYaw', 'mean'),
-    RelativeTargetRoll=('RelativeTargetRoll', 'mean'),
-)
 
-result = result.reset_index(drop=True)
+data['DeclineDiff'] = data['DiffFromPathY']
+data['DepthDiff'] = np.sum(np.array([data['DiffFromPathX'], data['DiffFromPathZ']], dtype=np.float64) * np.array([data['WalkingDirectionForwardX'], data['WalkingDirectionForwardZ']], dtype=np.float64), axis=0)
 
-mean_decline_depth_path = mean_decline_depth_path.rename(columns={'Decline': 'Path_mean_decline', 'Depth': 'Path_mean_depth'})
-result = result.merge(mean_decline_depth_path, on='ParticipantID', how='left')
-result['DeclineDiff'] = result['Decline'] - result['Path_mean_decline']
-result['DepthDiff'] = result['Depth'] - result['Path_mean_depth']
-result.to_csv(str(participant_start) + "-" + str(participant_end) + "_" + "additional_dependent_variables2.csv", index=False) 
+data['ParticipantHeightStd'] = sliding_window_dispersion(data, 'ParticipantHeight', np.std)
+data['ParticipantHeightPtp'] = sliding_window_dispersion(data, 'ParticipantHeight', np.ptp)
+print("Partcipant height done.")
+data['DeclineStd'] = sliding_window_dispersion(data, 'Decline', np.std)
+data['DeclinePtp'] = sliding_window_dispersion(data, 'Decline', np.ptp)
+print("Decline done.")
+data['DepthStd'] = sliding_window_dispersion(data, 'Depth', np.std)
+data['DepthPtp'] = sliding_window_dispersion(data, 'Depth', np.ptp)
+print("Depth done.")
+data['LateralShiftStd'] = sliding_window_dispersion(data, 'LateralShift', np.std)
+data['LateralShiftPtp'] = sliding_window_dispersion(data, 'LateralShift', np.ptp)
+print("Lateral shift done.")
+data['DeclineAngleStd'] = sliding_window_dispersion(data, 'DeclineAngle', np.std)
+data['DeclineAnglePtp'] = sliding_window_dispersion(data, 'DeclineAngle', np.ptp)
+print("Decline angle done.")
+data['LateralShiftAngleStd'] = sliding_window_dispersion(data, 'LateralShiftAngle', np.std)
+data['LateralShiftAnglePtp'] = sliding_window_dispersion(data, 'LateralShiftAngle', np.ptp)
+print("Lateral shift angle done.")
+data['RelativeTargetPitchStd'] = sliding_window_dispersion(data, 'RelativeTargetPitch', np.std)
+data['RelativeTargetPitchPtp'] = sliding_window_dispersion(data, 'RelativeTargetPitch', np.ptp)
+print("Relative target pitch done.")
+data['RelativeTargetYawStd'] = sliding_window_dispersion(data, 'RelativeTargetYaw', np.std)
+data['RelativeTargetYawPtp'] = sliding_window_dispersion(data, 'RelativeTargetYaw', np.ptp)
+print("Relative target yaw done.")
+data['RelativeTargetRollStd'] = sliding_window_dispersion(data, 'RelativeTargetRoll', np.std)
+data['RelativeTargetRollPtp'] = sliding_window_dispersion(data, 'RelativeTargetRoll', np.ptp)
+print("Relative target roll done.")
+data['DeclineDiffStd'] = sliding_window_dispersion(data, 'DeclineDiff', np.std)
+data['DeclineDiffPtp'] = sliding_window_dispersion(data, 'DeclineDiff', np.ptp)
+print("Decline diff done.")
+data['DepthDiffStd'] = sliding_window_dispersion(data, 'DepthDiff', np.std)
+data['DepthDiffPtp'] = sliding_window_dispersion(data, 'DepthDiff', np.ptp)
+print("Depth diff done.")
+data['DiffFromPathStd'] = sliding_window_dispersion(data, 'DiffFromPath', np.std)
+data['DiffFromPathPtp'] = sliding_window_dispersion(data, 'DiffFromPath', np.ptp)
+print("Diff from path done.")
+data['HandHeightAboveGroundStd'] = sliding_window_dispersion(data, 'HandHeightAboveGround', np.std)
+data['HandHeightAboveGroundPtp'] = sliding_window_dispersion(data, 'HandHeightAboveGround', np.ptp)
+print("Hand height above ground done.")
+data['AngleOFHandRotationFromMeanStd'] = sliding_window_dispersion(data, 'AngleOFHandRotationFromMean', np.std)
+data['AngleOFHandRotationFromMeanPtp'] = sliding_window_dispersion(data, 'AngleOFHandRotationFromMean', np.ptp)
+print("Angle of hand rotation from mean done.")
+data['HandPositionFromMeanStd'] = sliding_window_dispersion(data, 'HandPositionFromMean', np.std)
+data['HandPositionFromMeanPtp'] = sliding_window_dispersion(data, 'HandPositionFromMean', np.ptp)
+print("Hand position from mean done.")
 
-# Drop the reference columns if they are no longer needed
-result = result.drop(columns=['Path_mean_decline', 'Path_mean_depth'])
-
-refs = result.groupby(['ReferenceFrame']).agg(
-    ParticipantHeight=('ParticipantHeight', 'mean'),
-    Decline=('Decline', 'mean'),
-    Depth=('Depth', 'mean'),
-    LateralShift=('LateralShift', 'mean'),
-    DeclineAngle=('DeclineAngle', 'mean'),
-    LateralShiftAngle=('LateralShiftAngle', 'mean'),
-    RelativeTargetPitch=('RelativeTargetPitch', 'mean'),
-    RelativeTargetYaw=('RelativeTargetYaw', 'mean'),
-    DeclineDiff=('DeclineDiff', 'mean'),
-    DepthDiff=('DepthDiff', 'mean')
+refs = data.groupby(['ParticipantID', 'Movement', 'ReferenceFrame', 'TargetSize']).agg(
+    {
+        "ParticipantID": "first",
+        "Movement": "first",
+        "CircleDirection": "first",
+        "ReferenceFrame": "first",
+        "TargetSize": "first",
+        "ParticipantHeightStd": "mean",
+        "ParticipantHeightPtp": "mean",
+        "DeclineStd": "mean",
+        "DeclinePtp": "mean",
+        "DepthStd": "mean",
+        "DepthPtp": "mean",
+        "LateralShiftStd": "mean",
+        "LateralShiftPtp": "mean",
+        "DeclineAngleStd": "mean",
+        "DeclineAnglePtp": "mean",
+        "LateralShiftAngleStd": "mean",
+        "LateralShiftAnglePtp": "mean",
+        "RelativeTargetPitchStd": "mean",
+        "RelativeTargetPitchPtp": "mean",
+        "RelativeTargetYawStd": "mean",
+        "RelativeTargetYawPtp": "mean",
+        "RelativeTargetRollStd": "mean",
+        "RelativeTargetRollPtp": "mean",
+        "DeclineDiffStd": "mean",
+        "DeclineDiffPtp": "mean",
+        "DepthDiffStd": "mean",
+        "DepthDiffPtp": "mean",
+        "DiffFromPathStd": "mean",
+        "DiffFromPathPtp": "mean",
+        "HandHeightAboveGroundStd": "mean",
+        "HandHeightAboveGroundPtp": "mean",
+        "AngleOFHandRotationFromMeanStd": "mean",
+        "AngleOFHandRotationFromMeanPtp": "mean",
+        "HandPositionFromMeanStd": "mean",
+        "HandPositionFromMeanPtp": "mean",
+    }
 )
 
 print(refs.to_string())
+refs.to_csv(str(participant_start) + "-" + str(participant_end) + "_" + "reference_frame_dependent_variables.csv", index=False)
