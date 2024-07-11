@@ -70,9 +70,6 @@ def sliding_window_dispersion(df, column_name, func):
                 axis=1)
     return rolling_matrix.values
 
-### Decline
-data['Decline'] = data['ParticipantHeight'] - data['AllTargetsPositionY']
-
 data['HandHeightAboveGround'] = np.where(data['ReferenceFrame'] == 'PathReferenced', data['AllTargetsPositionY'] - data['TrackPositionY'], data['ControllerPositionY'] - data['TrackPositionY'])
 
 walking_direction_right = np.cross(data[['WalkingDirectionForwardX', 'WalkingDirectionForwardY', 'WalkingDirectionForwardZ']], np.array([0, 1, 0]))
@@ -162,7 +159,7 @@ groupDiff = data.groupby(['ReferenceFrame','Movement']).agg({'DiffFromPath': 'st
 ### Depth
 def get_projection(row):
     head_position = np.array([row['HeadPositionX'], row['HeadPositionZ']])
-    walking_forward = np.array([row['PathForwardX'], row['PathForwardZ']])
+    walking_forward = np.array([row['WalkingDirectionForwardX'], row['WalkingDirectionForwardZ']])
     head_to_target_vector = np.array([row['AllTargetsPositionX'] - row['HeadPositionX'], row['AllTargetsPositionZ'] - row['HeadPositionZ']])
     projection = (np.dot(head_to_target_vector, walking_forward) / np.linalg.norm(walking_forward)**2) * walking_forward
     return head_position, projection, walking_forward, head_to_target_vector
@@ -175,10 +172,10 @@ def calculate_distance_to_projection(row):
     distance_to_projection = np.linalg.norm(parallel_line_vector - head_position)
     return distance_to_projection
 
-if not shouldUseStoredValues or 'Depth' not in existing_data.columns:
-    data['Depth'] = data.apply(calculate_distance_to_projection, axis=1)
-else:
-    data = pd.concat([data,existing_data['Depth']], axis = 1)
+data['Decline'] = data['ParticipantHeight'] - data['AllTargetsPositionY']
+data['Depth'] = np.linalg.norm(np.array([data['AllTargetsPositionX'] - data['WalkingDirectionPositionX'], data['AllTargetsPositionZ'] - data['WalkingDirectionPositionZ']], dtype=np.float64), axis=0)
+data['DeclineDiff'] = data['DiffFromPathY']
+data['DepthDiff'] = np.sum(np.array([data['DiffFromPathX'], data['DiffFromPathZ']], dtype=np.float64) * np.array([data['WalkingDirectionForwardX'], data['WalkingDirectionForwardZ']], dtype=np.float64), axis=0)
 
 ### Lateral Shift
 def calculate_lateral_shift(row):
@@ -311,13 +308,6 @@ def invert_for_left_hand(row):
     return row
 
 data = data.apply(invert_for_left_hand, axis=1)
-
-if not shouldUseStoredValues:
-    data.to_csv(storedDataFileName, index=False) 
-
-
-data['DeclineDiff'] = data['DiffFromPathY']
-data['DepthDiff'] = np.sum(np.array([data['DiffFromPathX'], data['DiffFromPathZ']], dtype=np.float64) * np.array([data['WalkingDirectionForwardX'], data['WalkingDirectionForwardZ']], dtype=np.float64), axis=0)
 
 data['ParticipantHeightStd'] = sliding_window_dispersion(data, 'ParticipantHeight', np.std)
 data['ParticipantHeightPtp'] = sliding_window_dispersion(data, 'ParticipantHeight', np.ptp)
