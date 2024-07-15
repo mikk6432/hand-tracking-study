@@ -177,6 +177,45 @@ data['Depth'] = np.linalg.norm(np.array([data['AllTargetsPositionX'] - data['Wal
 data['DeclineDiff'] = data['DiffFromPathY']
 data['DepthDiff'] = np.sum(np.array([data['DiffFromPathX'], data['DiffFromPathZ']], dtype=np.float64) * np.array([data['WalkingDirectionForwardX'], data['WalkingDirectionForwardZ']], dtype=np.float64), axis=0)
 
+### Lateral head position
+def calculate_lateral_position(row):
+    walking_direction_to_head_vector = np.array([row['HeadPositionX'] - row['WalkingDirectionPositionX'], row['HeadPositionZ'] - row['WalkingDirectionPositionZ']])
+    distance = np.linalg.norm(walking_direction_to_head_vector)
+    cross_product = np.cross(np.append(walking_direction_to_head_vector, 0), np.append(np.array([row['WalkingDirectionForwardX'], row['WalkingDirectionForwardZ']]), 0))
+    if cross_product[2] < 0:
+        distance = -distance
+    return distance
+
+if not shouldUseStoredValues or 'LateralPosition' not in existing_data.columns:
+    data['LateralPosition'] = data.apply(calculate_lateral_position, axis=1)
+else:
+    data = pd.concat([data,existing_data['LateralPosition']], axis = 1)
+
+### Lateral Shift Torso
+def calculate_lateral_shift_torso(row):
+    head_position = np.array([row['HeadPositionX'], row['HeadPositionZ']])
+    walking_direction_to_targets = np.array([row['PathPositionX'] - row['WalkingDirectionPositionX'], row['PathPositionZ'] - row['WalkingDirectionPositionZ']])
+    head_to_target_vector = np.array([row['AllTargetsPositionX'] - row['HeadPositionX'], row['AllTargetsPositionZ'] - row['HeadPositionZ']])
+    projection = (np.dot(head_to_target_vector, walking_direction_to_targets) / np.linalg.norm(walking_direction_to_targets)**2) * walking_direction_to_targets
+    head_position + projection
+    parallel_line_vector = head_position + projection
+    head_to_target_vector = head_position + head_to_target_vector
+    # Calculate the vector perpendicular to the parallel line
+    perpendicular_vector = head_to_target_vector - parallel_line_vector
+    distance = np.linalg.norm(perpendicular_vector)
+
+    # Make distance negative if the targets are shiftet left, and keep positive if shiftet right
+    cross_product = np.cross(np.append(walking_direction_to_targets, 0), np.append(perpendicular_vector, 0))
+    if cross_product[2] > 0:
+        distance = -distance
+
+    return distance
+
+if not shouldUseStoredValues or 'LateralShiftTorso' not in existing_data.columns:
+    data['LateralShiftTorso'] = data.apply(calculate_lateral_shift_torso, axis=1)
+else:
+    data = pd.concat([data,existing_data['LateralShiftTorso']], axis = 1)
+
 ### Lateral Shift
 def calculate_lateral_shift(row):
     head_position, projection, walking_forward, head_to_target_vector = get_projection(row)
@@ -392,8 +431,10 @@ refs = data.groupby(['ParticipantID', 'Movement', 'ReferenceFrame', 'TargetSize'
         "AngleOFHandRotationFromMeanPtp": "mean",
         "HandPositionFromMeanStd": "mean",
         "HandPositionFromMeanPtp": "mean",
+        "LateralPosition": "mean",
+        "LateralShiftTorso": "mean",
     }
 )
 
 print(refs.to_string())
-refs.to_csv(str(participant_start) + "-" + str(participant_end) + "_" + "reference_frame_dependent_variables.csv", index=False)
+refs.to_csv(str(participant_start) + "-" + str(participant_end) + "_" + "reference_frame_dependent_variables2.csv", index=False)
