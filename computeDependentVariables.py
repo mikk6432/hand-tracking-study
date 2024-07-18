@@ -335,7 +335,7 @@ if not shouldUseStoredValues or 'RelativeTargetRoll' not in existing_data.column
 else:
     data = pd.concat([data,existing_data['RelativeTargetRoll']], axis = 1)
 
-data = data[data['Movement'].isin(['Circle', 'Walking'])] # Remove Standing
+#data = data[data['Movement'].isin(['Circle', 'Walking'])] # Remove Standing
 # print(data.iloc[49000:49040])
 
 # Invert horizontal values for left handed people.
@@ -393,6 +393,12 @@ print("Angle of hand rotation from mean done.")
 data['HandPositionFromMeanStd'] = sliding_window_dispersion(data, 'HandPositionFromMean', np.std)
 data['HandPositionFromMeanPtp'] = sliding_window_dispersion(data, 'HandPositionFromMean', np.ptp)
 print("Hand position from mean done.")
+data['LateralPositionStd'] = sliding_window_dispersion(data, 'LateralPosition', np.std)
+data['LateralPositionPtp'] = sliding_window_dispersion(data, 'LateralPosition', np.ptp)
+data['LateralShiftTorsoStd'] = sliding_window_dispersion(data, 'LateralShiftTorso', np.std)
+data['LateralShiftTorsoPtp'] = sliding_window_dispersion(data, 'LateralShiftTorso', np.ptp)
+print("Lateral position done.")
+
 
 refs = data.groupby(['ParticipantID', 'Movement', 'ReferenceFrame', 'TargetSize']).agg(
     {
@@ -433,6 +439,10 @@ refs = data.groupby(['ParticipantID', 'Movement', 'ReferenceFrame', 'TargetSize'
         "HandPositionFromMeanPtp": "mean",
         "LateralPosition": "mean",
         "LateralShiftTorso": "mean",
+        "LateralPositionStd": "mean",
+        "LateralPositionPtp": "mean",
+        "LateralShiftTorsoStd": "mean",
+        "LateralShiftTorsoPtp": "mean"
     }
 )
 
